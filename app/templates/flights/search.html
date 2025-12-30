@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Search Flights - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Search Flights</h1>
+    <p>Find your perfect flight</p>
+</div>
+
+<div class="search-container">
+    <form method="GET" action="{{ url_for('flight_search_results') }}" class="search-form">
+        <div class="search-grid">
+            <div class="form-group">
+                <label for="origin">From</label>
+                <select id="origin" name="origin" required>
+                    <option value="">Select origin city</option>
+                    {% for city in cities %}
+                    <option value="{{ city }}" {% if request.args.get('origin') == city %}selected{% endif %}>
+                        {{ city }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="destination">To</label>
+                <select id="destination" name="destination" required>
+                    <option value="">Select destination city</option>
+                    {% for city in cities %}
+                    <option value="{{ city }}" {% if request.args.get('destination') == city %}selected{% endif %}>
+                        {{ city }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="date">Departure Date</label>
+                <input type="date" 
+                       id="date" 
+                       name="date" 
+                       required
+                       min="{{ today }}"
+                       value="{{ request.args.get('date', '') }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="passengers">Passengers</label>
+                <select id="passengers" name="passengers">
+                    {% for i in range(1, 10) %}
+                    <option value="{{ i }}" {% if request.args.get('passengers', '1')|int == i %}selected{% endif %}>
+                        {{ i }} {{ 'passenger' if i == 1 else 'passengers' }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="search-actions">
+            <button type="submit" class="btn btn-primary btn-lg">
+                Search Flights
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="search-info">
+    <h3>Travel Tips</h3>
+    <ul>
+        <li>Book early for the best prices</li>
+        <li>Flexible dates can help you find cheaper flights</li>
+        <li>Orders can be cancelled up to 36 hours before departure</li>
+    </ul>
+</div>
+{% endblock %}

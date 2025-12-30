@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Flight Results - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Available Flights</h1>
+    <p>{{ origin }} → {{ destination }} on {{ date }}</p>
+</div>
+
+<div class="results-summary">
+    <span class="result-count">{{ flights|length }} flight{{ 's' if flights|length != 1 else '' }} found</span>
+    <a href="{{ url_for('flight_search') }}" class="btn btn-secondary btn-sm">Modify Search</a>
+</div>
+
+{% if flights %}
+<div class="flight-list">
+    {% for flight in flights %}
+    <div class="flight-card">
+        <div class="flight-times">
+            <div class="departure">
+                <span class="time">{{ flight.departure_time.strftime('%H:%M') }}</span>
+                <span class="city">{{ flight.origin }}</span>
+            </div>
+            <div class="flight-duration">
+                <span class="duration-line"></span>
+                <span class="duration-text">{{ flight.duration_minutes // 60 }}h {{ flight.duration_minutes % 60 }}m</span>
+                <span class="flight-number">{{ flight.flight_number }}</span>
+            </div>
+            <div class="arrival">
+                <span class="time">{{ flight.arrival_time.strftime('%H:%M') }}</span>
+                <span class="city">{{ flight.destination }}</span>
+            </div>
+        </div>
+        
+        <div class="flight-info">
+            <div class="aircraft-info">
+                <span class="aircraft-type">{{ flight.aircraft_type }}</span>
+                <span class="seats-available">{{ flight.available_seats }} seats available</span>
+            </div>
+        </div>
+        
+        <div class="flight-pricing">
+            <div class="price-options">
+                <div class="price-option">
+                    <span class="class-name">Economy</span>
+                    <span class="price">${{ "%.2f"|format(flight.economy_price) }}</span>
+                </div>
+                <div class="price-option">
+                    <span class="class-name">Business</span>
+                    <span class="price">${{ "%.2f"|format(flight.business_price) }}</span>
+                </div>
+                <div class="price-option">
+                    <span class="class-name">First</span>
+                    <span class="price">${{ "%.2f"|format(flight.first_price) }}</span>
+                </div>
+            </div>
+            
+            <a href="{{ url_for('flight_detail', flight_id=flight.id) }}?passengers={{ passengers }}" 
+               class="btn btn-primary">
+                Select Flight
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="no-results">
+    <div class="no-results-icon">✈</div>
+    <h2>No flights found</h2>
+    <p>We couldn't find any flights matching your search criteria.</p>
+    <p>Try adjusting your search parameters or selecting different dates.</p>
+    <a href="{{ url_for('flight_search') }}" class="btn btn-primary">Search Again</a>
+</div>
+{% endif %}
+{% endblock %}

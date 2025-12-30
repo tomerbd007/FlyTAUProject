@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report_title }} - FLYTAU Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <a href="{{ url_for('report_index') }}" class="back-link">← Back to Reports</a>
+    <h1>{{ report_title }}</h1>
+    {% if report_description %}
+    <p>{{ report_description }}</p>
+    {% endif %}
+</div>
+
+<div class="report-container">
+    {% if filters %}
+    <div class="report-filters">
+        <form method="GET" action="" class="filter-form">
+            {% if 'date_from' in filters %}
+            <div class="filter-group">
+                <label for="date_from">From:</label>
+                <input type="date" name="date_from" id="date_from" value="{{ request.args.get('date_from', '') }}">
+            </div>
+            {% endif %}
+            
+            {% if 'date_to' in filters %}
+            <div class="filter-group">
+                <label for="date_to">To:</label>
+                <input type="date" name="date_to" id="date_to" value="{{ request.args.get('date_to', '') }}">
+            </div>
+            {% endif %}
+            
+            {% if 'month' in filters %}
+            <div class="filter-group">
+                <label for="month">Month:</label>
+                <input type="month" name="month" id="month" value="{{ request.args.get('month', '') }}">
+            </div>
+            {% endif %}
+            
+            {% if 'year' in filters %}
+            <div class="filter-group">
+                <label for="year">Year:</label>
+                <select name="year" id="year">
+                    {% for y in available_years %}
+                    <option value="{{ y }}" {% if request.args.get('year')|int == y or (not request.args.get('year') and y == current_year) %}selected{% endif %}>
+                        {{ y }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+        </form>
+    </div>
+    {% endif %}
+    
+    {% if data %}
+    <div class="report-content">
+        {% if summary %}
+        <div class="report-summary">
+            {% for item in summary %}
+            <div class="summary-stat">
+                <span class="stat-value">{{ item.value }}</span>
+                <span class="stat-label">{{ item.label }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="report-table-container">
+            <table class="data-table report-table">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th>{{ column.label }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for column in columns %}
+                        <td class="{{ column.class|default('') }}">
+                            {% if column.type == 'currency' %}
+                            ${{ "%.2f"|format(row[column.key]) }}
+                            {% elif column.type == 'percent' %}
+                            {{ "%.1f"|format(row[column.key]) }}%
+                            {% elif column.type == 'number' %}
+                            {{ row[column.key] }}
+                            {% elif column.type == 'hours' %}
+                            {{ row[column.key] // 60 }}h {{ row[column.key] % 60 }}m
+                            {% elif column.type == 'date' %}
+                            {{ row[column.key].strftime('%b %d, %Y') if row[column.key] else '-' }}
+                            {% elif column.type == 'month' %}
+                            {{ row[column.key] }}
+                            {% else %}
+                            {{ row[column.key] }}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if totals %}
+                <tfoot>
+                    <tr class="totals-row">
+                        {% for column in columns %}
+                        <td class="{{ column.class|default('') }}">
+                            {% if column.key in totals %}
+                                {% if column.type == 'currency' %}
+                                <strong>${{ "%.2f"|format(totals[column.key]) }}</strong>
+                                {% elif column.type == 'percent' %}
+                                <strong>{{ "%.1f"|format(totals[column.key]) }}%</strong>
+                                {% elif column.type == 'hours' %}
+                                <strong>{{ totals[column.key] // 60 }}h {{ totals[column.key] % 60 }}m</strong>
+                                {% else %}
+                                <strong>{{ totals[column.key] }}</strong>
+                                {% endif %}
+                            {% elif loop.first %}
+                            <strong>Total</strong>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+        
+        <div class="report-footer">
+            <span class="row-count">{{ data|length }} row{{ 's' if data|length != 1 else '' }}</span>
+            <span class="generated-at">Generated on {{ now.strftime('%B %d, %Y at %H:%M') }}</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="no-data-message">
+        <div class="no-data-icon">📊</div>
+        <h2>No data available</h2>
+        <p>There is no data matching your current filters.</p>
+        {% if filters %}
+        <p>Try adjusting your filter criteria.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

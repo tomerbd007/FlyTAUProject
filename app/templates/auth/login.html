@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Login - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Customer Login</h1>
+        <p class="auth-subtitle">Sign in to manage your bookings</p>
+        
+        <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" 
+                       id="email" 
+                       name="email" 
+                       required 
+                       placeholder="your@email.com"
+                       value="{{ request.form.get('email', '') }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       required 
+                       placeholder="Your password">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                Sign In
+            </button>
+        </form>
+        
+        <div class="auth-links">
+            <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+            <p>Are you a manager? <a href="{{ url_for('manager_login') }}">Manager Login</a></p>
+        </div>
+        
+        <div class="auth-divider">
+            <span>or</span>
+        </div>
+        
+        <div class="guest-option">
+            <p>Want to book without an account?</p>
+            <a href="{{ url_for('flight_search') }}" class="btn btn-secondary btn-block">
+                Continue as Guest
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

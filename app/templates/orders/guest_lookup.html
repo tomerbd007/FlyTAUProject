@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Look Up Order - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Look Up Your Order</h1>
+    <p>Find your booking using your booking code and email</p>
+</div>
+
+<div class="lookup-container">
+    <div class="lookup-card">
+        <form method="POST" action="{{ url_for('guest_lookup') }}" class="lookup-form">
+            <div class="form-group">
+                <label for="booking_code">Booking Code</label>
+                <input type="text" 
+                       id="booking_code" 
+                       name="booking_code" 
+                       required
+                       placeholder="e.g., FLY-ABC123"
+                       pattern="FLY-[A-Z0-9]{6}"
+                       title="Booking code format: FLY- followed by 6 characters"
+                       value="{{ request.form.get('booking_code', '') }}">
+                <small class="form-hint">Format: FLY-XXXXXX (found in your confirmation email)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" 
+                       id="email" 
+                       name="email" 
+                       required
+                       placeholder="The email used during booking"
+                       value="{{ request.form.get('email', '') }}">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                Find My Order
+            </button>
+        </form>
+        
+        <div class="lookup-help">
+            <h3>Can't find your booking code?</h3>
+            <ul>
+                <li>Check your email for the confirmation we sent after booking</li>
+                <li>Look in your spam/junk folder</li>
+                <li>Contact support at <strong>support@flytau.com</strong></li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="lookup-info">
+        <h3>Already have an account?</h3>
+        <p>Sign in to view all your orders in one place.</p>
+        <a href="{{ url_for('login') }}" class="btn btn-secondary">Sign In</a>
+    </div>
+</div>
+{% endblock %}

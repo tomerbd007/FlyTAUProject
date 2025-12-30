@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Welcome to FLYTAU</h1>
+    <p>Your journey begins here. Search for flights and book your next adventure.</p>
+    
+    <div class="hero-search">
+        <form action="{{ url_for('flight_search') }}" method="GET" class="search-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="departure_date">Departure Date</label>
+                    <input type="date" id="departure_date" name="departure_date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="origin">From</label>
+                    <select id="origin" name="origin" required>
+                        <option value="">Select origin</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="destination">To</label>
+                    <select id="destination" name="destination" required>
+                        <option value="">Select destination</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-large">Search Flights</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<section class="features">
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>✈️ Wide Selection</h3>
+            <p>Browse through our extensive flight network connecting major destinations.</p>
+        </div>
+        
+        <div class="feature-card">
+            <h3>💺 Choose Your Seat</h3>
+            <p>Select your preferred seat from our interactive seat map.</p>
+        </div>
+        
+        <div class="feature-card">
+            <h3>🎫 Easy Booking</h3>
+            <p>Book as a guest or create an account for faster checkout.</p>
+        </div>
+        
+        <div class="feature-card">
+            <h3>📱 Manage Orders</h3>
+            <p>View and manage your bookings anytime with your booking code.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

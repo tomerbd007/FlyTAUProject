@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}{{ flight.flight_number }} - Flight Details - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="{{ url_for('flight_search_results') }}?origin={{ flight.origin }}&destination={{ flight.destination }}&date={{ flight.departure_time.strftime('%Y-%m-%d') }}&passengers={{ passengers }}" 
+       class="back-link">← Back to results</a>
+    <h1>Flight {{ flight.flight_number }}</h1>
+</div>
+
+<div class="flight-detail-container">
+    <div class="flight-detail-card">
+        <div class="flight-route">
+            <div class="route-point">
+                <span class="city">{{ flight.origin }}</span>
+                <span class="time">{{ flight.departure_time.strftime('%H:%M') }}</span>
+                <span class="date">{{ flight.departure_time.strftime('%a, %b %d, %Y') }}</span>
+            </div>
+            
+            <div class="route-line">
+                <div class="plane-icon">✈</div>
+                <div class="duration">{{ flight.duration_minutes // 60 }}h {{ flight.duration_minutes % 60 }}m</div>
+            </div>
+            
+            <div class="route-point">
+                <span class="city">{{ flight.destination }}</span>
+                <span class="time">{{ flight.arrival_time.strftime('%H:%M') }}</span>
+                <span class="date">{{ flight.arrival_time.strftime('%a, %b %d, %Y') }}</span>
+            </div>
+        </div>
+        
+        <div class="flight-meta">
+            <div class="meta-item">
+                <span class="meta-label">Aircraft</span>
+                <span class="meta-value">{{ flight.aircraft_type }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Flight Number</span>
+                <span class="meta-value">{{ flight.flight_number }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Status</span>
+                <span class="meta-value status-{{ flight.status }}">{{ flight.status|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="seat-availability">
+        <h2>Seat Availability</h2>
+        <div class="class-cards">
+            <div class="class-card">
+                <h3>First Class</h3>
+                <div class="seats-info">
+                    <span class="available">{{ seat_counts.first_available }}</span>
+                    <span class="label">seats available</span>
+                </div>
+                <div class="price">${{ "%.2f"|format(flight.first_price) }}</div>
+                <div class="price-label">per seat</div>
+            </div>
+            
+            <div class="class-card">
+                <h3>Business Class</h3>
+                <div class="seats-info">
+                    <span class="available">{{ seat_counts.business_available }}</span>
+                    <span class="label">seats available</span>
+                </div>
+                <div class="price">${{ "%.2f"|format(flight.business_price) }}</div>
+                <div class="price-label">per seat</div>
+            </div>
+            
+            <div class="class-card">
+                <h3>Economy Class</h3>
+                <div class="seats-info">
+                    <span class="available">{{ seat_counts.economy_available }}</span>
+                    <span class="label">seats available</span>
+                </div>
+                <div class="price">${{ "%.2f"|format(flight.economy_price) }}</div>
+                <div class="price-label">per seat</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="booking-action">
+        <p>Booking for <strong>{{ passengers }} passenger{{ 's' if passengers|int > 1 else '' }}</strong></p>
+        <a href="{{ url_for('seat_selection', flight_id=flight.id) }}?passengers={{ passengers }}" 
+           class="btn btn-primary btn-lg">
+            Select Seats
+        </a>
+    </div>
+</div>
+{% endblock %}

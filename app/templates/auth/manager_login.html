@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Login - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card auth-card-manager">
+        <div class="manager-badge">
+            <span>✈</span> Staff Portal
+        </div>
+        
+        <h1>Manager Login</h1>
+        <p class="auth-subtitle">Access the flight management system</p>
+        
+        <form method="POST" action="{{ url_for('manager_login') }}" class="auth-form">
+            <div class="form-group">
+                <label for="employee_code">Employee Code</label>
+                <input type="text" 
+                       id="employee_code" 
+                       name="employee_code" 
+                       required 
+                       placeholder="M001"
+                       pattern="M[0-9]{3}"
+                       title="Employee code format: M followed by 3 digits"
+                       value="{{ request.form.get('employee_code', '') }}">
+                <small class="form-hint">Format: M followed by 3 digits (e.g., M001)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       required 
+                       placeholder="Your password">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                Sign In as Manager
+            </button>
+        </form>
+        
+        <div class="auth-links">
+            <p>Not a manager? <a href="{{ url_for('login') }}">Customer Login</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

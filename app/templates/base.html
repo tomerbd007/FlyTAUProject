@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FLYTAU{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="{{ url_for('index') }}">
+                    <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="FLYTAU" class="logo">
+                    <span class="brand-name">FLYTAU</span>
+                </a>
+            </div>
+            
+            <ul class="nav-links">
+                <li><a href="{{ url_for('flights') }}">Flights</a></li>
+                
+                {% if session.get('role') == 'customer' %}
+                    <li><a href="{{ url_for('my_orders') }}">My Orders</a></li>
+                {% elif session.get('role') == 'manager' %}
+                    <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('admin_flights') }}">Manage Flights</a></li>
+                    <li><a href="{{ url_for('reports_index') }}">Reports</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('guest_lookup') }}">Find My Booking</a></li>
+                {% endif %}
+            </ul>
+            
+            <div class="nav-auth">
+                {% if session.get('user_id') %}
+                    <span class="user-name">{{ session.get('name', 'User') }}</span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-outline">Login</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">Register</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+    
+    <main class="main-content">
+        {% include 'partials/_flash_messages.html' %}
+        
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 FLYTAU - Tel Aviv University Database Systems Project</p>
+        </div>
+    </footer>
+</body>
+</html>

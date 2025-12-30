@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Booking Confirmed - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="confirmation-container">
+    <div class="confirmation-card">
+        <div class="confirmation-header">
+            <div class="success-icon">✓</div>
+            <h1>Booking Confirmed!</h1>
+            <p>Thank you for booking with FLYTAU</p>
+        </div>
+        
+        <div class="booking-code-section">
+            <span class="label">Your Booking Code</span>
+            <span class="booking-code">{{ order.booking_code }}</span>
+            <p class="booking-code-note">Save this code to manage your booking</p>
+        </div>
+        
+        <div class="confirmation-details">
+            <div class="detail-section">
+                <h2>Flight Details</h2>
+                <div class="flight-info-card">
+                    <div class="flight-route-display">
+                        <div class="point">
+                            <span class="city">{{ order.origin }}</span>
+                            <span class="time">{{ order.departure_time.strftime('%H:%M') }}</span>
+                        </div>
+                        <div class="route-arrow">
+                            <span class="flight-number">{{ order.flight_number }}</span>
+                            ✈ →
+                        </div>
+                        <div class="point">
+                            <span class="city">{{ order.destination }}</span>
+                            <span class="time">{{ order.arrival_time.strftime('%H:%M') }}</span>
+                        </div>
+                    </div>
+                    <div class="flight-date">
+                        {{ order.departure_time.strftime('%A, %B %d, %Y') }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h2>Your Seats</h2>
+                <div class="seats-list">
+                    {% for ticket in tickets %}
+                    <div class="seat-item">
+                        <span class="seat-number">{{ ticket.seat_number }}</span>
+                        <span class="seat-class">{{ ticket.seat_class|capitalize }}</span>
+                        <span class="seat-price">${{ "%.2f"|format(ticket.price) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h2>Payment Summary</h2>
+                <div class="payment-summary">
+                    <div class="summary-row">
+                        <span>Subtotal ({{ tickets|length }} seat{{ 's' if tickets|length > 1 else '' }})</span>
+                        <span>${{ "%.2f"|format(order.total_amount) }}</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total Paid</span>
+                        <span>${{ "%.2f"|format(order.total_amount) }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h2>Contact Information</h2>
+                <div class="contact-info">
+                    {% if order.customer_name %}
+                    <p><strong>Name:</strong> {{ order.customer_name }}</p>
+                    {% endif %}
+                    <p><strong>Email:</strong> {{ order.email }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="confirmation-actions">
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('my_orders') }}" class="btn btn-primary">
+                View My Orders
+            </a>
+            {% else %}
+            <a href="{{ url_for('guest_lookup') }}" class="btn btn-secondary">
+                Look Up Order
+            </a>
+            {% endif %}
+            <a href="{{ url_for('flight_search') }}" class="btn btn-secondary">
+                Book Another Flight
+            </a>
+        </div>
+        
+        <div class="confirmation-footer">
+            <p>A confirmation email has been sent to <strong>{{ order.email }}</strong></p>
+            <p>Questions? Contact us at <strong>support@flytau.com</strong></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

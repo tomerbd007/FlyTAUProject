@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel Flight - FLYTAU Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <a href="{{ url_for('admin_flights') }}" class="back-link">← Back to Flights</a>
+    <h1>Cancel Flight</h1>
+</div>
+
+<div class="cancel-container">
+    <div class="cancel-card admin-cancel">
+        <div class="warning-banner severe">
+            <span class="warning-icon">⚠</span>
+            <span>You are about to cancel this flight</span>
+        </div>
+        
+        <div class="flight-summary-section">
+            <h2>Flight Information</h2>
+            
+            <div class="flight-detail-display">
+                <div class="flight-header">
+                    <span class="flight-number">{{ flight.flight_number }}</span>
+                    <span class="status-badge status-{{ flight.status }}">{{ flight.status|capitalize }}</span>
+                </div>
+                
+                <div class="flight-route-detailed">
+                    <div class="route-point">
+                        <span class="time">{{ flight.departure_time.strftime('%H:%M') }}</span>
+                        <span class="city">{{ flight.origin }}</span>
+                        <span class="date">{{ flight.departure_time.strftime('%a, %b %d, %Y') }}</span>
+                    </div>
+                    <div class="route-line">
+                        <span class="duration">{{ flight.duration_minutes // 60 }}h {{ flight.duration_minutes % 60 }}m</span>
+                    </div>
+                    <div class="route-point">
+                        <span class="time">{{ flight.arrival_time.strftime('%H:%M') }}</span>
+                        <span class="city">{{ flight.destination }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="impact-section">
+            <h2>Cancellation Impact</h2>
+            
+            <div class="impact-stats">
+                <div class="impact-item">
+                    <span class="impact-number">{{ affected_orders }}</span>
+                    <span class="impact-label">Orders will be cancelled</span>
+                </div>
+                <div class="impact-item">
+                    <span class="impact-number">{{ affected_tickets }}</span>
+                    <span class="impact-label">Tickets will be refunded</span>
+                </div>
+                <div class="impact-item">
+                    <span class="impact-number">${{ "%.2f"|format(total_refund) }}</span>
+                    <span class="impact-label">Total refund amount</span>
+                </div>
+            </div>
+            
+            <div class="impact-note">
+                <p><strong>Note:</strong> All affected customers will receive a full refund (no cancellation fee applies when the airline cancels a flight).</p>
+            </div>
+        </div>
+        
+        <form method="POST" action="{{ url_for('admin_cancel_flight', flight_id=flight.id) }}" class="cancel-form">
+            <div class="form-group">
+                <label for="reason">Cancellation Reason</label>
+                <textarea id="reason" 
+                          name="reason" 
+                          rows="3" 
+                          required
+                          placeholder="Provide a reason for the cancellation...">{{ request.form.get('reason', '') }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="confirm" required>
+                    <span>I understand this will cancel all {{ affected_orders }} order{{ 's' if affected_orders != 1 else '' }} and issue refunds totaling ${{ "%.2f"|format(total_refund) }}</span>
+                </label>
+            </div>
+            
+            <div class="cancel-actions">
+                <a href="{{ url_for('admin_flights') }}" class="btn btn-secondary">
+                    Keep Flight Active
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    Cancel Flight
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

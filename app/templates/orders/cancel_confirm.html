@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel Order - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="{{ url_for('order_detail', order_id=order.id) }}" class="back-link">← Back to Order Details</a>
+    <h1>Cancel Order</h1>
+</div>
+
+<div class="cancel-container">
+    <div class="cancel-card">
+        <div class="warning-banner">
+            <span class="warning-icon">⚠</span>
+            <span>Are you sure you want to cancel this order?</span>
+        </div>
+        
+        <div class="order-summary-section">
+            <h2>Order Summary</h2>
+            <div class="summary-item">
+                <span class="label">Booking Code</span>
+                <span class="value">{{ order.booking_code }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Flight</span>
+                <span class="value">{{ order.flight_number }}: {{ order.origin }} → {{ order.destination }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Departure</span>
+                <span class="value">{{ order.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Tickets</span>
+                <span class="value">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
+            </div>
+        </div>
+        
+        <div class="refund-calculation">
+            <h2>Refund Calculation</h2>
+            <div class="calculation-row">
+                <span>Original Amount</span>
+                <span>${{ "%.2f"|format(order.total_amount) }}</span>
+            </div>
+            <div class="calculation-row fee">
+                <span>Cancellation Fee (5%)</span>
+                <span>-${{ "%.2f"|format(cancellation_fee) }}</span>
+            </div>
+            <div class="calculation-row total">
+                <span><strong>Refund Amount</strong></span>
+                <span><strong>${{ "%.2f"|format(refund_amount) }}</strong></span>
+            </div>
+        </div>
+        
+        <div class="policy-note">
+            <h3>Cancellation Policy</h3>
+            <ul>
+                <li>Orders can be cancelled up to 36 hours before departure</li>
+                <li>A 5% cancellation fee is applied</li>
+                <li>Refunds are processed within 5-7 business days</li>
+            </ul>
+        </div>
+        
+        <form method="POST" action="{{ url_for('cancel_order', order_id=order.id) }}" class="cancel-form">
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="confirm" required>
+                    <span>I understand that this action cannot be undone and agree to the cancellation terms</span>
+                </label>
+            </div>
+            
+            <div class="cancel-actions">
+                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-secondary">
+                    Keep My Order
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    Cancel Order
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

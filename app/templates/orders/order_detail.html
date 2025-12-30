@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Order {{ order.booking_code }} - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="{{ url_for('my_orders') }}" class="back-link">← Back to My Orders</a>
+    <h1>Order Details</h1>
+</div>
+
+<div class="order-detail-container">
+    <div class="order-detail-main">
+        <div class="order-status-banner status-{{ order.status }}">
+            <span class="status-label">Order Status:</span>
+            <span class="status-value">{{ order.status|capitalize }}</span>
+        </div>
+        
+        <div class="detail-card">
+            <div class="card-header">
+                <h2>Booking Information</h2>
+                <span class="booking-code">{{ order.booking_code }}</span>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="label">Order Date</span>
+                    <span class="value">{{ order.created_at.strftime('%B %d, %Y at %H:%M') }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Email</span>
+                    <span class="value">{{ order.email }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-card">
+            <h2>Flight Information</h2>
+            
+            <div class="flight-detail-display">
+                <div class="flight-header">
+                    <span class="flight-number">{{ order.flight_number }}</span>
+                    <span class="aircraft-type">{{ order.aircraft_type }}</span>
+                </div>
+                
+                <div class="flight-route-detailed">
+                    <div class="route-point">
+                        <span class="time">{{ order.departure_time.strftime('%H:%M') }}</span>
+                        <span class="city">{{ order.origin }}</span>
+                        <span class="date">{{ order.departure_time.strftime('%a, %b %d, %Y') }}</span>
+                    </div>
+                    <div class="route-line">
+                        <span class="duration">{{ order.duration_minutes // 60 }}h {{ order.duration_minutes % 60 }}m</span>
+                    </div>
+                    <div class="route-point">
+                        <span class="time">{{ order.arrival_time.strftime('%H:%M') }}</span>
+                        <span class="city">{{ order.destination }}</span>
+                        <span class="date">{{ order.arrival_time.strftime('%a, %b %d, %Y') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-card">
+            <h2>Tickets</h2>
+            
+            <table class="tickets-table">
+                <thead>
+                    <tr>
+                        <th>Seat</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td><strong>{{ ticket.seat_number }}</strong></td>
+                        <td>{{ ticket.seat_class|capitalize }}</td>
+                        <td>
+                            <span class="ticket-status status-{{ ticket.status }}">
+                                {{ ticket.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>${{ "%.2f"|format(ticket.price) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="detail-card">
+            <h2>Payment Summary</h2>
+            
+            <div class="payment-breakdown">
+                <div class="payment-row">
+                    <span>Tickets ({{ tickets|length }})</span>
+                    <span>${{ "%.2f"|format(order.total_amount) }}</span>
+                </div>
+                {% if order.status == 'cancelled' and order.refund_amount %}
+                <div class="payment-row refund">
+                    <span>Refund (minus 5% fee)</span>
+                    <span>-${{ "%.2f"|format(order.refund_amount) }}</span>
+                </div>
+                {% endif %}
+                <div class="payment-row total">
+                    <span><strong>Total</strong></span>
+                    <span><strong>${{ "%.2f"|format(order.total_amount) }}</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="order-detail-sidebar">
+        {% if order.status == 'confirmed' %}
+        <div class="action-card">
+            <h3>Order Actions</h3>
+            {% if order.can_cancel %}
+            <a href="{{ url_for('cancel_order', order_id=order.id) }}" class="btn btn-danger btn-block">
+                Cancel Order
+            </a>
+            <p class="action-note">You can cancel until {{ order.cancel_deadline.strftime('%b %d at %H:%M') }}</p>
+            {% else %}
+            <p class="action-note">This order can no longer be cancelled (less than 36 hours until departure)</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="info-card">
+            <h3>Need Help?</h3>
+            <p>Contact our support team:</p>
+            <p><strong>support@flytau.com</strong></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

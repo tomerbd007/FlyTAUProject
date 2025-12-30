@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Add Flight - Step 1 - FLYTAU Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <a href="{{ url_for('admin_flights') }}" class="back-link">← Back to Flights</a>
+    <h1>Add New Flight</h1>
+</div>
+
+<div class="wizard-container">
+    <div class="wizard-steps">
+        <div class="step active">
+            <span class="step-number">1</span>
+            <span class="step-label">Route & Schedule</span>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <span class="step-label">Aircraft & Crew</span>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            <span class="step-label">Pricing</span>
+        </div>
+    </div>
+    
+    <div class="wizard-content">
+        <h2>Step 1: Select Route and Schedule</h2>
+        
+        <form method="POST" action="{{ url_for('admin_add_flight') }}" class="wizard-form">
+            <div class="form-section">
+                <h3>Route</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="route_id">Select Route</label>
+                        <select id="route_id" name="route_id" required>
+                            <option value="">Choose a route...</option>
+                            {% for route in routes %}
+                            <option value="{{ route.id }}" 
+                                    data-duration="{{ route.duration_minutes }}"
+                                    {% if request.form.get('route_id')|int == route.id %}selected{% endif %}>
+                                {{ route.origin }} → {{ route.destination }} 
+                                ({{ route.duration_minutes // 60 }}h {{ route.duration_minutes % 60 }}m)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Schedule</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="departure_date">Departure Date</label>
+                        <input type="date" 
+                               id="departure_date" 
+                               name="departure_date" 
+                               required
+                               min="{{ min_date }}"
+                               value="{{ request.form.get('departure_date', '') }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="departure_time">Departure Time</label>
+                        <input type="time" 
+                               id="departure_time" 
+                               name="departure_time" 
+                               required
+                               value="{{ request.form.get('departure_time', '08:00') }}">
+                    </div>
+                </div>
+                
+                <div class="form-hint-box">
+                    <p><strong>Note:</strong> The arrival time will be calculated automatically based on the route duration.</p>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Flight Number</h3>
+                
+                <div class="form-group">
+                    <label for="flight_number">Flight Number</label>
+                    <input type="text" 
+                           id="flight_number" 
+                           name="flight_number" 
+                           required
+                           pattern="TAU[0-9]{3,4}"
+                           placeholder="TAU101"
+                           title="Format: TAU followed by 3-4 digits"
+                           value="{{ request.form.get('flight_number', suggested_flight_number) }}">
+                    <small class="form-hint">Format: TAU followed by 3-4 digits (e.g., TAU101)</small>
+                </div>
+            </div>
+            
+            <div class="wizard-actions">
+                <a href="{{ url_for('admin_flights') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    Continue to Aircraft & Crew →
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

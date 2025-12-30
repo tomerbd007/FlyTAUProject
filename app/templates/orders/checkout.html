@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Checkout</h1>
+    <p>Complete your booking for Flight {{ flight.flight_number }}</p>
+</div>
+
+<div class="checkout-container">
+    <div class="checkout-main">
+        <div class="order-summary-card">
+            <h2>Order Summary</h2>
+            
+            <div class="flight-summary">
+                <div class="flight-route-mini">
+                    <span class="origin">{{ flight.origin }}</span>
+                    <span class="arrow">→</span>
+                    <span class="destination">{{ flight.destination }}</span>
+                </div>
+                <div class="flight-datetime">
+                    {{ flight.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}
+                </div>
+            </div>
+            
+            <div class="selected-seats-summary">
+                <h3>Selected Seats</h3>
+                <table class="seats-table">
+                    <thead>
+                        <tr>
+                            <th>Seat</th>
+                            <th>Class</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for seat in selected_seats %}
+                        <tr>
+                            <td>{{ seat.seat_number }}</td>
+                            <td>{{ seat.seat_class|capitalize }}</td>
+                            <td>${{ "%.2f"|format(seat.price) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="2"><strong>Total</strong></td>
+                            <td><strong>${{ "%.2f"|format(total_price) }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        
+        <form method="POST" action="{{ url_for('checkout') }}" class="checkout-form">
+            <input type="hidden" name="flight_id" value="{{ flight.id }}">
+            {% for seat in selected_seats %}
+            <input type="hidden" name="seat_ids" value="{{ seat.id }}">
+            {% endfor %}
+            
+            {% if not session.get('user_id') or session.get('role') == 'guest' %}
+            <div class="passenger-info-card">
+                <h2>Passenger Information</h2>
+                <p class="info-text">Please provide contact details for this booking</p>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="first_name">First Name</label>
+                        <input type="text" 
+                               id="first_name" 
+                               name="first_name" 
+                               required
+                               value="{{ request.form.get('first_name', '') }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="last_name">Last Name</label>
+                        <input type="text" 
+                               id="last_name" 
+                               name="last_name" 
+                               required
+                               value="{{ request.form.get('last_name', '') }}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           required
+                           placeholder="We'll send your confirmation here"
+                           value="{{ request.form.get('email', '') }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number (optional)</label>
+                    <input type="tel" 
+                           id="phone" 
+                           name="phone"
+                           value="{{ request.form.get('phone', '') }}">
+                </div>
+            </div>
+            {% else %}
+            <div class="logged-in-info">
+                <h2>Booking As</h2>
+                <p><strong>{{ session.get('user_name') }}</strong></p>
+                <p>{{ session.get('user_email') }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="terms-section">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="terms" required>
+                    <span>I agree to the <a href="#">Terms and Conditions</a> and understand the <a href="#">Cancellation Policy</a></span>
+                </label>
+            </div>
+            
+            <div class="checkout-actions">
+                <a href="{{ url_for('seat_selection', flight_id=flight.id) }}?passengers={{ selected_seats|length }}" 
+                   class="btn btn-secondary">
+                    ← Change Seats
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Complete Booking
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="checkout-sidebar">
+        <div class="info-box">
+            <h3>Cancellation Policy</h3>
+            <p>You can cancel your booking up to <strong>36 hours</strong> before departure.</p>
+            <p>A 5% cancellation fee will apply.</p>
+        </div>
+        
+        <div class="info-box">
+            <h3>Need Help?</h3>
+            <p>Contact our support team:</p>
+            <p><strong>support@flytau.com</strong></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

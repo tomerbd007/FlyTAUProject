@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Add Flight - Step 3 - FLYTAU Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <a href="{{ url_for('admin_add_flight_crew') }}" class="back-link">← Back to Step 2</a>
+    <h1>Add New Flight</h1>
+</div>
+
+<div class="wizard-container">
+    <div class="wizard-steps">
+        <div class="step completed">
+            <span class="step-number">✓</span>
+            <span class="step-label">Route & Schedule</span>
+        </div>
+        <div class="step completed">
+            <span class="step-number">✓</span>
+            <span class="step-label">Aircraft & Crew</span>
+        </div>
+        <div class="step active">
+            <span class="step-number">3</span>
+            <span class="step-label">Pricing</span>
+        </div>
+    </div>
+    
+    <div class="wizard-content">
+        <div class="flight-summary-bar">
+            <span class="summary-item">
+                <strong>{{ flight_data.origin }}</strong> → <strong>{{ flight_data.destination }}</strong>
+            </span>
+            <span class="summary-item">
+                {{ flight_data.departure_date }} at {{ flight_data.departure_time }}
+            </span>
+            <span class="summary-item">
+                Flight {{ flight_data.flight_number }}
+            </span>
+            <span class="summary-item">
+                {{ flight_data.aircraft_type }}
+            </span>
+        </div>
+        
+        <h2>Step 3: Set Ticket Prices</h2>
+        
+        <form method="POST" action="{{ url_for('admin_add_flight_pricing') }}" class="wizard-form">
+            <!-- Preserve previous steps data -->
+            <input type="hidden" name="route_id" value="{{ flight_data.route_id }}">
+            <input type="hidden" name="departure_date" value="{{ flight_data.departure_date }}">
+            <input type="hidden" name="departure_time" value="{{ flight_data.departure_time }}">
+            <input type="hidden" name="flight_number" value="{{ flight_data.flight_number }}">
+            <input type="hidden" name="aircraft_id" value="{{ flight_data.aircraft_id }}">
+            {% for pilot_id in flight_data.pilot_ids %}
+            <input type="hidden" name="pilot_ids" value="{{ pilot_id }}">
+            {% endfor %}
+            {% for attendant_id in flight_data.attendant_ids %}
+            <input type="hidden" name="attendant_ids" value="{{ attendant_id }}">
+            {% endfor %}
+            
+            <div class="form-section">
+                <h3>Ticket Pricing</h3>
+                
+                <div class="pricing-grid">
+                    <div class="pricing-card">
+                        <div class="class-header first">
+                            <h4>First Class</h4>
+                            <span class="seat-count">{{ seat_counts.first }} seats</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="first_price">Price per seat ($)</label>
+                            <input type="number" 
+                                   id="first_price" 
+                                   name="first_price" 
+                                   required
+                                   min="1"
+                                   step="0.01"
+                                   placeholder="500.00"
+                                   value="{{ request.form.get('first_price', suggested_prices.first) }}">
+                        </div>
+                    </div>
+                    
+                    <div class="pricing-card">
+                        <div class="class-header business">
+                            <h4>Business Class</h4>
+                            <span class="seat-count">{{ seat_counts.business }} seats</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="business_price">Price per seat ($)</label>
+                            <input type="number" 
+                                   id="business_price" 
+                                   name="business_price" 
+                                   required
+                                   min="1"
+                                   step="0.01"
+                                   placeholder="300.00"
+                                   value="{{ request.form.get('business_price', suggested_prices.business) }}">
+                        </div>
+                    </div>
+                    
+                    <div class="pricing-card">
+                        <div class="class-header economy">
+                            <h4>Economy Class</h4>
+                            <span class="seat-count">{{ seat_counts.economy }} seats</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="economy_price">Price per seat ($)</label>
+                            <input type="number" 
+                                   id="economy_price" 
+                                   name="economy_price" 
+                                   required
+                                   min="1"
+                                   step="0.01"
+                                   placeholder="150.00"
+                                   value="{{ request.form.get('economy_price', suggested_prices.economy) }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Flight Summary</h3>
+                
+                <div class="summary-table">
+                    <table class="data-table">
+                        <tbody>
+                            <tr>
+                                <th>Route</th>
+                                <td>{{ flight_data.origin }} → {{ flight_data.destination }}</td>
+                            </tr>
+                            <tr>
+                                <th>Flight Number</th>
+                                <td>{{ flight_data.flight_number }}</td>
+                            </tr>
+                            <tr>
+                                <th>Departure</th>
+                                <td>{{ flight_data.departure_date }} at {{ flight_data.departure_time }}</td>
+                            </tr>
+                            <tr>
+                                <th>Aircraft</th>
+                                <td>{{ flight_data.aircraft_type }} ({{ flight_data.aircraft_registration }})</td>
+                            </tr>
+                            <tr>
+                                <th>Total Seats</th>
+                                <td>{{ seat_counts.total }}</td>
+                            </tr>
+                            <tr>
+                                <th>Pilots</th>
+                                <td>{{ flight_data.pilot_names|join(', ') }}</td>
+                            </tr>
+                            <tr>
+                                <th>Flight Attendants</th>
+                                <td>{{ flight_data.attendant_names|join(', ') }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="wizard-actions">
+                <a href="{{ url_for('admin_add_flight_crew') }}" class="btn btn-secondary">← Back</a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Create Flight
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

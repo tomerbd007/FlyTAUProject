@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - FLYTAU{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1>Manager Dashboard</h1>
+    <p>Welcome, {{ session.get('user_name', 'Manager') }}</p>
+</div>
+
+<div class="dashboard-container">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">✈</div>
+            <div class="stat-content">
+                <span class="stat-value">{{ stats.total_flights }}</span>
+                <span class="stat-label">Total Flights</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-content">
+                <span class="stat-value">{{ stats.upcoming_flights }}</span>
+                <span class="stat-label">Upcoming Flights</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">🎫</div>
+            <div class="stat-content">
+                <span class="stat-value">{{ stats.total_orders }}</span>
+                <span class="stat-label">Total Orders</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-content">
+                <span class="stat-value">${{ "%.0f"|format(stats.total_revenue) }}</span>
+                <span class="stat-label">Total Revenue</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="dashboard-sections">
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>Quick Actions</h2>
+            </div>
+            <div class="quick-actions">
+                <a href="{{ url_for('admin_add_flight') }}" class="action-card">
+                    <span class="action-icon">➕</span>
+                    <span class="action-label">Add New Flight</span>
+                </a>
+                <a href="{{ url_for('admin_flights') }}" class="action-card">
+                    <span class="action-icon">📋</span>
+                    <span class="action-label">Manage Flights</span>
+                </a>
+                <a href="{{ url_for('report_index') }}" class="action-card">
+                    <span class="action-icon">📊</span>
+                    <span class="action-label">View Reports</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h2>Recent Flights</h2>
+                <a href="{{ url_for('admin_flights') }}" class="view-all">View All →</a>
+            </div>
+            
+            {% if recent_flights %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Flight</th>
+                        <th>Route</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Occupancy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for flight in recent_flights %}
+                    <tr>
+                        <td><strong>{{ flight.flight_number }}</strong></td>
+                        <td>{{ flight.origin }} → {{ flight.destination }}</td>
+                        <td>{{ flight.departure_time.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <span class="status-badge status-{{ flight.status }}">
+                                {{ flight.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="occupancy-bar">
+                                <div class="occupancy-fill" style="width: {{ flight.occupancy_percent }}%"></div>
+                                <span class="occupancy-text">{{ flight.occupancy_percent }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-data">No flights scheduled yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
