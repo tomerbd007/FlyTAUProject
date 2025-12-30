@@ -3,161 +3,220 @@
 {% block title %}Add Flight - Step 2 - FLYTAU Admin{% endblock %}
 
 {% block content %}
-<div class="admin-header">
-    <a href="{{ url_for('admin_add_flight') }}" class="back-link">← Back to Step 1</a>
-    <h1>Add New Flight</h1>
-</div>
+<style>
+    /* Ombre background */
+    body {
+        background: linear-gradient(180deg, #e8f6ff 0%, #f7fcff 60%, #ffffff 100%);
+        color: #06232b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        margin: 0;
+        padding: 0;
+    }
 
-<div class="wizard-container">
-    <div class="wizard-steps">
-        <div class="step completed">
-            <span class="step-number">✓</span>
-            <span class="step-label">Route & Schedule</span>
+    /* Top navigation */
+    .top-nav {
+        background: rgba(255,255,255,0.96);
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+        box-shadow: 0 1px 6px rgba(2,32,47,0.06);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+    .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; }
+    .top-nav .links { display:flex; gap:16px; align-items:center; }
+    .top-nav a { color: #004b71; text-decoration: none; font-weight: 600; }
+
+    /* Main content */
+    .main-content {
+        min-height: calc(100vh - 200px);
+        padding: 20px;
+    }
+
+    /* Footer */
+    .footer {
+        background: rgba(255,255,255,0.9);
+        padding: 20px;
+        text-align: center;
+        color: #235366;
+        border-top: 1px solid #d7e9f5;
+    }
+
+    @media (max-width: 760px) {
+        .top-nav { padding: 10px 14px; }
+        .top-nav .links { display: none; }
+    }
+
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+    }
+</style>
+
+<div class="auth-container">
+    <div>
+        <div class="admin-header">
+            <a href="{{ url_for('admin_add_flight') }}" class="back-link">← Back to Step 1</a>
+            <h1>Add New Flight</h1>
         </div>
-        <div class="step active">
-            <span class="step-number">2</span>
-            <span class="step-label">Aircraft & Crew</span>
-        </div>
-        <div class="step">
-            <span class="step-number">3</span>
-            <span class="step-label">Pricing</span>
-        </div>
-    </div>
-    
-    <div class="wizard-content">
-        <div class="flight-summary-bar">
-            <span class="summary-item">
-                <strong>{{ flight_data.origin }}</strong> → <strong>{{ flight_data.destination }}</strong>
-            </span>
-            <span class="summary-item">
-                {{ flight_data.departure_date }} at {{ flight_data.departure_time }}
-            </span>
-            <span class="summary-item">
-                Flight {{ flight_data.flight_number }}
-            </span>
-        </div>
-        
-        <h2>Step 2: Select Aircraft and Assign Crew</h2>
-        
-        <form method="POST" action="{{ url_for('admin_add_flight_crew') }}" class="wizard-form">
-            <!-- Preserve step 1 data -->
-            <input type="hidden" name="route_id" value="{{ flight_data.route_id }}">
-            <input type="hidden" name="departure_date" value="{{ flight_data.departure_date }}">
-            <input type="hidden" name="departure_time" value="{{ flight_data.departure_time }}">
-            <input type="hidden" name="flight_number" value="{{ flight_data.flight_number }}">
+
+        <div class="wizard-container">
+            <div class="wizard-steps">
+                <div class="step completed">
+                    <span class="step-number">✓</span>
+                    <span class="step-label">Route & Schedule</span>
+                </div>
+                <div class="step active">
+                    <span class="step-number">2</span>
+                    <span class="step-label">Aircraft & Crew</span>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <span class="step-label">Pricing</span>
+                </div>
+            </div>
             
-            <div class="form-section">
-                <h3>Aircraft Selection</h3>
+            <div class="wizard-content">
+                <div class="flight-summary-bar">
+                    <span class="summary-item">
+                        <strong>{{ flight_data.origin }}</strong> → <strong>{{ flight_data.destination }}</strong>
+                    </span>
+                    <span class="summary-item">
+                        {{ flight_data.departure_date }} at {{ flight_data.departure_time }}
+                    </span>
+                    <span class="summary-item">
+                        Flight {{ flight_data.flight_number }}
+                    </span>
+                </div>
                 
-                {% if aircraft_list %}
-                <div class="aircraft-selection">
-                    {% for aircraft in aircraft_list %}
-                    <label class="aircraft-option {% if not aircraft.is_available %}disabled{% endif %}">
-                        <input type="radio" 
-                               name="aircraft_id" 
-                               value="{{ aircraft.id }}"
-                               {% if not aircraft.is_available %}disabled{% endif %}
-                               {% if request.form.get('aircraft_id')|int == aircraft.id %}checked{% endif %}
-                               required>
-                        <div class="aircraft-card">
-                            <div class="aircraft-header">
-                                <span class="aircraft-name">{{ aircraft.type }}</span>
-                                <span class="aircraft-reg">{{ aircraft.registration }}</span>
-                            </div>
-                            <div class="aircraft-details">
-                                <span class="detail">
-                                    <span class="label">Capacity:</span>
-                                    <span class="value">{{ aircraft.total_seats }} seats</span>
-                                </span>
-                                <span class="detail">
-                                    <span class="label">Size:</span>
-                                    <span class="value">{{ aircraft.size|capitalize }}</span>
-                                </span>
-                            </div>
-                            {% if not aircraft.is_available %}
-                            <div class="unavailable-reason">
-                                {{ aircraft.unavailable_reason }}
-                            </div>
+                <h2>Step 2: Select Aircraft and Assign Crew</h2>
+                
+                <form method="POST" action="{{ url_for('admin_add_flight_crew') }}" class="wizard-form">
+                    <!-- Preserve step 1 data -->
+                    <input type="hidden" name="route_id" value="{{ flight_data.route_id }}">
+                    <input type="hidden" name="departure_date" value="{{ flight_data.departure_date }}">
+                    <input type="hidden" name="departure_time" value="{{ flight_data.departure_time }}">
+                    <input type="hidden" name="flight_number" value="{{ flight_data.flight_number }}">
+                    
+                    <div class="form-section">
+                        <h3>Aircraft Selection</h3>
+                        
+                        {% if aircraft_list %}
+                        <div class="aircraft-selection">
+                            {% for aircraft in aircraft_list %}
+                            <label class="aircraft-option {% if not aircraft.is_available %}disabled{% endif %}">
+                                <input type="radio" 
+                                       name="aircraft_id" 
+                                       value="{{ aircraft.id }}"
+                                       {% if not aircraft.is_available %}disabled{% endif %}
+                                       {% if request.form.get('aircraft_id')|int == aircraft.id %}checked{% endif %}
+                                       required>
+                                <div class="aircraft-card">
+                                    <div class="aircraft-header">
+                                        <span class="aircraft-name">{{ aircraft.type }}</span>
+                                        <span class="aircraft-reg">{{ aircraft.registration }}</span>
+                                    </div>
+                                    <div class="aircraft-details">
+                                        <span class="detail">
+                                            <span class="label">Capacity:</span>
+                                            <span class="value">{{ aircraft.total_seats }} seats</span>
+                                        </span>
+                                        <span class="detail">
+                                            <span class="label">Size:</span>
+                                            <span class="value">{{ aircraft.size|capitalize }}</span>
+                                        </span>
+                                    </div>
+                                    {% if not aircraft.is_available %}
+                                    <div class="unavailable-reason">
+                                        {{ aircraft.unavailable_reason }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="no-data-message">
+                            <p>No aircraft available for this route and time.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3>Crew Assignment</h3>
+                        
+                        <div class="crew-requirements-info">
+                            <p><strong>Crew Requirements:</strong></p>
+                            <ul>
+                                <li>Large Aircraft: 3 pilots + 6 flight attendants</li>
+                                <li>Small Aircraft: 2 pilots + 3 flight attendants</li>
+                            </ul>
+                            {% if is_long_flight %}
+                            <p class="warning">⚠ This is a long flight (>4 hours). Only certified crew members are shown.</p>
                             {% endif %}
                         </div>
-                    </label>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="no-data-message">
-                    <p>No aircraft available for this route and time.</p>
-                </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-section">
-                <h3>Crew Assignment</h3>
-                
-                <div class="crew-requirements-info">
-                    <p><strong>Crew Requirements:</strong></p>
-                    <ul>
-                        <li>Large Aircraft: 3 pilots + 6 flight attendants</li>
-                        <li>Small Aircraft: 2 pilots + 3 flight attendants</li>
-                    </ul>
-                    {% if is_long_flight %}
-                    <p class="warning">⚠ This is a long flight (>4 hours). Only certified crew members are shown.</p>
-                    {% endif %}
-                </div>
-                
-                <div class="crew-section">
-                    <h4>Pilots</h4>
-                    <p class="selection-hint">Select pilots for this flight</p>
-                    
-                    <div class="crew-grid">
-                        {% for pilot in available_pilots %}
-                        <label class="crew-option">
-                            <input type="checkbox" 
-                                   name="pilot_ids" 
-                                   value="{{ pilot.id }}"
-                                   {% if pilot.id|string in request.form.getlist('pilot_ids') %}checked{% endif %}>
-                            <div class="crew-card">
-                                <span class="crew-name">{{ pilot.first_name }} {{ pilot.last_name }}</span>
-                                <span class="crew-code">{{ pilot.employee_code }}</span>
-                                {% if pilot.long_flight_cert %}
-                                <span class="cert-badge">Long-flight Certified</span>
-                                {% endif %}
+                        
+                        <div class="crew-section">
+                            <h4>Pilots</h4>
+                            <p class="selection-hint">Select pilots for this flight</p>
+                            
+                            <div class="crew-grid">
+                                {% for pilot in available_pilots %}
+                                <label class="crew-option">
+                                    <input type="checkbox" 
+                                           name="pilot_ids" 
+                                           value="{{ pilot.id }}"
+                                           {% if pilot.id|string in request.form.getlist('pilot_ids') %}checked{% endif %}>
+                                    <div class="crew-card">
+                                        <span class="crew-name">{{ pilot.first_name }} {{ pilot.last_name }}</span>
+                                        <span class="crew-code">{{ pilot.employee_code }}</span>
+                                        {% if pilot.long_flight_cert %}
+                                        <span class="cert-badge">Long-flight Certified</span>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                {% endfor %}
                             </div>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                
-                <div class="crew-section">
-                    <h4>Flight Attendants</h4>
-                    <p class="selection-hint">Select flight attendants for this flight</p>
-                    
-                    <div class="crew-grid">
-                        {% for attendant in available_attendants %}
-                        <label class="crew-option">
-                            <input type="checkbox" 
-                                   name="attendant_ids" 
-                                   value="{{ attendant.id }}"
-                                   {% if attendant.id|string in request.form.getlist('attendant_ids') %}checked{% endif %}>
-                            <div class="crew-card">
-                                <span class="crew-name">{{ attendant.first_name }} {{ attendant.last_name }}</span>
-                                <span class="crew-code">{{ attendant.employee_code }}</span>
-                                {% if attendant.long_flight_cert %}
-                                <span class="cert-badge">Long-flight Certified</span>
-                                {% endif %}
+                        </div>
+                        
+                        <div class="crew-section">
+                            <h4>Flight Attendants</h4>
+                            <p class="selection-hint">Select flight attendants for this flight</p>
+                            
+                            <div class="crew-grid">
+                                {% for attendant in available_attendants %}
+                                <label class="crew-option">
+                                    <input type="checkbox" 
+                                           name="attendant_ids" 
+                                           value="{{ attendant.id }}"
+                                           {% if attendant.id|string in request.form.getlist('attendant_ids') %}checked{% endif %}>
+                                    <div class="crew-card">
+                                        <span class="crew-name">{{ attendant.first_name }} {{ attendant.last_name }}</span>
+                                        <span class="crew-code">{{ attendant.employee_code }}</span>
+                                        {% if attendant.long_flight_cert %}
+                                        <span class="cert-badge">Long-flight Certified</span>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                {% endfor %}
                             </div>
-                        </label>
-                        {% endfor %}
+                        </div>
                     </div>
-                </div>
+                    
+                    <div class="wizard-actions">
+                        <a href="{{ url_for('admin_add_flight') }}" class="btn btn-secondary">← Back</a>
+                        <button type="submit" class="btn btn-primary">
+                            Continue to Pricing →
+                        </button>
+                    </div>
+                </form>
             </div>
-            
-            <div class="wizard-actions">
-                <a href="{{ url_for('admin_add_flight') }}" class="btn btn-secondary">← Back</a>
-                <button type="submit" class="btn btn-primary">
-                    Continue to Pricing →
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}
