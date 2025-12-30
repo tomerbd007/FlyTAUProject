@@ -3,8 +3,90 @@
 {% block title %}Login - FLYTAU{% endblock %}
 
 {% block content %}
+<style>
+    /* Ombre background */
+    body {
+        background: linear-gradient(180deg, #e8f6ff 0%, #f7fcff 60%, #ffffff 100%);
+        color: #06232b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Top navigation */
+    .top-nav {
+        background: rgba(255,255,255,0.96);
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+        box-shadow: 0 1px 6px rgba(2,32,47,0.06);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+    .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; }
+    .top-nav .links { display:flex; gap:16px; align-items:center; }
+    .top-nav a { color: #004b71; text-decoration: none; font-weight: 600; }
+
+    /* Buttons */
+    .btn {
+        padding: 10px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+    .btn-primary { background: #0077b6; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-outline { background: transparent; border: 1px solid #0077b6; color: #0077b6; }
+    .btn-block { width: 100%; }
+
+    /* Feature grid */
+    .features { max-width: 1100px; margin: 18px auto 60px; padding: 0 20px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; }
+    .feature-card { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 6px 18px rgba(2,32,47,0.04); }
+
+    /* Main content */
+    .main-content {
+        min-height: calc(100vh - 200px);
+        padding: 20px;
+    }
+
+    /* Footer */
+    .footer {
+        background: rgba(255,255,255,0.9);
+        padding: 20px;
+        text-align: center;
+        color: #235366;
+        border-top: 1px solid #d7e9f5;
+    }
+
+    @media (max-width: 760px) {
+        .top-nav { padding: 10px 14px; }
+        .top-nav .links { display: none; }
+    }
+
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+    }
+</style>
+
 <div class="auth-container">
     <div class="auth-card">
+        <div class="manager-badge">
+            <span>✈</span> Customer Portal
+        </div>
+        
+        
+        
         <h1>Customer Login</h1>
         <p class="auth-subtitle">Sign in to manage your bookings</p>
         
@@ -28,7 +110,7 @@
                        placeholder="Your password">
             </div>
             
-            <button type="submit" class="btn btn-primary btn-block">
+            <button type="submit" class="btn btn-primary">
                 Sign In
             </button>
         </form>
@@ -36,17 +118,6 @@
         <div class="auth-links">
             <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
             <p>Are you a manager? <a href="{{ url_for('manager_login') }}">Manager Login</a></p>
-        </div>
-        
-        <div class="auth-divider">
-            <span>or</span>
-        </div>
-        
-        <div class="guest-option">
-            <p>Want to book without an account?</p>
-            <a href="{{ url_for('flight_search') }}" class="btn btn-secondary btn-block">
-                Continue as Guest
-            </a>
         </div>
     </div>
 </div>

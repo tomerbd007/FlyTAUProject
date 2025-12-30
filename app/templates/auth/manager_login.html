@@ -3,6 +3,82 @@
 {% block title %}Manager Login - FLYTAU{% endblock %}
 
 {% block content %}
+<style>
+    /* Ombre background */
+    body {
+        background: linear-gradient(180deg, #e8f6ff 0%, #f7fcff 60%, #ffffff 100%);
+        color: #06232b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Top navigation */
+    .top-nav {
+        background: rgba(255,255,255,0.96);
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+        box-shadow: 0 1px 6px rgba(2,32,47,0.06);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+    .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; }
+    .top-nav .links { display:flex; gap:16px; align-items:center; }
+    .top-nav a { color: #004b71; text-decoration: none; font-weight: 600; }
+
+    /* Buttons */
+    .btn {
+        padding: 10px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+    .btn-primary { background: #0077b6; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-outline { background: transparent; border: 1px solid #0077b6; color: #0077b6; }
+    .btn-block { width: 100%; }
+
+    /* Feature grid */
+    .features { max-width: 1100px; margin: 18px auto 60px; padding: 0 20px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; }
+    .feature-card { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 6px 18px rgba(2,32,47,0.04); }
+
+    /* Main content */
+    .main-content {
+        min-height: calc(100vh - 200px);
+        padding: 20px;
+    }
+
+    /* Footer */
+    .footer {
+        background: rgba(255,255,255,0.9);
+        padding: 20px;
+        text-align: center;
+        color: #235366;
+        border-top: 1px solid #d7e9f5;
+    }
+
+    @media (max-width: 760px) {
+        .top-nav { padding: 10px 14px; }
+        .top-nav .links { display: none; }
+    }
+
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+    }
+</style>
+
 <div class="auth-container">
     <div class="auth-card auth-card-manager">
         <div class="manager-badge">
@@ -14,16 +90,13 @@
         
         <form method="POST" action="{{ url_for('manager_login') }}" class="auth-form">
             <div class="form-group">
-                <label for="employee_code">Employee Code</label>
-                <input type="text" 
-                       id="employee_code" 
-                       name="employee_code" 
+                <label for="email">Email Address</label>
+                <input type="email" 
+                       id="email" 
+                       name="email" 
                        required 
-                       placeholder="M001"
-                       pattern="M[0-9]{3}"
-                       title="Employee code format: M followed by 3 digits"
-                       value="{{ request.form.get('employee_code', '') }}">
-                <small class="form-hint">Format: M followed by 3 digits (e.g., M001)</small>
+                       placeholder="manager@flytau.com"
+                       value="{{ request.form.get('email', '') }}">
             </div>
             
             <div class="form-group">
@@ -35,13 +108,13 @@
                        placeholder="Your password">
             </div>
             
-            <button type="submit" class="btn btn-primary btn-block">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
                 Sign In as Manager
-            </button>
+            </a>
         </form>
         
         <div class="auth-links">
-            <p>Not a manager? <a href="{{ url_for('login') }}">Customer Login</a></p>
+            <p>Not a manager? <a href="{{ url_for('auth.login') }}">Customer Login</a></p>
         </div>
     </div>
 </div>
