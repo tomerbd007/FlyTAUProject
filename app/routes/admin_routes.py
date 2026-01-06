@@ -55,15 +55,15 @@ def register_admin_routes(app):
             if errors:
                 for error in errors:
                     flash(error, 'error')
-                routes = flight_service.get_all_routes()
-                return render_template('admin/add_flight_step1.html', routes=routes)
+                airports = flight_service.get_all_airports()
+                return render_template('admin/add_flight_step1.html', airports=airports)
             
             # Get route and compute duration
             route = admin_service.get_route(origin, destination)
             if not route:
                 flash('No route found for this origin-destination pair.', 'error')
-                routes = flight_service.get_all_routes()
-                return render_template('admin/add_flight_step1.html', routes=routes)
+                airports = flight_service.get_all_airports()
+                return render_template('admin/add_flight_step1.html', airports=airports)
             
             # Calculate arrival datetime
             departure_datetime, arrival_datetime = admin_service.compute_flight_times(
@@ -82,8 +82,8 @@ def register_admin_routes(app):
             
             return redirect(url_for('add_flight_step2'))
         
-        routes = flight_service.get_all_routes()
-        return render_template('admin/add_flight_step1.html', routes=routes)
+        airports = flight_service.get_all_airports()
+        return render_template('admin/add_flight_step1.html', airports=airports)
     
     @app.route('/admin/flights/add/crew', methods=['GET', 'POST'])
     @manager_required

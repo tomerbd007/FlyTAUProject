@@ -61,7 +61,7 @@
 <div class="auth-container">
     <div>
         <div class="admin-header">
-            <a href="{{ url_for('admin_add_flight') }}" class="back-link">← Back to Step 1</a>
+            <a href="{{ url_for('add_flight_step1') }}" class="back-link">← Back to Step 1</a>
             <h1>Add New Flight</h1>
         </div>
 
@@ -96,7 +96,7 @@
                 
                 <h2>Step 2: Select Aircraft and Assign Crew</h2>
                 
-                <form method="POST" action="{{ url_for('admin_add_flight_crew') }}" class="wizard-form">
+                <form method="POST" action="{{ url_for('add_flight_step2') }}" class="wizard-form">
                     <!-- Preserve step 1 data -->
                     <input type="hidden" name="route_id" value="{{ flight_data.route_id }}">
                     <input type="hidden" name="departure_date" value="{{ flight_data.departure_date }}">
@@ -209,7 +209,7 @@
                     </div>
                     
                     <div class="wizard-actions">
-                        <a href="{{ url_for('admin_add_flight') }}" class="btn btn-secondary">← Back</a>
+                        <a href="{{ url_for('add_flight_step1') }}" class="btn btn-secondary">← Back</a>
                         <button type="submit" class="btn btn-primary">
                             Continue to Pricing →
                         </button>

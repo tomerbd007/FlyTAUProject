@@ -70,7 +70,7 @@ def register_auth_routes(app):
                 session['email'] = user['email']
                 session['name'] = f"{user['first_name']} {user['last_name']}"
                 flash(f"Welcome back, {user['first_name']}!", 'success')
-                return redirect(url_for('flights'))
+                return redirect(url_for('my_account'))
             else:
                 flash('Invalid email or password.', 'error')
                 return render_template('auth/login.html')

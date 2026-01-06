@@ -7,6 +7,66 @@
 USE flytau;
 
 -- =============================================================================
+-- AIRPORTS (Global)
+-- =============================================================================
+INSERT INTO Airports (Code, Name, City, Country) VALUES
+-- Middle East
+('TLV', 'Ben Gurion International Airport', 'Tel Aviv', 'Israel'),
+('DXB', 'Dubai International Airport', 'Dubai', 'UAE'),
+('AUH', 'Abu Dhabi International Airport', 'Abu Dhabi', 'UAE'),
+('DOH', 'Hamad International Airport', 'Doha', 'Qatar'),
+('RUH', 'King Khalid International Airport', 'Riyadh', 'Saudi Arabia'),
+('JED', 'King Abdulaziz International Airport', 'Jeddah', 'Saudi Arabia'),
+('AMM', 'Queen Alia International Airport', 'Amman', 'Jordan'),
+('CAI', 'Cairo International Airport', 'Cairo', 'Egypt'),
+('IST', 'Istanbul Airport', 'Istanbul', 'Turkey'),
+('BEY', 'Beirut–Rafic Hariri International Airport', 'Beirut', 'Lebanon'),
+('BAH', 'Bahrain International Airport', 'Manama', 'Bahrain'),
+('KWI', 'Kuwait International Airport', 'Kuwait City', 'Kuwait'),
+('MCT', 'Muscat International Airport', 'Muscat', 'Oman'),
+-- Europe
+('LHR', 'Heathrow Airport', 'London', 'United Kingdom'),
+('CDG', 'Charles de Gaulle Airport', 'Paris', 'France'),
+('FRA', 'Frankfurt Airport', 'Frankfurt', 'Germany'),
+('AMS', 'Amsterdam Schiphol Airport', 'Amsterdam', 'Netherlands'),
+('FCO', 'Leonardo da Vinci International Airport', 'Rome', 'Italy'),
+('MAD', 'Adolfo Suárez Madrid–Barajas Airport', 'Madrid', 'Spain'),
+('BCN', 'Barcelona–El Prat Airport', 'Barcelona', 'Spain'),
+('ATH', 'Athens International Airport', 'Athens', 'Greece'),
+('VIE', 'Vienna International Airport', 'Vienna', 'Austria'),
+('ZRH', 'Zurich Airport', 'Zurich', 'Switzerland'),
+('MUC', 'Munich Airport', 'Munich', 'Germany'),
+('CPH', 'Copenhagen Airport', 'Copenhagen', 'Denmark'),
+('PRG', 'Václav Havel Airport Prague', 'Prague', 'Czech Republic'),
+-- Americas
+('JFK', 'John F. Kennedy International Airport', 'New York', 'USA'),
+('LAX', 'Los Angeles International Airport', 'Los Angeles', 'USA'),
+('MIA', 'Miami International Airport', 'Miami', 'USA'),
+('ORD', 'O''Hare International Airport', 'Chicago', 'USA'),
+('SFO', 'San Francisco International Airport', 'San Francisco', 'USA'),
+('YYZ', 'Toronto Pearson International Airport', 'Toronto', 'Canada'),
+('GRU', 'São Paulo/Guarulhos International Airport', 'São Paulo', 'Brazil'),
+('MEX', 'Mexico City International Airport', 'Mexico City', 'Mexico'),
+-- Asia Pacific
+('HND', 'Haneda Airport', 'Tokyo', 'Japan'),
+('NRT', 'Narita International Airport', 'Tokyo', 'Japan'),
+('SIN', 'Singapore Changi Airport', 'Singapore', 'Singapore'),
+('HKG', 'Hong Kong International Airport', 'Hong Kong', 'China'),
+('PEK', 'Beijing Capital International Airport', 'Beijing', 'China'),
+('PVG', 'Shanghai Pudong International Airport', 'Shanghai', 'China'),
+('ICN', 'Incheon International Airport', 'Seoul', 'South Korea'),
+('BKK', 'Suvarnabhumi Airport', 'Bangkok', 'Thailand'),
+('DEL', 'Indira Gandhi International Airport', 'New Delhi', 'India'),
+('BOM', 'Chhatrapati Shivaji International Airport', 'Mumbai', 'India'),
+('SYD', 'Sydney Kingsford Smith Airport', 'Sydney', 'Australia'),
+('MEL', 'Melbourne Airport', 'Melbourne', 'Australia'),
+-- Africa
+('JNB', 'O.R. Tambo International Airport', 'Johannesburg', 'South Africa'),
+('CPT', 'Cape Town International Airport', 'Cape Town', 'South Africa'),
+('ADD', 'Addis Ababa Bole International Airport', 'Addis Ababa', 'Ethiopia'),
+('NBO', 'Jomo Kenyatta International Airport', 'Nairobi', 'Kenya');
+
+-- =============================================================================
 -- MANAGERS (2)
 -- Password: password123
 -- =============================================================================
@@ -83,10 +143,10 @@ INSERT INTO Airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business
 -- FLIGHTS (4 active)
 -- =============================================================================
 INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
-('FT101', 'A001', 'Tel Aviv', 'New York', '2025-02-15', '08:00:00', 660, 'active', 500.00, 1500.00),
-('FT102', 'A003', 'Tel Aviv', 'London', '2025-02-16', '10:00:00', 300, 'active', 300.00, 900.00),
-('FT103', 'A005', 'Tel Aviv', 'Paris', '2025-02-17', '14:00:00', 270, 'active', 250.00, NULL),
-('FT104', 'A002', 'Tel Aviv', 'Athens', '2025-02-18', '06:00:00', 120, 'active', 150.00, 450.00);
+('FT101', 'A001', 'TLV', 'JFK', '2025-02-15', '08:00:00', 660, 'active', 500.00, 1500.00),
+('FT102', 'A003', 'TLV', 'LHR', '2025-02-16', '10:00:00', 300, 'active', 300.00, 900.00),
+('FT103', 'A005', 'TLV', 'CDG', '2025-02-17', '14:00:00', 270, 'active', 250.00, NULL),
+('FT104', 'A002', 'TLV', 'ATH', '2025-02-18', '06:00:00', 120, 'active', 150.00, 450.00);
 
 -- =============================================================================
 -- PILOT ASSIGNMENTS

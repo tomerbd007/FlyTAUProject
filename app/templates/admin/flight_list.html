@@ -5,7 +5,7 @@
 {% block content %}
 <div class="admin-header">
     <h1>Manage Flights</h1>
-    <a href="{{ url_for('admin_add_flight') }}" class="btn btn-primary">+ Add New Flight</a>
+    <a href="{{ url_for('add_flight_step1') }}" class="btn btn-primary">+ Add New Flight</a>
 </div>
 
 <div class="flights-management">
@@ -87,12 +87,12 @@
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{{ url_for('admin_flight_detail', flight_id=flight.id) }}" 
+                            <a href="{{ url_for('flight_detail', flight_id=flight.id) }}" 
                                class="btn btn-ghost btn-sm" title="View Details">
                                 👁
                             </a>
                             {% if flight.status == 'scheduled' and flight.can_cancel %}
-                            <a href="{{ url_for('admin_cancel_flight', flight_id=flight.id) }}" 
+                            <a href="{{ url_for('cancel_flight', flight_id=flight.id) }}" 
                                class="btn btn-ghost btn-sm btn-danger-ghost" title="Cancel Flight">
                                 ✕
                             </a>
@@ -113,7 +113,7 @@
         <div class="no-results-icon">✈</div>
         <h2>No flights found</h2>
         <p>No flights match your current filters.</p>
-        <a href="{{ url_for('admin_add_flight') }}" class="btn btn-primary">Add New Flight</a>
+        <a href="{{ url_for('add_flight_step1') }}" class="btn btn-primary">Add New Flight</a>
     </div>
     {% endif %}
 </div>

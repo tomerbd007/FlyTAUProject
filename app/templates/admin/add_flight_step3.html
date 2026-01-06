@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="admin-header">
-    <a href="{{ url_for('admin_add_flight_crew') }}" class="back-link">← Back to Step 2</a>
+    <a href="{{ url_for('add_flight_step2') }}" class="back-link">← Back to Step 2</a>
     <h1>Add New Flight</h1>
 </div>
 
@@ -42,7 +42,7 @@
         
         <h2>Step 3: Set Ticket Prices</h2>
         
-        <form method="POST" action="{{ url_for('admin_add_flight_pricing') }}" class="wizard-form">
+        <form method="POST" action="{{ url_for('add_flight_step3') }}" class="wizard-form">
             <!-- Preserve previous steps data -->
             <input type="hidden" name="route_id" value="{{ flight_data.route_id }}">
             <input type="hidden" name="departure_date" value="{{ flight_data.departure_date }}">
@@ -156,7 +156,7 @@
             </div>
             
             <div class="wizard-actions">
-                <a href="{{ url_for('admin_add_flight_crew') }}" class="btn btn-secondary">← Back</a>
+                <a href="{{ url_for('add_flight_step2') }}" class="btn btn-secondary">← Back</a>
                 <button type="submit" class="btn btn-primary btn-lg">
                     Create Flight
                 </button>

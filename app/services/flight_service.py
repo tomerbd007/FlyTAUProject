@@ -6,6 +6,7 @@ Schema:
 - Flights: FlightId + Airplanes_AirplaneId (composite PK), OriginPort, DestPort, 
            DepartureDate, DepartureHour, Duration, Status
 - Airplanes: AirplaneId (PK), Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`
+- Airports: Code (PK), Name, City, Country
 - Tickets: Used to track sold seats (RowNum, Seat per flight)
 """
 from datetime import datetime, timedelta
@@ -16,6 +17,29 @@ from app.repositories import flight_repository, aircraft_repository
 MIN_LAYOVER_MINUTES = 60
 # Maximum layover time in hours for connecting flights  
 MAX_LAYOVER_HOURS = 12
+
+
+def get_all_airports():
+    """
+    Get all airports from the database.
+    
+    Returns:
+        List of dicts with 'code', 'name', 'city', 'country' keys
+    """
+    return flight_repository.get_all_airports()
+
+
+def get_airport_by_code(code):
+    """
+    Get airport details by code.
+    
+    Args:
+        code: Airport code (e.g., 'TLV')
+    
+    Returns:
+        Dict with airport details or None
+    """
+    return flight_repository.get_airport_by_code(code)
 
 
 def get_all_cities():
