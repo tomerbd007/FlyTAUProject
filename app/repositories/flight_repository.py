@@ -5,6 +5,7 @@ Database access for Flights
 Schema:
 - Flights: FlightId (PK), Airplanes_AirplaneId (PK), Status, EconomyPrice, BusinessPrice,
            Duration, DepartureDate, DepartureHour, OriginPort, DestPort
+- Airports: Code (PK), Name, City, Country
 
 Note: 
 - No separate routes table - origin/destination stored directly in Flights
@@ -15,6 +16,26 @@ from app.db import execute_query
 from app.repositories.aircraft_repository import get_airplane_by_id, generate_seat_map
 import random
 import string
+
+
+# ============ AIRPORT OPERATIONS ============
+
+def get_all_airports():
+    """Get all airports from the Airports table, ordered by city name."""
+    sql = """
+        SELECT Code as code, Name as name, City as city, Country as country
+        FROM Airports
+        ORDER BY City, Name
+    """
+    results = execute_query(sql)
+    return results if results else []
+
+
+def get_airport_by_code(code):
+    """Get a single airport by its code."""
+    sql = "SELECT Code as code, Name as name, City as city, Country as country FROM Airports WHERE Code = %s"
+    results = execute_query(sql, (code,))
+    return results[0] if results else None
 
 
 # ============ FLIGHT OPERATIONS ============

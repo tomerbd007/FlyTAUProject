@@ -102,11 +102,13 @@
     .feature-card { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 6px 18px rgba(2,32,47,0.04); }
 
     @media (max-width: 760px) {
-        .top-nav { padding: 10px 14px; }
-        .top-nav .links { display: none; }
-        .wide-search { flex-direction: column; }
-        .wide-search .btn-search { width: 100%; }
+        .wide-search { flex-direction: column; gap: 8px; padding: 14px; }
+        .wide-search .form-group { flex: none; width: 100%; min-width: auto; }
+        .wide-search .btn-search { width: 100%; margin-top: 8px; }
         .card-media img { height: 130px; }
+        .hero { padding: 20px 16px; gap: 12px; }
+        .hero h1 { font-size: 1.6rem; }
+        .hero p { font-size: 0.9rem; }
     }
 </style>
 
@@ -127,26 +129,9 @@
                     <label for="origin">Departure Airport</label>
                     <select id="origin" name="origin" required>
                         <option value="">Select origin</option>
-                        <option value="AUH">Abu Dhabi (AUH)</option>
-                        <option value="AJM">Ajman (AJM)</option>
-                        <option value="AMM">Amman (AMM)</option>
-                        <option value="BAH">Bahrain (BAH)</option>
-                        <option value="BEY">Beirut (BEY)</option>
-                        <option value="CAI">Cairo (CAI)</option>
-                        <option value="DOH">Doha (DOH)</option>
-                        <option value="DXB">Dubai (DXB)</option>
-                        <option value="DMM">Dammam (DMM)</option>
-                        <option value="EBL">Erbil (EBL)</option>
-                        <option value="IST">Istanbul (IST)</option>
-                        <option value="JED">Jeddah (JED)</option>
-                        <option value="KWI">Kuwait City (KWI)</option>
-                        <option value="MCT">Muscat (MCT)</option>
-                        <option value="RUH">Riyadh (RUH)</option>
-                        <option value="SSH">Sharm el-Sheikh (SSH)</option>
-                        <option value="IKA">Tehran (IKA)</option>
-                        <option value="TLV">Tel Aviv (TLV)</option>
-                        <option value="DAM">Damascus (DAM)</option>
-                        <option value="SAH">Sana'a (SAH)</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.code }}">{{ airport.city }} ({{ airport.code }})</option>
+                        {% endfor %}
                     </select>
                 </div>
 
@@ -154,26 +139,9 @@
                     <label for="destination">Destination Airport</label>
                     <select id="destination" name="destination" required>
                         <option value="">Select destination</option>
-                        <option value="AUH">Abu Dhabi (AUH)</option>
-                        <option value="AJM">Ajman (AJM)</option>
-                        <option value="AMM">Amman (AMM)</option>
-                        <option value="BAH">Bahrain (BAH)</option>
-                        <option value="BEY">Beirut (BEY)</option>
-                        <option value="CAI">Cairo (CAI)</option>
-                        <option value="DOH">Doha (DOH)</option>
-                        <option value="DXB">Dubai (DXB)</option>
-                        <option value="DMM">Dammam (DMM)</option>
-                        <option value="EBL">Erbil (EBL)</option>
-                        <option value="IST">Istanbul (IST)</option>
-                        <option value="JED">Jeddah (JED)</option>
-                        <option value="KWI">Kuwait City (KWI)</option>
-                        <option value="MCT">Muscat (MCT)</option>
-                        <option value="RUH">Riyadh (RUH)</option>
-                        <option value="SSH">Sharm el-Sheikh (SSH)</option>
-                        <option value="IKA">Tehran (IKA)</option>
-                        <option value="TLV">Tel Aviv (TLV)</option>
-                        <option value="DAM">Damascus (DAM)</option>
-                        <option value="SAH">Sana'a (SAH)</option>
+                        {% for airport in airports %}
+                        <option value="{{ airport.code }}">{{ airport.city }} ({{ airport.code }})</option>
+                        {% endfor %}
                     </select>
                 </div>
 

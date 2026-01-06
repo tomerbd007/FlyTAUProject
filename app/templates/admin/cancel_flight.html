@@ -64,7 +64,7 @@
             </div>
         </div>
         
-        <form method="POST" action="{{ url_for('admin_cancel_flight', flight_id=flight.id) }}" class="cancel-form">
+        <form method="POST" action="{{ url_for('cancel_flight', flight_id=flight.id) }}" class="cancel-form">
             <div class="form-group">
                 <label for="reason">Cancellation Reason</label>
                 <textarea id="reason" 

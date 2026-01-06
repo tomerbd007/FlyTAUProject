@@ -14,10 +14,10 @@
             <div class="form-group">
                 <label for="origin">From</label>
                 <select id="origin" name="origin" required>
-                    <option value="">Select origin city</option>
-                    {% for city in cities %}
-                    <option value="{{ city }}" {% if request.args.get('origin') == city %}selected{% endif %}>
-                        {{ city }}
+                    <option value="">Select origin airport</option>
+                    {% for airport in airports %}
+                    <option value="{{ airport.code }}" {% if request.args.get('origin') == airport.code %}selected{% endif %}>
+                        {{ airport.city }} ({{ airport.code }})
                     </option>
                     {% endfor %}
                 </select>
@@ -26,10 +26,10 @@
             <div class="form-group">
                 <label for="destination">To</label>
                 <select id="destination" name="destination" required>
-                    <option value="">Select destination city</option>
-                    {% for city in cities %}
-                    <option value="{{ city }}" {% if request.args.get('destination') == city %}selected{% endif %}>
-                        {{ city }}
+                    <option value="">Select destination airport</option>
+                    {% for airport in airports %}
+                    <option value="{{ airport.code }}" {% if request.args.get('destination') == airport.code %}selected{% endif %}>
+                        {{ airport.city }} ({{ airport.code }})
                     </option>
                     {% endfor %}
                 </select>

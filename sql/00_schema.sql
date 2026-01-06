@@ -18,6 +18,18 @@ CREATE SCHEMA IF NOT EXISTS `flytau` DEFAULT CHARACTER SET utf8 ;
 USE `flytau` ;
 
 -- -----------------------------------------------------
+-- Table `flytau`.`Airports`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `flytau`.`Airports` (
+  `Code` VARCHAR(10) NOT NULL,
+  `Name` VARCHAR(100) NOT NULL,
+  `City` VARCHAR(100) NOT NULL,
+  `Country` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`Code`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
 -- Table `flytau`.`GuestCustomer`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `flytau`.`GuestCustomer` (
