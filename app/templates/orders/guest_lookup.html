@@ -312,6 +312,7 @@
             <h1>Look Up Your Order</h1>
             <p class="auth-subtitle">Find your booking using your booking code and email</p>
             
+            {# Guests should stay on guest_lookup; logged-in customers can jump to My Orders #}
             <form method="POST" action="{{ url_for('guest_lookup') }}" class="auth-form">
                 <div class="form-group">
                     <label for="booking_code">Booking Code</label>
@@ -339,6 +340,10 @@
                 <button type="submit" class="btn btn-primary">
                     Find My Order
                 </button>
+
+                <div class="auth-links" style="margin-top: 12px; padding-top: 16px; border-top: 1px solid #eee;">
+                    <p>Already signed in? <a href="{{ url_for('my_orders') }}">Go to My Orders</a></p>
+                </div>
 
                 <div class="lookup-help">
                     <h3>Can't find your booking code?</h3>

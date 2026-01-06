@@ -3,100 +3,181 @@
 {% block title %}Booking Confirmed - FLYTAU{% endblock %}
 
 {% block content %}
-<div class="confirmation-container">
-    <div class="confirmation-card">
-        <div class="confirmation-header">
-            <div class="success-icon">✓</div>
-            <h1>Booking Confirmed!</h1>
-            <p>Thank you for booking with FLYTAU</p>
+<style>
+    .confirm-shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 16px 32px;
+    }
+    .confirm-hero {
+        background: linear-gradient(135deg, #004b71 0%, #006a9e 100%);
+        color: #fff;
+        padding: 36px;
+        border-radius: 14px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        display: grid;
+        gap: 12px;
+    }
+    .confirm-hero h1 { margin: 0; font-size: 2rem; }
+    .confirm-hero p { margin: 0; opacity: 0.92; }
+    .success-icon {
+        width: 48px; height: 48px; border-radius: 50%;
+        background: rgba(255,255,255,0.14);
+        display: grid; place-items: center;
+        font-size: 1.4rem; font-weight: 800;
+    }
+    .code-tile {
+        background: #ffffff;
+        color: #004b71;
+        padding: 14px 16px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+    }
+    .code-label { font-weight: 600; color: #0b2f3f; }
+
+    .confirm-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 18px;
+        margin-top: 20px;
+    }
+    .card {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e7edf5;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        padding: 18px;
+    }
+    .card h2 { margin: 0 0 12px; color: #004b71; }
+
+    .flight-route-display {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 10px;
+        background: #f6fbff;
+    }
+    .point { display: grid; gap: 4px; }
+    .point .city { font-weight: 700; color: #0f2f45; }
+    .point .time { color: #2d5a7b; font-weight: 700; }
+    .route-arrow { display: grid; gap: 4px; justify-items: center; color: #2d5a7b; font-weight: 700; }
+    .flight-date { margin-top: 10px; color: #47627a; font-weight: 600; }
+
+    .seats-list { display: grid; gap: 8px; }
+    .seat-item { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 10px; border-radius: 10px; background: #f8fbfd; color: #0f2f45; font-weight: 600; }
+    .seat-class { color: #2d5a7b; }
+
+    .payment-summary { display: grid; gap: 8px; color: #0f2f45; }
+    .summary-row { display: flex; justify-content: space-between; }
+    .summary-row.total { font-weight: 800; }
+
+    .contact-info p { margin: 6px 0; color: #0f2f45; }
+
+    .side-panel { display: grid; gap: 12px; }
+    .side-card { background: #f8fbfd; border: 1px solid #e7edf5; border-radius: 12px; padding: 14px; color: #0f2f45; }
+    .side-card h3 { margin: 0 0 8px; color: #004b71; }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .btn { text-decoration: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; display: inline-block; }
+    .btn-primary { background: #004b71; color: #fff; }
+    .btn-secondary { background: #2d5a7b; color: #fff; }
+
+    @media (max-width: 900px) {
+        .confirm-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+        .seat-item { grid-template-columns: 1fr; align-items: start; }
+        .flight-route-display { grid-template-columns: 1fr; justify-items: start; }
+    }
+</style>
+
+<div class="confirm-shell">
+    <div class="confirm-hero">
+        <div class="success-icon">✓</div>
+        <h1>Booking Confirmed!</h1>
+        <p>Thank you for booking with FLYTAU. Your trip is all set.</p>
+        <div class="code-tile">
+            <span class="code-label">Booking Code</span>
+            <span>{{ order.booking_code }}</span>
         </div>
-        
-        <div class="booking-code-section">
-            <span class="label">Your Booking Code</span>
-            <span class="booking-code">{{ order.booking_code }}</span>
-            <p class="booking-code-note">Save this code to manage your booking</p>
+    </div>
+
+    <div class="confirm-grid">
+        <div class="card">
+            <h2>Flight Details</h2>
+            <div class="flight-route-display">
+                <div class="point">
+                    <span class="city">{{ order.origin }}</span>
+                    <span class="time">{{ order.departure_time.strftime('%H:%M') }}</span>
+                </div>
+                <div class="route-arrow">
+                    <span class="flight-number">{{ order.flight_number }}</span>
+                    ✈
+                </div>
+                <div class="point">
+                    <span class="city">{{ order.destination }}</span>
+                    <span class="time">{{ order.arrival_time.strftime('%H:%M') }}</span>
+                </div>
+            </div>
+            <div class="flight-date">{{ order.departure_time.strftime('%A, %B %d, %Y') }}</div>
+
+            <h2 style="margin-top:18px;">Your Seats</h2>
+            <div class="seats-list">
+                {% for ticket in tickets %}
+                <div class="seat-item">
+                    <span class="seat-number">{{ ticket.seat_number }}</span>
+                    <span class="seat-class">{{ ticket.seat_class|capitalize }}</span>
+                    <span class="seat-price">${{ "%.2f"|format(ticket.price) }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <h2 style="margin-top:18px;">Payment Summary</h2>
+            <div class="payment-summary">
+                <div class="summary-row">
+                    <span>Subtotal ({{ tickets|length }} seat{{ 's' if tickets|length > 1 else '' }})</span>
+                    <span>${{ "%.2f"|format(order.total_amount) }}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total Paid</span>
+                    <span>${{ "%.2f"|format(order.total_amount) }}</span>
+                </div>
+            </div>
         </div>
-        
-        <div class="confirmation-details">
-            <div class="detail-section">
-                <h2>Flight Details</h2>
-                <div class="flight-info-card">
-                    <div class="flight-route-display">
-                        <div class="point">
-                            <span class="city">{{ order.origin }}</span>
-                            <span class="time">{{ order.departure_time.strftime('%H:%M') }}</span>
-                        </div>
-                        <div class="route-arrow">
-                            <span class="flight-number">{{ order.flight_number }}</span>
-                            ✈ →
-                        </div>
-                        <div class="point">
-                            <span class="city">{{ order.destination }}</span>
-                            <span class="time">{{ order.arrival_time.strftime('%H:%M') }}</span>
-                        </div>
-                    </div>
-                    <div class="flight-date">
-                        {{ order.departure_time.strftime('%A, %B %d, %Y') }}
-                    </div>
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h2>Your Seats</h2>
-                <div class="seats-list">
-                    {% for ticket in tickets %}
-                    <div class="seat-item">
-                        <span class="seat-number">{{ ticket.seat_number }}</span>
-                        <span class="seat-class">{{ ticket.seat_class|capitalize }}</span>
-                        <span class="seat-price">${{ "%.2f"|format(ticket.price) }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h2>Payment Summary</h2>
-                <div class="payment-summary">
-                    <div class="summary-row">
-                        <span>Subtotal ({{ tickets|length }} seat{{ 's' if tickets|length > 1 else '' }})</span>
-                        <span>${{ "%.2f"|format(order.total_amount) }}</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span>Total Paid</span>
-                        <span>${{ "%.2f"|format(order.total_amount) }}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h2>Contact Information</h2>
+
+        <div class="side-panel">
+            <div class="card">
+                <h2>Contact</h2>
                 <div class="contact-info">
                     {% if order.customer_name %}
                     <p><strong>Name:</strong> {{ order.customer_name }}</p>
                     {% endif %}
                     <p><strong>Email:</strong> {{ order.email }}</p>
                 </div>
+                <div class="actions">
+                    {% if session.get('user_id') %}
+                    <a href="{{ url_for('my_orders') }}" class="btn btn-primary">View My Orders</a>
+                    {% else %}
+                    <a href="{{ url_for('guest_lookup') }}" class="btn btn-primary">Look Up Order</a>
+                    {% endif %}
+                    {% if order.status == 'confirmed' %}
+                    <a href="{{ url_for('seat_selection', flight_id=order.flight_id, airplane_id=order.airplane_id) }}" class="btn btn-primary">Edit Seats</a>
+                    {% endif %}
+                    <a href="{{ url_for('flight_search') }}" class="btn btn-secondary">Book Another Flight</a>
+                </div>
             </div>
-        </div>
-        
-        <div class="confirmation-actions">
-            {% if session.get('user_id') %}
-            <a href="{{ url_for('my_orders') }}" class="btn btn-primary">
-                View My Orders
-            </a>
-            {% else %}
-            <a href="{{ url_for('guest_lookup') }}" class="btn btn-secondary">
-                Look Up Order
-            </a>
-            {% endif %}
-            <a href="{{ url_for('flight_search') }}" class="btn btn-secondary">
-                Book Another Flight
-            </a>
-        </div>
-        
-        <div class="confirmation-footer">
-            <p>A confirmation email has been sent to <strong>{{ order.email }}</strong></p>
-            <p>Questions? Contact us at <strong>support@flytau.com</strong></p>
+
+            <div class="side-card">
+                <h3>We emailed your receipt</h3>
+                <p>A confirmation email has been sent to <strong>{{ order.email }}</strong>.</p>
+                <p>Questions? Contact <strong>support@flytau.com</strong></p>
+            </div>
         </div>
     </div>
 </div>
