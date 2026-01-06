@@ -1,10 +1,10 @@
 -- =============================================================================
--- FLYTAU Seed Data
--- Initial data for testing and development
--- Password for all accounts: 'password123' (bcrypt hash)
+-- LEGACY ORIGINAL SEED REMOVED
+-- The original seed archive `sql/01_seed_legacy.sql` has been permanently deleted.
+-- Use `sql/01_seed_fixed.sql` to seed the database (idempotent, preferred).
 -- =============================================================================
 
-USE flytau;
+-- Original content archived and removed from this file.
 
 -- =============================================================================
 -- MANAGERS (2)
@@ -12,7 +12,13 @@ USE flytau;
 -- =============================================================================
 INSERT INTO Managers (ManagerId, Password, FirstName, SecondName, PhoneNum) VALUES
 ('M001', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'David', 'Cohen', '["972-54-1234567"]'),
-('M002', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'Sarah', 'Levi', '["972-50-7654321"]');
+('M002', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'Sarah', 'Levi', '["972-50-7654321"]')
+AS new_managers (ManagerId, Password, FirstName, SecondName, PhoneNum)
+ON DUPLICATE KEY UPDATE
+	Password = new_managers.Password,
+	FirstName = new_managers.FirstName,
+	SecondName = new_managers.SecondName,
+	PhoneNum = new_managers.PhoneNum;
 
 -- =============================================================================
 -- PILOTS (10) - 6 certified for long flights
@@ -27,7 +33,13 @@ INSERT INTO Pilot (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining) VAL
 ('P007', 'Noam', 'Ben-David', '["972-52-7777777"]', FALSE),
 ('P008', 'Gal', 'Friedman', '["972-54-8888888"]', FALSE),
 ('P009', 'Oren', 'Levy', '["972-50-9999999"]', FALSE),
-('P010', 'Tal', 'Avraham', '["972-52-1010101"]', FALSE);
+('P010', 'Tal', 'Avraham', '["972-52-1010101"]', FALSE)
+AS new_pilots (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining)
+ON DUPLICATE KEY UPDATE
+	FirstName = new_pilots.FirstName,
+	SecondName = new_pilots.SecondName,
+	PhoneNum = new_pilots.PhoneNum,
+	LongFlightsTraining = new_pilots.LongFlightsTraining;
 
 -- =============================================================================
 -- FLIGHT ATTENDANTS (20) - 12 certified for long flights
@@ -52,7 +64,13 @@ INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTra
 ('A017', 'Gili', 'Hart', '["972-52-2727272"]', FALSE),
 ('A018', 'Lior', 'Stone', '["972-54-2828282"]', FALSE),
 ('A019', 'Adi', 'Glass', '["972-50-2929292"]', FALSE),
-('A020', 'Chen', 'Gold', '["972-52-3030303"]', FALSE);
+('A020', 'Chen', 'Gold', '["972-52-3030303"]', FALSE)
+AS new_fas (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining)
+ON DUPLICATE KEY UPDATE
+	FirstName = new_fas.FirstName,
+	SecondName = new_fas.SecondName,
+	PhoneNum = new_fas.PhoneNum,
+	LongFlightsTraining = new_fas.LongFlightsTraining;
 
 -- =============================================================================
 -- REGISTERED CUSTOMERS (2)
@@ -60,13 +78,24 @@ INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTra
 -- =============================================================================
 INSERT INTO RegisteredCustomer (UniqueMail, Password, PassportNum, FirstName, SecondName, BirthDate) VALUES
 ('customer1@example.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'P123456', 'John', 'Doe', '1985-06-15'),
-('customer2@example.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'P789012', 'Jane', 'Smith', '1990-09-22');
+('customer2@example.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'P789012', 'Jane', 'Smith', '1990-09-22')
+AS new_registered (UniqueMail, Password, PassportNum, FirstName, SecondName, BirthDate)
+ON DUPLICATE KEY UPDATE
+	Password = new_registered.Password,
+	PassportNum = new_registered.PassportNum,
+	FirstName = new_registered.FirstName,
+	SecondName = new_registered.SecondName,
+	BirthDate = new_registered.BirthDate;
 
 -- =============================================================================
 -- GUEST CUSTOMERS (1)
 -- =============================================================================
 INSERT INTO GuestCustomer (UniqueMail, FirstName, SecondName) VALUES
-('guest1@example.com', 'Guest', 'User');
+('guest1@example.com', 'Guest', 'User')
+AS new_guest (UniqueMail, FirstName, SecondName)
+ON DUPLICATE KEY UPDATE
+	FirstName = new_guest.FirstName,
+	SecondName = new_guest.SecondName;
 
 -- =============================================================================
 -- AIRPLANES (6)
@@ -77,7 +106,12 @@ INSERT INTO Airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business
 ('A003', 'Airbus', '25 6', '6 4'),
 ('A004', 'Airbus', '22 6', '5 4'),
 ('A005', 'Dassault', '10 4', NULL),
-('A006', 'Dassault', '8 4', NULL);
+('A006', 'Dassault', '8 4', NULL)
+AS new_airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`)
+ON DUPLICATE KEY UPDATE
+	Manufacturer = new_airplanes.Manufacturer,
+	`Couch (Rows, Cols)` = new_airplanes.`Couch (Rows, Cols)`,
+	`Business (Rows, Cols)` = new_airplanes.`Business (Rows, Cols)`;
 
 -- =============================================================================
 -- FLIGHTS (4 active)
@@ -86,12 +120,23 @@ INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, Depar
 ('FT101', 'A001', 'Tel Aviv', 'New York', '2025-02-15', '08:00:00', 660, 'active', 500.00, 1500.00),
 ('FT102', 'A003', 'Tel Aviv', 'London', '2025-02-16', '10:00:00', 300, 'active', 300.00, 900.00),
 ('FT103', 'A005', 'Tel Aviv', 'Paris', '2025-02-17', '14:00:00', 270, 'active', 250.00, NULL),
-('FT104', 'A002', 'Tel Aviv', 'Athens', '2025-02-18', '06:00:00', 120, 'active', 150.00, 450.00);
+('FT104', 'A002', 'Tel Aviv', 'Athens', '2025-02-18', '06:00:00', 120, 'active', 150.00, 450.00)
+AS new_flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice)
+ON DUPLICATE KEY UPDATE
+	Airplanes_AirplaneId = new_flights.Airplanes_AirplaneId,
+	OriginPort = new_flights.OriginPort,
+	DestPort = new_flights.DestPort,
+	DepartureDate = new_flights.DepartureDate,
+	DepartureHour = new_flights.DepartureHour,
+	Duration = new_flights.Duration,
+	Status = new_flights.Status,
+	EconomyPrice = new_flights.EconomyPrice,
+	BusinessPrice = new_flights.BusinessPrice;
 
 -- =============================================================================
 -- PILOT ASSIGNMENTS
 -- =============================================================================
-INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
+INSERT IGNORE INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
 ('P001', 'FT101', 'A001'),
 ('P002', 'FT101', 'A001'),
 ('P003', 'FT101', 'A001'),
@@ -105,7 +150,7 @@ INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airplanes_Air
 -- =============================================================================
 -- FLIGHT ATTENDANT ASSIGNMENTS
 -- =============================================================================
-INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
+INSERT IGNORE INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
 ('A001', 'FT101', 'A001'),
 ('A002', 'FT101', 'A001'),
 ('A003', 'FT101', 'A001'),
@@ -129,12 +174,21 @@ INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId, F
 -- =============================================================================
 INSERT INTO orders (UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail, Class) VALUES
 ('FLY-ABC123', 'FT101', 'A001', 1000.00, 'confirmed', NULL, 'customer1@example.com', 'economy'),
-('FLY-DEF456', 'FT102', 'A003', 900.00, 'confirmed', NULL, 'customer2@example.com', 'business');
+('FLY-DEF456', 'FT102', 'A003', 900.00, 'confirmed', NULL, 'customer2@example.com', 'business')
+AS new_orders (UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail, Class)
+ON DUPLICATE KEY UPDATE
+	Flights_FlightId = new_orders.Flights_FlightId,
+	Flights_Airplanes_AirplaneId = new_orders.Flights_Airplanes_AirplaneId,
+	TotalCost = new_orders.TotalCost,
+	Status = new_orders.Status,
+	GuestCustomer_UniqueMail = new_orders.GuestCustomer_UniqueMail,
+	RegisteredCustomer_UniqueMail = new_orders.RegisteredCustomer_UniqueMail,
+	Class = new_orders.Class;
 
 -- =============================================================================
 -- TICKETS
 -- =============================================================================
-INSERT INTO Tickets (orders_UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, RowNum, Seat, Class, Price) VALUES
+INSERT IGNORE INTO Tickets (orders_UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, RowNum, Seat, Class, Price) VALUES
 ('FLY-ABC123', 'FT101', 'A001', 6, 'A', 'economy', 500.00),
 ('FLY-ABC123', 'FT101', 'A001', 6, 'B', 'economy', 500.00),
 ('FLY-DEF456', 'FT102', 'A003', 1, 'A', 'business', 900.00);
@@ -142,7 +196,7 @@ INSERT INTO Tickets (orders_UniqueOrderCode, Flights_FlightId, Flights_Airplanes
 -- =============================================================================
 -- MANAGER EDITS (audit trail)
 -- =============================================================================
-INSERT INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
+INSERT IGNORE INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
 ('M001', 'FT101', 'A001'),
 ('M001', 'FT102', 'A003'),
 ('M002', 'FT103', 'A005'),
