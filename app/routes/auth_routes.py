@@ -104,6 +104,24 @@ def register_auth_routes(app):
         
         return render_template('auth/manager_login.html')
     
+    @app.route('/account')
+    def my_account():
+        """Customer account page with profile and recent orders."""
+        if session.get('role') != 'customer':
+            flash('Please log in to access your account.', 'warning')
+            return redirect(url_for('login'))
+        
+        from app.services import order_service
+        
+        # Get recent orders for this customer
+        customer_id = session.get('user_id')
+        recent_orders = order_service.get_customer_orders(customer_id, '')[:5]  # Last 5 orders
+        
+        return render_template('auth/my_account.html', 
+                               recent_orders=recent_orders,
+                               user_name=session.get('name'),
+                               user_email=session.get('email'))
+    
     @app.route('/logout')
     def logout():
         """Log out the current user."""
