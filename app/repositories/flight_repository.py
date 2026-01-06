@@ -33,6 +33,22 @@ def get_all_unique_cities():
     return [row['city'] for row in results] if results else []
 
 
+def get_all_routes():
+    """
+    Get all unique origin-destination pairs from flights.
+    
+    Returns:
+        List of dicts with 'origin' and 'destination' keys
+    """
+    sql = """
+        SELECT DISTINCT OriginPort as origin, DestPort as destination
+        FROM Flights
+        ORDER BY OriginPort, DestPort
+    """
+    results = execute_query(sql)
+    return results if results else []
+
+
 def search_flights(departure_date=None, origin=None, destination=None, status=None):
     """
     Search flights with filters.
@@ -272,6 +288,44 @@ def get_seat_counts(flight_id, airplane_id):
             'taken': taken_by_class.get('economy', 0)
         }
     }
+
+
+def get_seat_availability(flight_id, airplane_id):
+    """
+    Get seat availability for a flight.
+    Alias for get_seat_counts for backward compatibility.
+    
+    Args:
+        flight_id: Flight ID
+        airplane_id: Airplane ID
+    
+    Returns:
+        Dict with seat availability by class
+    """
+    return get_seat_counts(flight_id, airplane_id)
+
+
+def get_taken_seats(flight_id, airplane_id):
+    """
+    Get list of taken seats for a flight.
+    
+    Args:
+        flight_id: Flight ID
+        airplane_id: Airplane ID
+    
+    Returns:
+        List of dicts with RowNum, Seat, Class
+    """
+    sql = """
+        SELECT t.RowNum, t.Seat, t.Class
+        FROM Tickets t
+        JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
+        WHERE t.Flights_FlightId = %s 
+          AND t.Flights_Airplanes_AirplaneId = %s
+          AND o.Status != 'cancelled'
+    """
+    results = execute_query(sql, (flight_id, airplane_id))
+    return results if results else []
 
 
 def get_available_seat_codes(flight_id, airplane_id, seat_class=None):

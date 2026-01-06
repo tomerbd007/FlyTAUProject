@@ -90,13 +90,13 @@
         
         <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
             <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" 
-                       id="email" 
-                       name="email" 
+                <label for="employee_code">Employee Code</label>
+                <input type="text" 
+                       id="employee_code" 
+                       name="employee_code" 
                        required 
-                       placeholder="manager@flytau.com"
-                       value="{{ request.form.get('email', '') }}">
+                       placeholder="M001"
+                       value="{{ request.form.get('employee_code', '') }}">
             </div>
             
             <div class="form-group">
@@ -108,9 +108,9 @@
                        placeholder="Your password">
             </div>
             
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary btn-block">
                 Sign In as Manager
-            </a>
+            </button>
         </form>
         
         <div class="auth-links">

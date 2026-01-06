@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Select Seats - {{ flight.flight_number }} - FLYTAU{% endblock %}
+{% block title %}Select Seats - {{ flight.FlightId }} - FLYTAU{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <a href="{{ url_for('flight_detail', flight_id=flight.id) }}?passengers={{ passengers }}" 
+    <a href="{{ url_for('flight_detail', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}&passengers={{ request.args.get('passengers', '1') }}" 
        class="back-link">← Back to flight details</a>
     <h1>Select Your Seats</h1>
-    <p>Flight {{ flight.flight_number }}: {{ flight.origin }} → {{ flight.destination }}</p>
+    <p>Flight {{ flight.FlightId }}: {{ flight.OriginPort }} → {{ flight.DestPort }}</p>
 </div>
 
 <div class="seat-selection-container">
@@ -28,66 +28,76 @@
         </div>
         
         <div class="class-legend">
-            <span class="class-tag first">First Class</span>
             <span class="class-tag business">Business</span>
             <span class="class-tag economy">Economy</span>
         </div>
         
-        <form method="POST" action="{{ url_for('seat_selection', flight_id=flight.id) }}" id="seat-form">
-            <input type="hidden" name="passengers" value="{{ passengers }}">
+        <form method="POST" action="{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}" id="seat-form">
+            <input type="hidden" name="passengers" value="{{ request.args.get('passengers', '1') }}">
             
             <div class="aircraft-cabin">
                 <div class="cabin-front">
                     <div class="cockpit"></div>
                 </div>
                 
-                {% set current_class = namespace(value='') %}
-                {% for row_num, row_seats in seats|groupby('row_number') %}
-                    {% set first_seat = row_seats[0] %}
-                    {% if first_seat.seat_class != current_class.value %}
-                        {% set current_class.value = first_seat.seat_class %}
-                        <div class="class-divider">
-                            <span>{{ first_seat.seat_class|capitalize }} Class</span>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="seat-row">
-                        <span class="row-number">{{ row_num }}</span>
-                        <div class="seats-group left">
-                            {% for seat in row_seats[:3] %}
-                            <label class="seat {% if not seat.is_available %}seat-occupied{% endif %}"
-                                   title="Seat {{ seat.seat_number }} - ${{ '%.2f'|format(seat.price) }}">
-                                <input type="checkbox" 
-                                       name="seats" 
-                                       value="{{ seat.id }}"
-                                       {% if not seat.is_available %}disabled{% endif %}
-                                       data-price="{{ seat.price }}">
-                                <span class="seat-label">{{ seat.seat_number[-1] }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                        <div class="aisle"></div>
-                        <div class="seats-group right">
-                            {% for seat in row_seats[3:] %}
-                            <label class="seat {% if not seat.is_available %}seat-occupied{% endif %}"
-                                   title="Seat {{ seat.seat_number }} - ${{ '%.2f'|format(seat.price) }}">
-                                <input type="checkbox" 
-                                       name="seats" 
-                                       value="{{ seat.id }}"
-                                       {% if not seat.is_available %}disabled{% endif %}
-                                       data-price="{{ seat.price }}">
-                                <span class="seat-label">{{ seat.seat_number[-1] }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
+                {# Business Class Section #}
+                {% if seat_map and seat_map.business and seat_map.business.rows %}
+                <div class="class-divider">
+                    <span>Business Class</span>
+                </div>
+                {% for row_num, seats in seat_map.business.rows.items() %}
+                <div class="seat-row">
+                    <span class="row-number">{{ row_num }}</span>
+                    <div class="seats-group">
+                        {% for seat in seats %}
+                        <label class="seat seat-business {% if seat.status == 'taken' %}seat-occupied{% endif %}"
+                               title="Seat {{ seat.code }} - ${{ '%.2f'|format(flight.BusinessPrice|float) }}">
+                            <input type="checkbox" 
+                                   name="seats" 
+                                   value="{{ seat.code }}"
+                                   {% if seat.status == 'taken' %}disabled{% endif %}
+                                   data-price="{{ flight.BusinessPrice }}"
+                                   data-class="business">
+                            <span class="seat-label">{{ seat.col }}</span>
+                        </label>
+                        {% endfor %}
                     </div>
+                </div>
                 {% endfor %}
+                {% endif %}
+                
+                {# Economy Class Section #}
+                {% if seat_map and seat_map.economy and seat_map.economy.rows %}
+                <div class="class-divider">
+                    <span>Economy Class</span>
+                </div>
+                {% for row_num, seats in seat_map.economy.rows.items() %}
+                <div class="seat-row">
+                    <span class="row-number">{{ row_num }}</span>
+                    <div class="seats-group">
+                        {% for seat in seats %}
+                        <label class="seat seat-economy {% if seat.status == 'taken' %}seat-occupied{% endif %}"
+                               title="Seat {{ seat.code }} - ${{ '%.2f'|format(flight.EconomyPrice|float) }}">
+                            <input type="checkbox" 
+                                   name="seats" 
+                                   value="{{ seat.code }}"
+                                   {% if seat.status == 'taken' %}disabled{% endif %}
+                                   data-price="{{ flight.EconomyPrice }}"
+                                   data-class="economy">
+                            <span class="seat-label">{{ seat.col }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
             </div>
             
             <div class="selection-summary">
                 <div class="summary-info">
-                    <p>Please select <strong>{{ passengers }}</strong> seat{{ 's' if passengers|int > 1 else '' }}</p>
-                    <p class="selected-count">Selected: <span id="selected-seats-count">0</span> / {{ passengers }}</p>
+                    <p>Select your seat{{ 's' if (request.args.get('passengers', '1')|int) > 1 else '' }}</p>
+                    <p class="selected-count">Selected: <span id="selected-seats-count">0</span></p>
+                    <p class="total-price">Total: $<span id="total-price">0.00</span></p>
                 </div>
                 
                 <div class="summary-actions">
@@ -103,16 +113,12 @@
         <h3>Pricing</h3>
         <ul class="price-list">
             <li>
-                <span class="class-name">First Class</span>
-                <span class="price">${{ "%.2f"|format(flight.first_price) }}</span>
-            </li>
-            <li>
                 <span class="class-name">Business Class</span>
-                <span class="price">${{ "%.2f"|format(flight.business_price) }}</span>
+                <span class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}</span>
             </li>
             <li>
                 <span class="class-name">Economy Class</span>
-                <span class="price">${{ "%.2f"|format(flight.economy_price) }}</span>
+                <span class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}</span>
             </li>
         </ul>
         
@@ -122,4 +128,31 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[name="seats"]');
+    const countDisplay = document.getElementById('selected-seats-count');
+    const priceDisplay = document.getElementById('total-price');
+    
+    function updateSummary() {
+        let count = 0;
+        let total = 0;
+        
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                count++;
+                total += parseFloat(cb.dataset.price) || 0;
+            }
+        });
+        
+        countDisplay.textContent = count;
+        priceDisplay.textContent = total.toFixed(2);
+    }
+    
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateSummary);
+    });
+});
+</script>
 {% endblock %}
