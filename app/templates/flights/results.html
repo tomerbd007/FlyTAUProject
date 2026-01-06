@@ -96,9 +96,9 @@
                     <span class="price-chip">Business ${{ "%.2f"|format(flight.BusinessPrice|float) }}</span>
                 </div>
                 {% if flight.is_direct %}
-                <a href="{{ url_for('flight_detail', flight_id=flight.FlightId, airplane_id=flight.Airplanes_AirplaneId) }}?passengers={{ passengers }}" class="action-btn">Select Flight</a>
+                <a href="{{ url_for('flight_detail', flight_id=flight.FlightId, airplane_id=flight.Airplanes_AirplaneId, passengers=passengers) }}" class="action-btn">Select Flight</a>
                 {% else %}
-                <a href="{{ url_for('flight_detail', flight_id=flight.flights[0].FlightId, airplane_id=flight.flights[0].Airplanes_AirplaneId) }}?passengers={{ passengers }}&connecting={{ flight.flights[1].FlightId }}&connecting_airplane={{ flight.flights[1].Airplanes_AirplaneId }}" class="action-btn">Select Flights</a>
+                <a href="{{ url_for('flight_detail', flight_id=flight.flights[0].FlightId, airplane_id=flight.flights[0].Airplanes_AirplaneId, passengers=passengers, connecting=flight.flights[1].FlightId, connecting_airplane=flight.flights[1].Airplanes_AirplaneId) }}" class="action-btn">Select Flights</a>
                 {% endif %}
             </div>
         </div>
