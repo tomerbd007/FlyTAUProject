@@ -65,7 +65,7 @@ cd FlyTAUProject
 ### 2. Create Virtual Environment
 
 ```bash
-python3 -m venv venv
+python -m venv venv
 source venv/bin/activate  # On macOS/Linux
 # or
 venv\Scripts\activate     # On Windows

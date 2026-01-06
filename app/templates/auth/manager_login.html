@@ -268,30 +268,20 @@
                 <li>Advanced analytics</li>
             </ul>
         </div>
-        
-        <h1>Manager Login</h1>
-        <p class="auth-subtitle">Access the flight management system</p>
-        
-        <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
-            <div class="form-group">
-                <label for="employee_code">Employee Code</label>
-                <input type="text" 
-                       id="employee_code" 
-                       name="employee_code" 
-                       required 
-                       placeholder="M001"
-                       value="{{ request.form.get('employee_code', '') }}">
-            </div>
+
+        <div class="auth-form-wrapper">
+            <h1>Manager Login</h1>
+            <p class="auth-subtitle">Sign in to access the management system</p>
             
             <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
                 <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
+                    <label for="employee_code">Employee Code</label>
+                    <input type="text" 
+                           id="employee_code" 
+                           name="employee_code" 
                            required 
-                           placeholder="manager@flytau.com"
-                           value="{{ request.form.get('email', '') }}">
+                           placeholder="M001"
+                           value="{{ request.form.get('employee_code', '') }}">
                 </div>
                 
                 <div class="form-group">
@@ -303,18 +293,14 @@
                            placeholder="Enter your password">
                 </div>
                 
-                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary">
                     Sign In
-                </a>
+                </button>
             </form>
             
-            <button type="submit" class="btn btn-primary btn-block">
-                Sign In as Manager
-            </button>
-        </form>
-        
-        <div class="auth-links">
-            <p>Not a manager? <a href="{{ url_for('login') }}">Customer Login</a></p>
+            <div class="auth-links">
+                <p>Not a manager? <a href="{{ url_for('login') }}">Customer Login</a></p>
+            </div>
         </div>
     </div>
 </div>

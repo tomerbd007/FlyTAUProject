@@ -4,271 +4,338 @@
 
 {% block content %}
 <style>
-    /* Ombre background */
-    body {
-        background: linear-gradient(180deg, #e8f6ff 0%, #f7fcff 60%, #ffffff 100%);
-        color: #06232b;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
     }
 
-    /* Top navigation */
-    .top-nav {
-        background: rgba(255,255,255,0.96);
-        padding: 12px 20px;
+    body {
+        background: #f5f5f5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #333;
+    }
+
+    .dashboard-wrapper {
         display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        align-items: center;
-        box-shadow: 0 1px 6px rgba(2,32,47,0.06);
-        position: sticky;
+        min-height: 100vh;
+    }
+
+    /* Left sidebar */
+    .dashboard-wrapper::before {
+        content: '';
+        position: fixed;
+        left: 0;
         top: 0;
-        z-index: 50;
+        width: 25%;
+        height: 100vh;
+        background: linear-gradient(135deg, #1a3a52 0%, #2d5a7b 100%);
+        z-index: 0;
     }
-    .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; }
-    .top-nav .links { display:flex; gap:16px; align-items:center; }
-    .top-nav a { color: #004b71; text-decoration: none; font-weight: 600; }
 
-    /* Buttons */
-    .btn {
-        padding: 10px 16px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
+    .dashboard-sidebar {
+        width: 25%;
+        padding: 40px 30px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1;
+    }
+
+    .dashboard-sidebar .logo {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 40px;
+        letter-spacing: -1px;
+    }
+
+    .sidebar-welcome {
+        margin-bottom: 30px;
+    }
+
+    .sidebar-welcome h2 {
+        font-size: 1.5rem;
+        font-weight: 300;
+        margin-bottom: 8px;
+        line-height: 1.3;
+    }
+
+    .sidebar-welcome p {
+        font-size: 0.95rem;
+        opacity: 0.85;
+        line-height: 1.6;
+    }
+
+    .sidebar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 30px;
+    }
+
+    .sidebar-actions .btn {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 4px;
+        background: transparent;
+        color: white;
+        font-size: 0.9rem;
         font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
         text-decoration: none;
-        display: inline-block;
         text-align: center;
     }
-    .btn-primary { background: #0077b6; color: white; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-outline { background: transparent; border: 1px solid #0077b6; color: #0077b6; }
-    .btn-block { width: 100%; }
 
-    /* Feature grid */
-    .features { max-width: 1100px; margin: 18px auto 60px; padding: 0 20px; }
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; }
-    .feature-card { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 6px 18px rgba(2,32,47,0.04); }
-
-    /* Main content */
-    .main-content {
-        min-height: calc(100vh - 200px);
-        padding: 20px;
+    .sidebar-actions .btn:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.5);
     }
 
-    /* Footer */
-    .footer {
-        background: rgba(255,255,255,0.9);
-        padding: 20px;
-        text-align: center;
-        color: #235366;
-        border-top: 1px solid #d7e9f5;
-    }
-
-    @media (max-width: 760px) {
-        .top-nav { padding: 10px 14px; }
-        .top-nav .links { display: none; }
+    .dashboard-content {
+        width: 75%;
+        margin-left: 25%;
+        padding: 40px;
+        background: white;
+        position: relative;
+        z-index: 1;
     }
 
     .admin-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border-bottom: 1px solid #d7e9f5;
+        margin-bottom: 40px;
     }
+
     .admin-header h1 {
-        font-size: 1.5rem;
-        margin: 0;
-        color: #004b71;
+        font-size: 2.2rem;
+        font-weight: 600;
+        color: #1a3a52;
+        margin-bottom: 12px;
     }
+
     .admin-header p {
-        margin: 5px 0 0;
-        color: #666;
-    }
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .header-center {
-        text-align: center;
-        flex-grow: 1;
-    }
-    .header-right {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        font-size: 0.95rem;
+        color: #888;
     }
 
     .dashboard-container {
-        max-width: 1200px;
-        margin: 20px auto;
-        padding: 0 20px;
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 24px;
     }
 
     .dashboard-section {
         background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 6px 18px rgba(2,32,47,0.04);
+        padding: 24px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
+
     .section-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
     }
+
     .section-header h2 {
-        font-size: 1.25rem;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1a3a52;
         margin: 0;
-        color: #004b71;
-    }
-    .view-all {
-        font-size: 0.9rem;
-        color: #0077b6;
-        text-decoration: none;
-    }
-    .view-all:hover {
-        text-decoration: underline;
     }
 
     .search-bar {
         display: flex;
         align-items: center;
-        gap: 10px;
     }
+
     .search-bar input {
-        padding: 10px;
-        border: 1px solid #d7e9f5;
-        border-radius: 6px;
+        padding: 10px 14px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
         width: 100%;
-        max-width: 300px;
+        max-width: 280px;
         font-size: 0.9rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .search-bar input:focus {
+        outline: none;
+        border-color: #1a3a52;
     }
 
     /* Data table */
     .data-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 10px;
     }
+
     .data-table th, .data-table td {
         padding: 12px 15px;
-        border: 1px solid #d7e9f5;
+        border-bottom: 1px solid #e0e0e0;
         text-align: left;
         font-size: 0.9rem;
     }
+
     .data-table th {
-        background: #f7f9fc;
-        color: #004b71;
+        background: #f8f9fa;
+        color: #1a3a52;
         font-weight: 600;
+        border-bottom: 2px solid #ddd;
     }
-    .data-table td {
-        background: white;
-        color: #333;
+
+    .data-table tr:hover {
+        background: #f9f9f9;
     }
 
     /* Status badges */
     .status-badge {
         padding: 6px 10px;
-        border-radius: 12px;
+        border-radius: 4px;
         font-size: 0.8rem;
         font-weight: 500;
         display: inline-block;
         text-align: center;
     }
-    .status-badge.status-active { background: #d1e7dd; color: #0f5132; }
-    .status-badge.status-inactive { background: #f8d7da; color: #842029; }
+
+    .status-badge.status-active { background: #d4edda; color: #155724; }
+    .status-badge.status-inactive { background: #f8d7da; color: #721c24; }
     .status-badge.status-pending { background: #fff3cd; color: #856404; }
 
-    /* Occupancy bar */
-    .occupancy-bar {
-        width: 100%;
-        background: #e9ecef;
-        border-radius: 10px;
-        overflow: hidden;
-        position: relative;
-    }
-    .occupancy-fill {
-        height: 100%;
-        background: #0077b6;
-        transition: width 0.3s;
-    }
-    .occupancy-text {
-        position: absolute;
-        width: 100%;
+    .btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
         text-align: center;
-        font-size: 0.8rem;
-        color: white;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
     }
 
-    /* Buttons */
-    .btn-link {
-        background: none;
-        border: none;
-        color: #0077b6;
-        font-size: 0.9rem;
-        cursor: pointer;
-        text-decoration: underline;
+    .btn-primary {
+        background: #1a3a52;
+        color: white;
     }
-    .btn-icon {
-        background: none;
-        border: none;
-        color: #dc3545;
-        cursor: pointer;
-        font-size: 1.2rem;
+
+    .btn-primary:hover {
+        background: #0f2738;
     }
-    .btn-icon:hover {
-        color: #c82333;
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+    }
+
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 0.8rem;
     }
 
     .no-data {
         text-align: center;
         color: #999;
-        padding: 20px;
+        padding: 40px 20px;
         font-size: 0.9rem;
     }
 
-    @media (max-width: 760px) {
-        .top-nav { padding: 10px 14px; }
-        .top-nav .links { display: none; }
-        .admin-header {
+    @media (max-width: 1024px) {
+        .dashboard-wrapper::before {
+            width: 30%;
+        }
+
+        .dashboard-sidebar {
+            width: 30%;
+        }
+
+        .dashboard-content {
+            width: 70%;
+            margin-left: 30%;
+            padding: 30px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-wrapper {
+            flex-direction: column;
+        }
+
+        .dashboard-wrapper::before {
+            width: 100%;
+            height: 200px;
+        }
+
+        .dashboard-sidebar {
+            width: 100%;
+            height: auto;
+            position: relative;
+            padding: 30px 20px;
+        }
+
+        .dashboard-content {
+            width: 100%;
+            margin-left: 0;
+            padding: 20px;
+        }
+
+        .admin-header h1 {
+            font-size: 1.8rem;
+        }
+
+        .section-header {
             flex-direction: column;
             align-items: flex-start;
+            gap: 15px;
         }
-        .header-center {
-            text-align: left;
-            width: 100%;
-        }
-        .dashboard-container {
-            padding: 0 10px;
+
+        .search-bar input {
+            max-width: 100%;
         }
     }
 </style>
-<div class="admin-header">
-    <div class="header-left">
-        <button class="btn btn-secondary" onclick="window.location.href='{{ url_for('reports_index') }}'">Statistics</button>
-    </div>
-    <div class="header-center">
-        <h1>Manager Dashboard</h1>
-        <p>Welcome, {{ session.get('name', 'Manager') }}</p>
-    </div>
-    <div class="header-right">
-        <button class="btn btn-primary" onclick="window.location.href='{{ url_for('add_flight_step1') }}'">Add Flight</button>
-    </div>
-</div>
+<div class="dashboard-wrapper">
+    <div class="dashboard-sidebar">
+        <div class="logo">FLYTAU</div>
+        
+        <div class="sidebar-welcome">
+            <h2>Welcome</h2>
+            <p>{{ session.get('name', 'Manager') }}</p>
+        </div>
 
-<div class="dashboard-container">
+        <div class="sidebar-actions">
+            <button class="btn" onclick="window.location.href='{{ url_for('add_flight_step1') }}'">Add Flight</button>
+            <button class="btn" onclick="window.location.href='{{ url_for('reports_index') }}'">Statistics</button>
+            <button class="btn" onclick="window.location.href='{{ url_for('logout') }}'">Logout</button>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="admin-header">
+            <h1>Manager Dashboard</h1>
+            <p>Manage flights, crew, and operations</p>
+        </div>
+
+        <div class="dashboard-container">
     <div class="dashboard-section">
         <div class="section-header">
             <h2>All Flights</h2>
@@ -300,6 +367,7 @@
                         </span>
                     </td>
                     <td>
+                        <a href="{{ url_for('edit_flight', flight_id=flight.FlightId) }}" class="btn btn-sm btn-primary">Edit</a>
                         {% if flight.Status == 'active' %}
                         <a href="{{ url_for('cancel_flight', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}" class="btn btn-sm btn-danger">Cancel</a>
                         {% endif %}
@@ -312,6 +380,7 @@
         <p class="no-data">No flights available.</p>
         {% endif %}
     </div>
+</div>
 </div>
 
 <script>
