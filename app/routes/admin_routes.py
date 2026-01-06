@@ -134,8 +134,8 @@ def register_admin_routes(app):
             
             return redirect(url_for('add_flight_step3'))
         
-        # Get available aircraft (small only for short flights, both for any)
-        aircraft_list = admin_service.get_available_aircraft(
+        # Get available aircraft (big planes only for long flights, all for short)
+        aircraft_list = admin_service.get_available_airplanes(
             flight_data['departure_datetime'],
             flight_data['arrival_datetime'],
             is_long_flight

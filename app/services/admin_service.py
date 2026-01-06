@@ -5,6 +5,7 @@ Handles flight creation, cancellation, crew management, and admin operations
 Schema:
 - Flights: FlightId + Airplanes_AirplaneId (composite PK), OriginPort, DestPort,
            DepartureDate, DepartureHour, Duration, Status
+- Routes: RouteId (PK), OriginPort, DestPort, DurationMinutes, DistanceKm
 - Pilot_has_Flights, FlightAttendant_has_Flights: Junction tables for crew assignments
 - Managers_edits_Flights: Audit trail for manager edits
 """
@@ -23,6 +24,21 @@ FLIGHT_CANCELLATION_CUTOFF_HOURS = 72
 
 # Flight duration threshold for long flights (in minutes)
 LONG_FLIGHT_THRESHOLD_MINUTES = 360  # 6 hours
+
+
+def get_route(origin, destination):
+    """
+    Get route information for given origin-destination pair.
+    
+    Args:
+        origin: Origin airport code
+        destination: Destination airport code
+    
+    Returns:
+        Dict with id, origin, destination, duration_minutes, distance_km
+        or None if route not found
+    """
+    return flight_repository.get_route(origin, destination)
 
 
 def get_dashboard_stats():
@@ -95,19 +111,26 @@ def get_available_airplanes(departure_datetime, arrival_datetime, for_long_fligh
     
     Returns:
         List of available airplane dicts
+    
+    Business Rule:
+        - Long flights (> 6 hours): Only big airplanes (those with Business class)
+        - Short flights (≤ 6 hours): All airplanes (big and small)
+        - An airplane is considered 'big' if it has Business config (not null)
     """
     if isinstance(departure_datetime, str):
         departure_datetime = datetime.fromisoformat(departure_datetime)
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    airplanes = aircraft_repository.get_available_airplanes(
-        departure_datetime, 
-        arrival_datetime
-    )
+    # Repository expects just the departure date
+    departure_date = departure_datetime.date()
     
-    # Note: If small planes can't do long flights, filter them here
-    # (depends on business rules - current schema doesn't indicate this)
+    airplanes = aircraft_repository.get_available_airplanes(departure_date)
+    
+    # For long flights, only big airplanes are allowed
+    # A big airplane has Business class seats (business_seats > 0)
+    if for_long_flight:
+        airplanes = [a for a in airplanes if a.get('business_seats', 0) > 0]
     
     return airplanes
 
@@ -129,16 +152,15 @@ def get_available_pilots(departure_datetime, arrival_datetime, for_long_flight=F
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
+    # Repository expects just the departure date
+    departure_date = departure_datetime.date()
+    
     pilots = crew_repository.get_available_pilots(
-        departure_datetime=departure_datetime,
-        arrival_datetime=arrival_datetime
+        departure_date,
+        require_long_flight_cert=for_long_flight
     )
     
-    # Filter by long flight certification if needed
-    if for_long_flight:
-        pilots = [p for p in pilots if p.get('LongFlightsTraining')]
-    
-    return pilots
+    return pilots if pilots else []
 
 
 def get_available_attendants(departure_datetime, arrival_datetime, for_long_flight=False):
@@ -158,16 +180,15 @@ def get_available_attendants(departure_datetime, arrival_datetime, for_long_flig
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    attendants = crew_repository.get_available_attendants(
-        departure_datetime=departure_datetime,
-        arrival_datetime=arrival_datetime
+    # Repository expects just the departure date
+    departure_date = departure_datetime.date()
+    
+    attendants = crew_repository.get_available_flight_attendants(
+        departure_date,
+        require_long_flight_cert=for_long_flight
     )
     
-    # Filter by long flight certification if needed
-    if for_long_flight:
-        attendants = [a for a in attendants if a.get('LongFlightsTraining')]
-    
-    return attendants
+    return attendants if attendants else []
 
 
 def create_flight(airplane_id, origin, destination, departure_date, departure_hour,

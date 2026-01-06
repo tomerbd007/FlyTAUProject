@@ -25,7 +25,35 @@ CREATE TABLE IF NOT EXISTS `flytau`.`Airports` (
   `Name` VARCHAR(100) NOT NULL,
   `City` VARCHAR(100) NOT NULL,
   `Country` VARCHAR(100) NOT NULL,
+  `Latitude` DECIMAL(9,6) NULL,
+  `Longitude` DECIMAL(9,6) NULL,
   PRIMARY KEY (`Code`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `flytau`.`Routes`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `flytau`.`Routes` (
+  `RouteId` INT NOT NULL AUTO_INCREMENT,
+  `OriginPort` VARCHAR(10) NOT NULL,
+  `DestPort` VARCHAR(10) NOT NULL,
+  `DurationMinutes` INT NOT NULL,
+  `DistanceKm` INT NULL,
+  PRIMARY KEY (`RouteId`),
+  UNIQUE INDEX `route_unique` (`OriginPort` ASC, `DestPort` ASC) VISIBLE,
+  INDEX `fk_Routes_Origin_idx` (`OriginPort` ASC) VISIBLE,
+  INDEX `fk_Routes_Dest_idx` (`DestPort` ASC) VISIBLE,
+  CONSTRAINT `fk_Routes_Origin`
+    FOREIGN KEY (`OriginPort`)
+    REFERENCES `flytau`.`Airports` (`Code`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_Routes_Dest`
+    FOREIGN KEY (`DestPort`)
+    REFERENCES `flytau`.`Airports` (`Code`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 

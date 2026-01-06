@@ -7,64 +7,64 @@
 USE flytau;
 
 -- =============================================================================
--- AIRPORTS (Global)
+-- AIRPORTS (Global) - with coordinates for distance calculations
 -- =============================================================================
-INSERT INTO Airports (Code, Name, City, Country) VALUES
+INSERT INTO Airports (Code, Name, City, Country, Latitude, Longitude) VALUES
 -- Middle East
-('TLV', 'Ben Gurion International Airport', 'Tel Aviv', 'Israel'),
-('DXB', 'Dubai International Airport', 'Dubai', 'UAE'),
-('AUH', 'Abu Dhabi International Airport', 'Abu Dhabi', 'UAE'),
-('DOH', 'Hamad International Airport', 'Doha', 'Qatar'),
-('RUH', 'King Khalid International Airport', 'Riyadh', 'Saudi Arabia'),
-('JED', 'King Abdulaziz International Airport', 'Jeddah', 'Saudi Arabia'),
-('AMM', 'Queen Alia International Airport', 'Amman', 'Jordan'),
-('CAI', 'Cairo International Airport', 'Cairo', 'Egypt'),
-('IST', 'Istanbul Airport', 'Istanbul', 'Turkey'),
-('BEY', 'Beirut–Rafic Hariri International Airport', 'Beirut', 'Lebanon'),
-('BAH', 'Bahrain International Airport', 'Manama', 'Bahrain'),
-('KWI', 'Kuwait International Airport', 'Kuwait City', 'Kuwait'),
-('MCT', 'Muscat International Airport', 'Muscat', 'Oman'),
+('TLV', 'Ben Gurion International Airport', 'Tel Aviv', 'Israel', 32.0114, 34.8855),
+('DXB', 'Dubai International Airport', 'Dubai', 'UAE', 25.2532, 55.3657),
+('AUH', 'Abu Dhabi International Airport', 'Abu Dhabi', 'UAE', 24.4330, 54.6511),
+('DOH', 'Hamad International Airport', 'Doha', 'Qatar', 25.2731, 51.6081),
+('RUH', 'King Khalid International Airport', 'Riyadh', 'Saudi Arabia', 24.9578, 46.6989),
+('JED', 'King Abdulaziz International Airport', 'Jeddah', 'Saudi Arabia', 21.6796, 39.1566),
+('AMM', 'Queen Alia International Airport', 'Amman', 'Jordan', 31.7226, 35.9932),
+('CAI', 'Cairo International Airport', 'Cairo', 'Egypt', 30.1219, 31.4056),
+('IST', 'Istanbul Airport', 'Istanbul', 'Turkey', 41.2753, 28.7519),
+('BEY', 'Beirut–Rafic Hariri International Airport', 'Beirut', 'Lebanon', 33.8209, 35.4884),
+('BAH', 'Bahrain International Airport', 'Manama', 'Bahrain', 26.2708, 50.6336),
+('KWI', 'Kuwait International Airport', 'Kuwait City', 'Kuwait', 29.2266, 47.9689),
+('MCT', 'Muscat International Airport', 'Muscat', 'Oman', 23.5933, 58.2844),
 -- Europe
-('LHR', 'Heathrow Airport', 'London', 'United Kingdom'),
-('CDG', 'Charles de Gaulle Airport', 'Paris', 'France'),
-('FRA', 'Frankfurt Airport', 'Frankfurt', 'Germany'),
-('AMS', 'Amsterdam Schiphol Airport', 'Amsterdam', 'Netherlands'),
-('FCO', 'Leonardo da Vinci International Airport', 'Rome', 'Italy'),
-('MAD', 'Adolfo Suárez Madrid–Barajas Airport', 'Madrid', 'Spain'),
-('BCN', 'Barcelona–El Prat Airport', 'Barcelona', 'Spain'),
-('ATH', 'Athens International Airport', 'Athens', 'Greece'),
-('VIE', 'Vienna International Airport', 'Vienna', 'Austria'),
-('ZRH', 'Zurich Airport', 'Zurich', 'Switzerland'),
-('MUC', 'Munich Airport', 'Munich', 'Germany'),
-('CPH', 'Copenhagen Airport', 'Copenhagen', 'Denmark'),
-('PRG', 'Václav Havel Airport Prague', 'Prague', 'Czech Republic'),
+('LHR', 'Heathrow Airport', 'London', 'United Kingdom', 51.4700, -0.4543),
+('CDG', 'Charles de Gaulle Airport', 'Paris', 'France', 49.0097, 2.5479),
+('FRA', 'Frankfurt Airport', 'Frankfurt', 'Germany', 50.0379, 8.5622),
+('AMS', 'Amsterdam Schiphol Airport', 'Amsterdam', 'Netherlands', 52.3105, 4.7683),
+('FCO', 'Leonardo da Vinci International Airport', 'Rome', 'Italy', 41.8003, 12.2389),
+('MAD', 'Adolfo Suárez Madrid–Barajas Airport', 'Madrid', 'Spain', 40.4983, -3.5676),
+('BCN', 'Barcelona–El Prat Airport', 'Barcelona', 'Spain', 41.2974, 2.0833),
+('ATH', 'Athens International Airport', 'Athens', 'Greece', 37.9364, 23.9445),
+('VIE', 'Vienna International Airport', 'Vienna', 'Austria', 48.1103, 16.5697),
+('ZRH', 'Zurich Airport', 'Zurich', 'Switzerland', 47.4582, 8.5555),
+('MUC', 'Munich Airport', 'Munich', 'Germany', 48.3537, 11.7750),
+('CPH', 'Copenhagen Airport', 'Copenhagen', 'Denmark', 55.6180, 12.6508),
+('PRG', 'Václav Havel Airport Prague', 'Prague', 'Czech Republic', 50.1008, 14.2600),
 -- Americas
-('JFK', 'John F. Kennedy International Airport', 'New York', 'USA'),
-('LAX', 'Los Angeles International Airport', 'Los Angeles', 'USA'),
-('MIA', 'Miami International Airport', 'Miami', 'USA'),
-('ORD', 'O''Hare International Airport', 'Chicago', 'USA'),
-('SFO', 'San Francisco International Airport', 'San Francisco', 'USA'),
-('YYZ', 'Toronto Pearson International Airport', 'Toronto', 'Canada'),
-('GRU', 'São Paulo/Guarulhos International Airport', 'São Paulo', 'Brazil'),
-('MEX', 'Mexico City International Airport', 'Mexico City', 'Mexico'),
+('JFK', 'John F. Kennedy International Airport', 'New York', 'USA', 40.6413, -73.7781),
+('LAX', 'Los Angeles International Airport', 'Los Angeles', 'USA', 33.9416, -118.4085),
+('MIA', 'Miami International Airport', 'Miami', 'USA', 25.7959, -80.2870),
+('ORD', 'O''Hare International Airport', 'Chicago', 'USA', 41.9742, -87.9073),
+('SFO', 'San Francisco International Airport', 'San Francisco', 'USA', 37.6213, -122.3790),
+('YYZ', 'Toronto Pearson International Airport', 'Toronto', 'Canada', 43.6777, -79.6248),
+('GRU', 'São Paulo/Guarulhos International Airport', 'São Paulo', 'Brazil', -23.4356, -46.4731),
+('MEX', 'Mexico City International Airport', 'Mexico City', 'Mexico', 19.4361, -99.0719),
 -- Asia Pacific
-('HND', 'Haneda Airport', 'Tokyo', 'Japan'),
-('NRT', 'Narita International Airport', 'Tokyo', 'Japan'),
-('SIN', 'Singapore Changi Airport', 'Singapore', 'Singapore'),
-('HKG', 'Hong Kong International Airport', 'Hong Kong', 'China'),
-('PEK', 'Beijing Capital International Airport', 'Beijing', 'China'),
-('PVG', 'Shanghai Pudong International Airport', 'Shanghai', 'China'),
-('ICN', 'Incheon International Airport', 'Seoul', 'South Korea'),
-('BKK', 'Suvarnabhumi Airport', 'Bangkok', 'Thailand'),
-('DEL', 'Indira Gandhi International Airport', 'New Delhi', 'India'),
-('BOM', 'Chhatrapati Shivaji International Airport', 'Mumbai', 'India'),
-('SYD', 'Sydney Kingsford Smith Airport', 'Sydney', 'Australia'),
-('MEL', 'Melbourne Airport', 'Melbourne', 'Australia'),
+('HND', 'Haneda Airport', 'Tokyo', 'Japan', 35.5494, 139.7798),
+('NRT', 'Narita International Airport', 'Tokyo', 'Japan', 35.7720, 140.3929),
+('SIN', 'Singapore Changi Airport', 'Singapore', 'Singapore', 1.3644, 103.9915),
+('HKG', 'Hong Kong International Airport', 'Hong Kong', 'China', 22.3080, 113.9185),
+('PEK', 'Beijing Capital International Airport', 'Beijing', 'China', 40.0799, 116.6031),
+('PVG', 'Shanghai Pudong International Airport', 'Shanghai', 'China', 31.1443, 121.8083),
+('ICN', 'Incheon International Airport', 'Seoul', 'South Korea', 37.4602, 126.4407),
+('BKK', 'Suvarnabhumi Airport', 'Bangkok', 'Thailand', 13.6900, 100.7501),
+('DEL', 'Indira Gandhi International Airport', 'New Delhi', 'India', 28.5562, 77.1000),
+('BOM', 'Chhatrapati Shivaji International Airport', 'Mumbai', 'India', 19.0896, 72.8656),
+('SYD', 'Sydney Kingsford Smith Airport', 'Sydney', 'Australia', -33.9399, 151.1753),
+('MEL', 'Melbourne Airport', 'Melbourne', 'Australia', -37.6690, 144.8410),
 -- Africa
-('JNB', 'O.R. Tambo International Airport', 'Johannesburg', 'South Africa'),
-('CPT', 'Cape Town International Airport', 'Cape Town', 'South Africa'),
-('ADD', 'Addis Ababa Bole International Airport', 'Addis Ababa', 'Ethiopia'),
-('NBO', 'Jomo Kenyatta International Airport', 'Nairobi', 'Kenya');
+('JNB', 'O.R. Tambo International Airport', 'Johannesburg', 'South Africa', -26.1367, 28.2411),
+('CPT', 'Cape Town International Airport', 'Cape Town', 'South Africa', -33.9715, 18.6021),
+('ADD', 'Addis Ababa Bole International Airport', 'Addis Ababa', 'Ethiopia', 8.9779, 38.7993),
+('NBO', 'Jomo Kenyatta International Airport', 'Nairobi', 'Kenya', -1.3192, 36.9278);
 
 -- =============================================================================
 -- MANAGERS (2)
@@ -143,10 +143,10 @@ INSERT INTO Airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business
 -- FLIGHTS (4 active)
 -- =============================================================================
 INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
-('FT101', 'A001', 'TLV', 'JFK', '2025-02-15', '08:00:00', 660, 'active', 500.00, 1500.00),
-('FT102', 'A003', 'TLV', 'LHR', '2025-02-16', '10:00:00', 300, 'active', 300.00, 900.00),
-('FT103', 'A005', 'TLV', 'CDG', '2025-02-17', '14:00:00', 270, 'active', 250.00, NULL),
-('FT104', 'A002', 'TLV', 'ATH', '2025-02-18', '06:00:00', 120, 'active', 150.00, 450.00);
+('FT101', 'A001', 'TLV', 'JFK', '2026-02-15', '08:00:00', 660, 'active', 500.00, 1500.00),
+('FT102', 'A003', 'TLV', 'LHR', '2026-02-16', '10:00:00', 300, 'active', 300.00, 900.00),
+('FT103', 'A005', 'TLV', 'CDG', '2026-02-17', '14:00:00', 270, 'active', 250.00, NULL),
+('FT104', 'A002', 'TLV', 'ATH', '2026-02-18', '06:00:00', 120, 'active', 150.00, 450.00);
 
 -- =============================================================================
 -- PILOT ASSIGNMENTS
@@ -207,6 +207,15 @@ INSERT INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId, Flight
 ('M001', 'FT102', 'A003'),
 ('M002', 'FT103', 'A005'),
 ('M002', 'FT104', 'A002');
+
+-- =============================================================================
+-- ROUTES - All airport combinations with calculated durations
+-- Generated automatically using Haversine formula
+-- Duration = (distance_km / 850 km/h) * 60 + 45 min overhead
+-- Total: 2450 routes (50 airports × 49 destinations)
+-- =============================================================================
+-- Routes are loaded from routes_seed.sql via SOURCE command or can be
+-- concatenated during database initialization
 
 -- =============================================================================
 -- Seed data complete

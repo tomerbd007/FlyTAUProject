@@ -38,6 +38,47 @@ def get_airport_by_code(code):
     return results[0] if results else None
 
 
+# ============ ROUTE OPERATIONS ============
+
+def get_route(origin, destination):
+    """
+    Get route information for a given origin-destination pair.
+    
+    Args:
+        origin: Origin airport code
+        destination: Destination airport code
+    
+    Returns:
+        Dict with id, origin, destination, duration_minutes, distance_km
+        or None if route not found
+    """
+    sql = """
+        SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
+               DurationMinutes as duration_minutes, DistanceKm as distance_km
+        FROM Routes
+        WHERE OriginPort = %s AND DestPort = %s
+    """
+    results = execute_query(sql, (origin, destination))
+    return results[0] if results else None
+
+
+def get_all_routes():
+    """
+    Get all routes from the Routes table.
+    
+    Returns:
+        List of route dicts with id, origin, destination, duration_minutes
+    """
+    sql = """
+        SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
+               DurationMinutes as duration_minutes, DistanceKm as distance_km
+        FROM Routes
+        ORDER BY OriginPort, DestPort
+    """
+    results = execute_query(sql)
+    return results if results else []
+
+
 # ============ FLIGHT OPERATIONS ============
 
 def get_all_unique_cities():
@@ -52,22 +93,6 @@ def get_all_unique_cities():
     """
     results = execute_query(sql)
     return [row['city'] for row in results] if results else []
-
-
-def get_all_routes():
-    """
-    Get all unique origin-destination pairs from flights.
-    
-    Returns:
-        List of dicts with 'origin' and 'destination' keys
-    """
-    sql = """
-        SELECT DISTINCT OriginPort as origin, DestPort as destination
-        FROM Flights
-        ORDER BY OriginPort, DestPort
-    """
-    results = execute_query(sql)
-    return results if results else []
 
 
 def search_flights(departure_date=None, origin=None, destination=None, status=None):
