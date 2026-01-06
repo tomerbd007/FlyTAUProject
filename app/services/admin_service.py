@@ -1,6 +1,12 @@
 """
 FLYTAU Admin Service
 Handles flight creation, cancellation, crew management, and admin operations
+
+Schema:
+- Flights: FlightId + Airplanes_AirplaneId (composite PK), OriginPort, DestPort,
+           DepartureDate, DepartureHour, Duration, Status
+- Pilot_has_Flights, FlightAttendant_has_Flights: Junction tables for crew assignments
+- Managers_edits_Flights: Audit trail for manager edits
 """
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -10,7 +16,6 @@ from app.repositories import (
     crew_repository,
     order_repository
 )
-from app import db
 
 
 # Hours before departure when flight cancellation is no longer allowed
@@ -31,9 +36,9 @@ def get_dashboard_stats():
         'total_flights': flight_repository.count_flights(),
         'active_flights': flight_repository.count_flights_by_status('active'),
         'total_orders': order_repository.count_orders(),
-        'active_orders': order_repository.count_orders_by_status('active'),
-        'total_aircraft': aircraft_repository.count_aircraft(),
-        'total_crew': crew_repository.count_crew()
+        'confirmed_orders': order_repository.count_orders_by_status('confirmed'),
+        'total_aircraft': aircraft_repository.count_airplanes(),
+        'total_revenue': order_repository.get_total_revenue()
     }
 
 
@@ -50,14 +55,9 @@ def get_all_flights(status_filter=None):
     return flight_repository.get_all_flights(status_filter)
 
 
-def get_route(origin, destination):
-    """Get route by origin and destination."""
-    return flight_repository.get_route_by_cities(origin, destination)
-
-
 def compute_flight_times(departure_date, departure_time, duration_minutes):
     """
-    Compute departure and arrival datetimes.
+    Compute departure datetime and arrival datetime.
     
     Args:
         departure_date: Date string (YYYY-MM-DD)
@@ -74,49 +74,52 @@ def compute_flight_times(departure_date, departure_time, duration_minutes):
     return (departure_datetime, arrival_datetime)
 
 
-def get_aircraft_by_id(aircraft_id):
-    """Get aircraft by ID."""
-    return aircraft_repository.get_aircraft_by_id(aircraft_id)
+def is_long_flight(duration_minutes):
+    """Check if a flight is considered a long flight."""
+    return duration_minutes > LONG_FLIGHT_THRESHOLD_MINUTES
 
 
-def get_available_aircraft(departure_datetime, arrival_datetime, is_long_flight):
+def get_airplane_by_id(airplane_id):
+    """Get airplane by ID."""
+    return aircraft_repository.get_airplane_by_id(airplane_id)
+
+
+def get_available_airplanes(departure_datetime, arrival_datetime, for_long_flight=False):
     """
-    Get aircraft available for a flight.
+    Get airplanes available for a flight.
     
     Args:
-        departure_datetime: Flight departure time (ISO string or datetime)
-        arrival_datetime: Flight arrival time (ISO string or datetime)
-        is_long_flight: Whether this is a long flight (> 6 hours)
+        departure_datetime: Flight departure time
+        arrival_datetime: Flight arrival time
+        for_long_flight: Whether this is a long flight (> 6 hours)
     
     Returns:
-        List of available aircraft dicts
+        List of available airplane dicts
     """
     if isinstance(departure_datetime, str):
         departure_datetime = datetime.fromisoformat(departure_datetime)
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    # Get all aircraft not assigned to overlapping flights
-    aircraft = aircraft_repository.get_available_aircraft(
+    airplanes = aircraft_repository.get_available_airplanes(
         departure_datetime, 
         arrival_datetime
     )
     
-    # Filter: small aircraft can only do short flights
-    if is_long_flight:
-        aircraft = [a for a in aircraft if a['size'] == 'large']
+    # Note: If small planes can't do long flights, filter them here
+    # (depends on business rules - current schema doesn't indicate this)
     
-    return aircraft
+    return airplanes
 
 
-def get_available_pilots(departure_datetime, arrival_datetime, is_long_flight):
+def get_available_pilots(departure_datetime, arrival_datetime, for_long_flight=False):
     """
     Get pilots available for a flight.
     
     Args:
         departure_datetime: Flight departure time
         arrival_datetime: Flight arrival time
-        is_long_flight: Whether this is a long flight
+        for_long_flight: Whether this is a long flight
     
     Returns:
         List of available pilot dicts
@@ -126,27 +129,26 @@ def get_available_pilots(departure_datetime, arrival_datetime, is_long_flight):
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    pilots = crew_repository.get_available_employees(
-        role='pilot',
+    pilots = crew_repository.get_available_pilots(
         departure_datetime=departure_datetime,
         arrival_datetime=arrival_datetime
     )
     
-    # Filter by certification for long flights
-    if is_long_flight:
-        pilots = [p for p in pilots if p['long_flight_certified']]
+    # Filter by long flight certification if needed
+    if for_long_flight:
+        pilots = [p for p in pilots if p.get('LongFlightsTraining')]
     
     return pilots
 
 
-def get_available_attendants(departure_datetime, arrival_datetime, is_long_flight):
+def get_available_attendants(departure_datetime, arrival_datetime, for_long_flight=False):
     """
     Get attendants available for a flight.
     
     Args:
         departure_datetime: Flight departure time
         arrival_datetime: Flight arrival time
-        is_long_flight: Whether this is a long flight
+        for_long_flight: Whether this is a long flight
     
     Returns:
         List of available attendant dicts
@@ -156,82 +158,89 @@ def get_available_attendants(departure_datetime, arrival_datetime, is_long_fligh
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    attendants = crew_repository.get_available_employees(
-        role='attendant',
+    attendants = crew_repository.get_available_attendants(
         departure_datetime=departure_datetime,
         arrival_datetime=arrival_datetime
     )
     
-    # Filter by certification for long flights
-    if is_long_flight:
-        attendants = [a for a in attendants if a['long_flight_certified']]
+    # Filter by long flight certification if needed
+    if for_long_flight:
+        attendants = [a for a in attendants if a.get('LongFlightsTraining')]
     
     return attendants
 
 
-def create_flight(route_id, aircraft_id, departure_datetime, arrival_datetime,
-                  economy_price, business_price, pilot_ids, attendant_ids):
+def create_flight(airplane_id, origin, destination, departure_date, departure_hour,
+                  duration, economy_price, business_price, pilot_ids, attendant_ids,
+                  manager_id=None):
     """
-    Create a new flight with crew assignments and seats.
+    Create a new flight with crew assignments.
     
     Args:
-        route_id: Route ID
-        aircraft_id: Aircraft ID
-        departure_datetime: Departure datetime (ISO string or datetime)
-        arrival_datetime: Arrival datetime (ISO string or datetime)
+        airplane_id: Airplane ID
+        origin: Origin airport code
+        destination: Destination airport code
+        departure_date: Departure date (YYYY-MM-DD)
+        departure_hour: Departure hour (HH:MM)
+        duration: Duration in minutes
         economy_price: Economy class ticket price
-        business_price: Business class ticket price (or None for small aircraft)
-        pilot_ids: List of pilot employee IDs
-        attendant_ids: List of attendant employee IDs
+        business_price: Business class ticket price (can be None if no business class)
+        pilot_ids: List of pilot IDs
+        attendant_ids: List of attendant IDs
+        manager_id: Manager ID creating this flight (for audit)
     
     Returns:
         New flight ID
     """
-    if isinstance(departure_datetime, str):
-        departure_datetime = datetime.fromisoformat(departure_datetime)
-    if isinstance(arrival_datetime, str):
-        arrival_datetime = datetime.fromisoformat(arrival_datetime)
+    # Generate flight ID
+    flight_id = flight_repository.generate_flight_id()
     
-    try:
-        # Generate flight number
-        flight_number = flight_repository.generate_flight_number()
-        
-        # Create flight record
-        flight_id = flight_repository.create_flight(
-            flight_number=flight_number,
-            aircraft_id=aircraft_id,
-            route_id=route_id,
-            departure_datetime=departure_datetime,
-            arrival_datetime=arrival_datetime,
-            status='active',
-            economy_price=economy_price,
-            business_price=business_price
+    # Create flight record
+    flight_repository.create_flight(
+        flight_id=flight_id,
+        airplane_id=airplane_id,
+        origin=origin,
+        destination=destination,
+        departure_date=departure_date,
+        departure_hour=departure_hour,
+        duration=duration,
+        status='active',
+        economy_price=economy_price,
+        business_price=business_price
+    )
+    
+    # Create pilot assignments
+    for pilot_id in pilot_ids:
+        crew_repository.create_pilot_assignment(
+            flight_id=flight_id,
+            airplane_id=airplane_id,
+            pilot_id=pilot_id
         )
-        
-        # Create crew assignments
-        all_crew_ids = pilot_ids + attendant_ids
-        for employee_id in all_crew_ids:
-            crew_repository.create_crew_assignment(flight_id, int(employee_id))
-        
-        # Create flight seats from aircraft seat map
-        seat_map = aircraft_repository.get_seat_map(aircraft_id)
-        for seat in seat_map:
-            price = economy_price if seat['seat_class'] == 'economy' else business_price
-            flight_repository.create_flight_seat(
-                flight_id=flight_id,
-                seat_code=seat['seat_code'],
-                seat_class=seat['seat_class'],
-                row_num=seat['row_num'],
-                col_letter=seat['col_letter'],
-                price=price
-            )
-        
-        db.commit()
-        return flight_id
-        
-    except Exception as e:
-        db.rollback()
-        raise
+    
+    # Create attendant assignments
+    for attendant_id in attendant_ids:
+        crew_repository.create_attendant_assignment(
+            flight_id=flight_id,
+            airplane_id=airplane_id,
+            attendant_id=attendant_id
+        )
+    
+    # Log manager action (if manager_id provided)
+    if manager_id:
+        log_manager_edit(manager_id, flight_id, airplane_id, 'created')
+    
+    return flight_id
+
+
+def log_manager_edit(manager_id, flight_id, airplane_id, action):
+    """Log a manager edit action on a flight."""
+    from app.db import execute_query
+    sql = """
+        INSERT INTO Managers_edits_Flights 
+        (Managers_ManagerId, Flights_FlightId, Flights_Airplanes_AirplaneId)
+        VALUES (%s, %s, %s)
+    """
+    execute_query(sql, (manager_id, flight_id, airplane_id), commit=True)
 
 
 def can_cancel_flight(flight):
@@ -244,53 +253,84 @@ def can_cancel_flight(flight):
     Returns:
         Tuple of (can_cancel: bool, message: str)
     """
-    if flight['status'] == 'canceled':
+    if flight.get('Status') == 'canceled':
         return (False, "Flight is already canceled.")
     
-    if flight['status'] == 'occurred':
+    if flight.get('Status') == 'occurred':
         return (False, "Cannot cancel a flight that has already occurred.")
     
-    departure = flight['departure_datetime']
-    if isinstance(departure, str):
-        departure = datetime.fromisoformat(departure)
+    departure_date = flight.get('DepartureDate')
+    departure_hour = flight.get('DepartureHour')
     
-    cutoff = datetime.utcnow() + timedelta(hours=FLIGHT_CANCELLATION_CUTOFF_HOURS)
+    if not departure_date:
+        return (False, "Invalid flight data.")
     
-    if departure <= cutoff:
+    # Combine date and time
+    if isinstance(departure_date, str):
+        departure_date = datetime.strptime(departure_date, '%Y-%m-%d').date()
+    
+    if departure_hour:
+        if hasattr(departure_hour, 'total_seconds'):
+            total_seconds = int(departure_hour.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            departure_datetime = datetime.combine(
+                departure_date,
+                datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
+            )
+        else:
+            departure_datetime = datetime.combine(departure_date, datetime.min.time())
+    else:
+        departure_datetime = datetime.combine(departure_date, datetime.min.time())
+    
+    cutoff = datetime.now() + timedelta(hours=FLIGHT_CANCELLATION_CUTOFF_HOURS)
+    
+    if departure_datetime <= cutoff:
         return (False, f"Cannot cancel flight within {FLIGHT_CANCELLATION_CUTOFF_HOURS} hours of departure.")
     
     return (True, "")
 
 
-def get_affected_orders_count(flight_id):
+def get_affected_orders_count(flight_id, airplane_id):
     """Get count of active orders that would be affected by flight cancellation."""
-    return order_repository.count_active_orders_for_flight(flight_id)
+    return order_repository.count_active_orders_for_flight(flight_id, airplane_id)
 
 
-def cancel_flight(flight_id):
+def cancel_flight(flight_id, airplane_id, manager_id=None):
     """
     Cancel a flight and credit all active orders.
     
     Args:
         flight_id: Flight ID
+        airplane_id: Airplane ID
+        manager_id: Manager performing cancellation (for audit)
     """
-    try:
-        # Update flight status
-        flight_repository.update_flight_status(flight_id, 'canceled')
-        
-        # Get all active orders for this flight
-        orders = order_repository.get_active_orders_for_flight(flight_id)
-        
-        # Credit each order (set paid_total to 0, status to system_canceled)
-        for order in orders:
-            order_repository.update_order_status(
-                order['id'],
-                status='system_canceled',
-                paid_total=0
-            )
-        
-        db.commit()
-        
-    except Exception as e:
-        db.rollback()
-        raise
+    # Update flight status
+    flight_repository.update_flight_status(flight_id, airplane_id, 'canceled')
+    
+    # Get all active orders for this flight
+    orders = order_repository.get_active_orders_for_flight(flight_id, airplane_id)
+    
+    # Credit each order (set TotalCost to 0, status to system_canceled)
+    for order in orders:
+        order_repository.update_order_status(
+            order['UniqueOrderCode'],
+            status='system_canceled',
+            total_cost=0
+        )
+        # Delete tickets for the order
+        order_repository.delete_tickets_for_order(order['UniqueOrderCode'])
+    
+    # Log manager action
+    if manager_id:
+        log_manager_edit(manager_id, flight_id, airplane_id, 'canceled')
+
+
+def get_flight_crew(flight_id, airplane_id):
+    """Get crew assigned to a flight."""
+    pilots = crew_repository.get_pilots_for_flight(flight_id, airplane_id)
+    attendants = crew_repository.get_attendants_for_flight(flight_id, airplane_id)
+    return {
+        'pilots': pilots or [],
+        'attendants': attendants or []
+    }

@@ -56,9 +56,9 @@
     <nav class="top-nav" aria-label="Main navigation">
         <a class="brand" href="{{ url_for('index') }}">FLYTAU</a>
         <div class="links" role="navigation">
-            <a href="{{ url_for('auth.login') }}">Log in</a>
-            <a href="{{ url_for('auth.manager_login') }}">Manager Login</a>
-            <a href="{{ url_for('order.my_orders') }}">My orders</a>
+            <a href="{{ url_for('login') }}">Log in</a>
+            <a href="{{ url_for('admin_login') }}">Manager Login</a>
+            <a href="{{ url_for('my_orders') }}">My orders</a>
             <a href="{{ url_for('static', filename='about.html') }}">About us</a>
         </div>
     </nav>

@@ -1,12 +1,18 @@
 """
 FLYTAU Order Service
 Handles order creation, cancellation, and refund calculations
+
+Schema:
+- orders: UniqueOrderCode (PK), TotalCost, Class, Status,
+          GuestCustomer_UniqueMail (nullable), RegisteredCustomer_UniqueMail (nullable),
+          Flights_FlightId, Flights_Airplanes_AirplaneId
+- Tickets: TicketId, Class, RowNum, Seat, Price, orders_UniqueOrderCode,
+           Flights_FlightId, Flights_Airplanes_AirplaneId
 """
 from datetime import datetime, timedelta
 from decimal import Decimal
 from app.repositories import order_repository, flight_repository
-from app.utils.helpers import generate_booking_code
-from app import db
+from app.services import auth_service
 
 
 # Cancellation fee percentage
@@ -16,16 +22,21 @@ CANCELLATION_FEE_PERCENT = Decimal('0.05')
 CANCELLATION_CUTOFF_HOURS = 36
 
 
-def create_order(flight_id, seats_info, passengers, customer_id=None, guest_email=None):
+def create_order(flight_id, airplane_id, selected_seats, economy_price, business_price,
+                 registered_email=None, guest_email=None, guest_first_name=None, guest_last_name=None):
     """
     Create a new order with selected seats.
     
     Args:
         flight_id: Flight ID
-        seats_info: List of seat dicts with prices
-        passengers: Dict mapping seat_code to passenger name
-        customer_id: Customer ID if logged in, None for guest
-        guest_email: Guest email if not logged in
+        airplane_id: Airplane ID
+        selected_seats: List of dicts with row, seat, class info
+        economy_price: Price per economy seat
+        business_price: Price per business seat
+        registered_email: Registered customer email (if logged in)
+        guest_email: Guest email (if not logged in)
+        guest_first_name: Guest first name (required if guest)
+        guest_last_name: Guest last name (required if guest)
     
     Returns:
         Booking code for the new order
@@ -34,52 +45,78 @@ def create_order(flight_id, seats_info, passengers, customer_id=None, guest_emai
         ValueError: If seats are no longer available
     """
     # Verify all seats are still available
-    for seat in seats_info:
-        current_seat = flight_repository.get_seat_by_id(seat['id'])
-        if current_seat['status'] != 'available':
-            raise ValueError(f"Seat {seat['seat_code']} is no longer available.")
+    taken_seats = flight_repository.get_taken_seats(flight_id, airplane_id)
+    taken_set = {(t['RowNum'], t['Seat']) for t in taken_seats}
     
-    # Calculate total
-    total = sum(Decimal(str(seat['price'])) for seat in seats_info)
+    for seat in selected_seats:
+        if (seat['row'], seat['seat']) in taken_set:
+            raise ValueError(f"Seat {seat['row']}{seat['seat']} is no longer available.")
+    
+    # Calculate total and determine class
+    total = Decimal('0')
+    classes = set()
+    for seat in selected_seats:
+        seat_class = seat.get('class', 'economy')
+        classes.add(seat_class)
+        price = business_price if seat_class == 'business' else economy_price
+        total += Decimal(str(price))
+    
+    # Determine order class
+    if len(classes) > 1:
+        order_class = 'mixed'
+    else:
+        order_class = list(classes)[0] if classes else 'economy'
     
     # Generate unique booking code
-    booking_code = generate_booking_code()
-    while order_repository.booking_code_exists(booking_code):
-        booking_code = generate_booking_code()
+    booking_code = order_repository.generate_booking_code()
     
-    try:
-        # Create order
-        order_id = order_repository.create_order(
-            booking_code=booking_code,
-            customer_id=customer_id,
-            guest_email=guest_email.lower() if guest_email else None,
-            paid_total=total,
-            status='active'
+    # Handle guest customer
+    actual_guest_email = None
+    actual_registered_email = None
+    
+    if registered_email:
+        actual_registered_email = registered_email.lower()
+    elif guest_email:
+        # Get or create guest customer
+        auth_service.get_or_create_guest_customer(
+            guest_email.lower(),
+            guest_first_name or 'Guest',
+            guest_last_name or 'User'
         )
+        actual_guest_email = guest_email.lower()
+    
+    # Create order
+    order_repository.create_order(
+        booking_code=booking_code,
+        flight_id=flight_id,
+        airplane_id=airplane_id,
+        total_cost=total,
+        status='confirmed',
+        guest_email=actual_guest_email,
+        registered_email=actual_registered_email,
+        seat_class=order_class
+    )
+    
+    # Create tickets for each seat
+    for seat in selected_seats:
+        seat_class = seat.get('class', 'economy')
+        price = business_price if seat_class == 'business' else economy_price
         
-        # Create order lines and update seat status
-        for seat in seats_info:
-            order_line_id = order_repository.create_order_line(
-                order_id=order_id,
-                flight_seat_id=seat['id'],
-                passenger_name=passengers[seat['seat_code']],
-                price=seat['price']
-            )
-            
-            # Mark seat as sold
-            flight_repository.update_seat_status(seat['id'], 'sold', order_line_id)
-        
-        db.commit()
-        
-        # Check if flight is now full
-        from app.services import flight_service
-        flight_service.check_flight_full(flight_id)
-        
-        return booking_code
-        
-    except Exception as e:
-        db.rollback()
-        raise ValueError(f"Failed to create order: {str(e)}")
+        order_repository.create_ticket(
+            order_code=booking_code,
+            flight_id=flight_id,
+            airplane_id=airplane_id,
+            row_num=seat['row'],
+            seat=seat['seat'],
+            seat_class=seat_class,
+            price=price
+        )
+    
+    # Check if flight is now full
+    from app.services import flight_service
+    flight_service.check_flight_full(flight_id, airplane_id)
+    
+    return booking_code
 
 
 def get_order_by_booking_code(booking_code):
@@ -87,23 +124,27 @@ def get_order_by_booking_code(booking_code):
     return order_repository.get_order_by_booking_code(booking_code.upper())
 
 
-def get_order_with_lines(order_id):
-    """Get order with all order lines and flight details."""
-    return order_repository.get_order_with_lines(order_id)
+def get_order_with_tickets(booking_code):
+    """Get order with all tickets and flight details."""
+    return order_repository.get_order_with_tickets(booking_code.upper())
 
 
-def get_customer_orders(customer_id, status_filter=None):
+def get_customer_orders(email, is_registered=True, status_filter=None):
     """
     Get all orders for a customer.
     
     Args:
-        customer_id: Customer ID
+        email: Customer email
+        is_registered: True if registered customer, False if guest
         status_filter: Optional status to filter by
     
     Returns:
         List of order dicts
     """
-    return order_repository.get_orders_by_customer(customer_id, status_filter)
+    if is_registered:
+        return order_repository.get_orders_by_registered_customer(email.lower(), status_filter)
+    else:
+        return order_repository.get_orders_by_guest_email(email.lower(), status_filter)
 
 
 def get_order_for_guest(booking_code, email):
@@ -117,16 +158,12 @@ def get_order_for_guest(booking_code, email):
     Returns:
         Order dict if found and email matches, None otherwise
     """
-    order = order_repository.get_order_by_booking_code(booking_code.upper())
+    order = order_repository.get_order_by_code_and_email(booking_code.upper(), email.lower())
     
     if not order:
         return None
     
-    # For guest orders, verify email matches
-    if order['guest_email'] and order['guest_email'].lower() == email.lower():
-        return order_repository.get_order_with_lines(order['id'])
-    
-    return None
+    return order_repository.get_order_with_tickets(booking_code.upper())
 
 
 def can_cancel_order(order):
@@ -134,30 +171,49 @@ def can_cancel_order(order):
     Check if an order can be canceled (36h rule).
     
     Args:
-        order: Order dict with lines
+        order: Order dict with flight info
     
     Returns:
         True if cancellation is allowed
     """
-    if order['status'] != 'active':
+    if order.get('Status') not in ('confirmed', 'active'):
         return False
     
-    # Get the earliest departure time from all flights in the order
-    earliest_departure = None
-    for line in order.get('lines', []):
-        if line.get('departure_datetime'):
-            dep_time = line['departure_datetime']
-            if isinstance(dep_time, str):
-                dep_time = datetime.fromisoformat(dep_time)
-            if earliest_departure is None or dep_time < earliest_departure:
-                earliest_departure = dep_time
+    # Get departure date and time
+    departure_date = order.get('DepartureDate')
+    departure_hour = order.get('DepartureHour')
     
-    if earliest_departure is None:
+    if not departure_date:
         return False
+    
+    # Combine date and time
+    if isinstance(departure_date, str):
+        departure_date = datetime.strptime(departure_date, '%Y-%m-%d').date()
+    
+    if departure_hour:
+        if isinstance(departure_hour, str):
+            hour_parts = departure_hour.split(':')
+            departure_datetime = datetime.combine(
+                departure_date,
+                datetime.strptime(f"{hour_parts[0]}:{hour_parts[1]}", '%H:%M').time()
+            )
+        elif hasattr(departure_hour, 'seconds'):
+            # timedelta from MySQL TIME
+            total_seconds = int(departure_hour.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            departure_datetime = datetime.combine(
+                departure_date,
+                datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
+            )
+        else:
+            departure_datetime = datetime.combine(departure_date, datetime.min.time())
+    else:
+        departure_datetime = datetime.combine(departure_date, datetime.min.time())
     
     # Check 36h rule
-    cutoff = datetime.utcnow() + timedelta(hours=CANCELLATION_CUTOFF_HOURS)
-    return earliest_departure > cutoff
+    cutoff = datetime.now() + timedelta(hours=CANCELLATION_CUTOFF_HOURS)
+    return departure_datetime > cutoff
 
 
 def calculate_cancellation_fee(paid_total):
@@ -176,24 +232,28 @@ def calculate_cancellation_fee(paid_total):
     return (fee, refund)
 
 
-def cancel_order(order_id, user_id):
+def cancel_order(booking_code, email):
     """
     Cancel an order (customer cancellation).
     
     Args:
-        order_id: Order ID
-        user_id: User ID requesting cancellation (for ownership verification)
+        booking_code: Order booking code
+        email: Email of user requesting cancellation (for ownership verification)
+    
+    Returns:
+        Tuple of (fee, refund)
     
     Raises:
         ValueError: If order cannot be canceled
     """
-    order = get_order_with_lines(order_id)
+    order = get_order_with_tickets(booking_code)
     
     if not order:
         raise ValueError("Order not found.")
     
     # Verify ownership
-    if order['customer_id'] != user_id:
+    owner_email = order.get('RegisteredCustomer_UniqueMail') or order.get('GuestCustomer_UniqueMail')
+    if owner_email and owner_email.lower() != email.lower():
         raise ValueError("You don't have permission to cancel this order.")
     
     # Verify cancellation is allowed
@@ -201,22 +261,16 @@ def cancel_order(order_id, user_id):
         raise ValueError("This order cannot be canceled. Cancellations must be made at least 36 hours before departure.")
     
     # Calculate refund
-    fee, refund = calculate_cancellation_fee(order['paid_total'])
+    fee, refund = calculate_cancellation_fee(order['TotalCost'])
     
-    try:
-        # Update order status and paid_total
-        order_repository.update_order_status(
-            order_id, 
-            status='customer_canceled',
-            paid_total=refund
-        )
-        
-        # Release seats
-        for line in order['lines']:
-            flight_repository.release_seat(line['flight_seat_id'])
-        
-        db.commit()
-        
-    except Exception as e:
-        db.rollback()
-        raise ValueError(f"Failed to cancel order: {str(e)}")
+    # Update order status
+    order_repository.update_order_status(
+        booking_code, 
+        status='customer_canceled',
+        total_cost=refund
+    )
+    
+    # Delete tickets (seats become available again)
+    order_repository.delete_tickets_for_order(booking_code)
+    
+    return (fee, refund)

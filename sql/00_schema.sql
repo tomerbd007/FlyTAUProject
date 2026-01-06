@@ -8,19 +8,19 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
--- Schema mydb
+-- Schema flytau
 -- -----------------------------------------------------
 
 -- -----------------------------------------------------
--- Schema mydb
+-- Schema flytau
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `mydb` DEFAULT CHARACTER SET utf8 ;
-USE `mydb` ;
+CREATE SCHEMA IF NOT EXISTS `flytau` DEFAULT CHARACTER SET utf8 ;
+USE `flytau` ;
 
 -- -----------------------------------------------------
--- Table `mydb`.`GuestCustomer`
+-- Table `flytau`.`GuestCustomer`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`GuestCustomer` (
+CREATE TABLE IF NOT EXISTS `flytau`.`GuestCustomer` (
   `UniqueMail` VARCHAR(45) NOT NULL,
   `PhoneNum` JSON NULL,
   `FirstName` VARCHAR(45) NULL,
@@ -31,14 +31,14 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`RegisteredCustomer`
+-- Table `flytau`.`RegisteredCustomer`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`RegisteredCustomer` (
+CREATE TABLE IF NOT EXISTS `flytau`.`RegisteredCustomer` (
   `UniqueMail` VARCHAR(45) NOT NULL,
   `PhoneNum` JSON NULL,
   `FirstName` VARCHAR(45) NULL,
   `SecondName` VARCHAR(45) NULL,
-  `Password` VARCHAR(45) NOT NULL,
+  `Password` VARCHAR(255) NOT NULL,
   `RegistrationDate` DATE NULL,
   `PassportNum` VARCHAR(45) NULL,
   `BirthDate` DATE NULL,
@@ -48,9 +48,9 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Airplanes`
+-- Table `flytau`.`Airplanes`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`Airplanes` (
+CREATE TABLE IF NOT EXISTS `flytau`.`Airplanes` (
   `AirplaneId` VARCHAR(45) NOT NULL,
   `PurchaseDate` DATE NULL,
   `Manufacturer` VARCHAR(45) NULL,
@@ -61,14 +61,14 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Flights`
+-- Table `flytau`.`Flights`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`Flights` (
+CREATE TABLE IF NOT EXISTS `flytau`.`Flights` (
   `FlightId` VARCHAR(45) NOT NULL,
   `Status` VARCHAR(45) NULL,
-  `EconomyPrice` FLOAT NULL,
-  `BusinessPrice` FLOAT NULL,
-  `Duration` VARCHAR(45) GENERATED ALWAYS AS (),
+  `EconomyPrice` DECIMAL(10,2) NULL,
+  `BusinessPrice` DECIMAL(10,2) NULL,
+  `Duration` INT NULL COMMENT 'Duration in minutes',
   `DepartureDate` DATE NULL,
   `DepartureHour` VARCHAR(45) NULL,
   `OriginPort` VARCHAR(45) NOT NULL,
@@ -78,66 +78,79 @@ CREATE TABLE IF NOT EXISTS `mydb`.`Flights` (
   INDEX `fk_Flights_Airplanes1_idx` (`Airplanes_AirplaneId` ASC) VISIBLE,
   CONSTRAINT `fk_Flights_Airplanes1`
     FOREIGN KEY (`Airplanes_AirplaneId`)
-    REFERENCES `mydb`.`Airplanes` (`AirplaneId`)
+    REFERENCES `flytau`.`Airplanes` (`AirplaneId`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`orders`
+-- Table `flytau`.`orders`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`orders` (
+CREATE TABLE IF NOT EXISTS `flytau`.`orders` (
   `UniqueOrderCode` VARCHAR(45) NOT NULL,
-  `TotalCost` VARCHAR(45) GENERATED ALWAYS AS (),
+  `TotalCost` DECIMAL(10,2) NULL,
   `Class` VARCHAR(45) NULL,
   `Status` VARCHAR(45) NULL,
-  `GuestCustomer_UniqueMail` VARCHAR(45) NOT NULL,
-  `RegisteredCustomer_UniqueMail` VARCHAR(45) NOT NULL,
+  `GuestCustomer_UniqueMail` VARCHAR(45) NULL,
+  `RegisteredCustomer_UniqueMail` VARCHAR(45) NULL,
   `Flights_FlightId` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`UniqueOrderCode`, `GuestCustomer_UniqueMail`, `RegisteredCustomer_UniqueMail`, `Flights_FlightId`),
+  `Flights_Airplanes_AirplaneId` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`UniqueOrderCode`),
   INDEX `fk_orders_GuestCustomer_idx` (`GuestCustomer_UniqueMail` ASC) VISIBLE,
   INDEX `fk_orders_RegisteredCustomer1_idx` (`RegisteredCustomer_UniqueMail` ASC) VISIBLE,
-  INDEX `fk_orders_Flights1_idx` (`Flights_FlightId` ASC) VISIBLE,
+  INDEX `fk_orders_Flights1_idx` (`Flights_FlightId` ASC, `Flights_Airplanes_AirplaneId` ASC) VISIBLE,
   CONSTRAINT `fk_orders_GuestCustomer`
     FOREIGN KEY (`GuestCustomer_UniqueMail`)
-    REFERENCES `mydb`.`GuestCustomer` (`UniqueMail`)
+    REFERENCES `flytau`.`GuestCustomer` (`UniqueMail`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_orders_RegisteredCustomer1`
     FOREIGN KEY (`RegisteredCustomer_UniqueMail`)
-    REFERENCES `mydb`.`RegisteredCustomer` (`UniqueMail`)
+    REFERENCES `flytau`.`RegisteredCustomer` (`UniqueMail`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_orders_Flights1`
-    FOREIGN KEY (`Flights_FlightId`)
-    REFERENCES `mydb`.`Flights` (`FlightId`)
+    FOREIGN KEY (`Flights_FlightId`, `Flights_Airplanes_AirplaneId`)
+    REFERENCES `flytau`.`Flights` (`FlightId`, `Airplanes_AirplaneId`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Tickets`
+-- Table `flytau`.`Tickets`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`Tickets` (
+CREATE TABLE IF NOT EXISTS `flytau`.`Tickets` (
+  `TicketId` INT NOT NULL AUTO_INCREMENT,
   `Class` VARCHAR(45) NULL,
-  `RowNum` INT NULL,
-  `Seat` VARCHAR(45) NULL,
+  `RowNum` INT NOT NULL,
+  `Seat` VARCHAR(45) NOT NULL,
+  `Price` DECIMAL(10,2) NULL,
   `orders_UniqueOrderCode` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`orders_UniqueOrderCode`),
+  `Flights_FlightId` VARCHAR(45) NOT NULL,
+  `Flights_Airplanes_AirplaneId` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`TicketId`),
+  UNIQUE INDEX `unique_seat_per_flight` (`Flights_FlightId` ASC, `Flights_Airplanes_AirplaneId` ASC, `RowNum` ASC, `Seat` ASC) VISIBLE,
+  INDEX `fk_Tickets_orders1_idx` (`orders_UniqueOrderCode` ASC) VISIBLE,
+  INDEX `fk_Tickets_Flights1_idx` (`Flights_FlightId` ASC, `Flights_Airplanes_AirplaneId` ASC) VISIBLE,
   CONSTRAINT `fk_Tickets_orders1`
     FOREIGN KEY (`orders_UniqueOrderCode`)
-    REFERENCES `mydb`.`orders` (`UniqueOrderCode`)
+    REFERENCES `flytau`.`orders` (`UniqueOrderCode`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_Tickets_Flights1`
+    FOREIGN KEY (`Flights_FlightId`, `Flights_Airplanes_AirplaneId`)
+    REFERENCES `flytau`.`Flights` (`FlightId`, `Airplanes_AirplaneId`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Managers`
+-- Table `flytau`.`Managers`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`Managers` (
+CREATE TABLE IF NOT EXISTS `flytau`.`Managers` (
   `ManagerId` VARCHAR(45) NOT NULL,
   `PhoneNum` JSON NULL,
   `FirstName` VARCHAR(45) NULL,
@@ -146,15 +159,15 @@ CREATE TABLE IF NOT EXISTS `mydb`.`Managers` (
   `Street` VARCHAR(45) NULL,
   `City` VARCHAR(45) NULL,
   `HouseNum` VARCHAR(45) NULL,
-  `Password` VARCHAR(45) NULL,
+  `Password` VARCHAR(255) NULL,
   PRIMARY KEY (`ManagerId`))
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Pilot`
+-- Table `flytau`.`Pilot`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`Pilot` (
+CREATE TABLE IF NOT EXISTS `flytau`.`Pilot` (
   `Id` VARCHAR(45) NOT NULL,
   `PhoneNum` JSON NULL,
   `FirstName` VARCHAR(45) NULL,
@@ -169,9 +182,9 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Managers_edits_Flights`
+-- Table `flytau`.`Managers_edits_Flights`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`Managers_edits_Flights` (
+CREATE TABLE IF NOT EXISTS `flytau`.`Managers_edits_Flights` (
   `Managers_ManagerId` VARCHAR(45) NOT NULL,
   `Flights_FlightId` VARCHAR(45) NOT NULL,
   `Flights_Airplanes_AirplaneId` VARCHAR(45) NOT NULL,
@@ -180,21 +193,21 @@ CREATE TABLE IF NOT EXISTS `mydb`.`Managers_edits_Flights` (
   INDEX `fk_Managers_has_Flights_Managers1_idx` (`Managers_ManagerId` ASC) VISIBLE,
   CONSTRAINT `fk_Managers_has_Flights_Managers1`
     FOREIGN KEY (`Managers_ManagerId`)
-    REFERENCES `mydb`.`Managers` (`ManagerId`)
+    REFERENCES `flytau`.`Managers` (`ManagerId`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_Managers_has_Flights_Flights1`
     FOREIGN KEY (`Flights_FlightId` , `Flights_Airplanes_AirplaneId`)
-    REFERENCES `mydb`.`Flights` (`FlightId` , `Airplanes_AirplaneId`)
+    REFERENCES `flytau`.`Flights` (`FlightId` , `Airplanes_AirplaneId`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`FlightAttendant`
+-- Table `flytau`.`FlightAttendant`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`FlightAttendant` (
+CREATE TABLE IF NOT EXISTS `flytau`.`FlightAttendant` (
   `Id` VARCHAR(45) NOT NULL,
   `PhoneNum` JSON NULL,
   `FirstName` VARCHAR(45) NULL,
@@ -209,9 +222,9 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`Pilot_has_Flights`
+-- Table `flytau`.`Pilot_has_Flights`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`Pilot_has_Flights` (
+CREATE TABLE IF NOT EXISTS `flytau`.`Pilot_has_Flights` (
   `Pilot_Id` VARCHAR(45) NOT NULL,
   `Flights_FlightId` VARCHAR(45) NOT NULL,
   `Flights_Airplanes_AirplaneId` VARCHAR(45) NOT NULL,
@@ -220,21 +233,21 @@ CREATE TABLE IF NOT EXISTS `mydb`.`Pilot_has_Flights` (
   INDEX `fk_Pilot_has_Flights_Pilot1_idx` (`Pilot_Id` ASC) VISIBLE,
   CONSTRAINT `fk_Pilot_has_Flights_Pilot1`
     FOREIGN KEY (`Pilot_Id`)
-    REFERENCES `mydb`.`Pilot` (`Id`)
+    REFERENCES `flytau`.`Pilot` (`Id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_Pilot_has_Flights_Flights1`
     FOREIGN KEY (`Flights_FlightId` , `Flights_Airplanes_AirplaneId`)
-    REFERENCES `mydb`.`Flights` (`FlightId` , `Airplanes_AirplaneId`)
+    REFERENCES `flytau`.`Flights` (`FlightId` , `Airplanes_AirplaneId`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`FlightAttendant_has_Flights`
+-- Table `flytau`.`FlightAttendant_has_Flights`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`FlightAttendant_has_Flights` (
+CREATE TABLE IF NOT EXISTS `flytau`.`FlightAttendant_has_Flights` (
   `FlightAttendant_Id` VARCHAR(45) NOT NULL,
   `Flights_FlightId` VARCHAR(45) NOT NULL,
   `Flights_Airplanes_AirplaneId` VARCHAR(45) NOT NULL,
@@ -243,12 +256,12 @@ CREATE TABLE IF NOT EXISTS `mydb`.`FlightAttendant_has_Flights` (
   INDEX `fk_FlightAttendant_has_Flights_FlightAttendant1_idx` (`FlightAttendant_Id` ASC) VISIBLE,
   CONSTRAINT `fk_FlightAttendant_has_Flights_FlightAttendant1`
     FOREIGN KEY (`FlightAttendant_Id`)
-    REFERENCES `mydb`.`FlightAttendant` (`Id`)
+    REFERENCES `flytau`.`FlightAttendant` (`Id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_FlightAttendant_has_Flights_Flights1`
     FOREIGN KEY (`Flights_FlightId` , `Flights_Airplanes_AirplaneId`)
-    REFERENCES `mydb`.`Flights` (`FlightId` , `Airplanes_AirplaneId`)
+    REFERENCES `flytau`.`Flights` (`FlightId` , `Airplanes_AirplaneId`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

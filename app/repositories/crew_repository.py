@@ -1,89 +1,213 @@
 """
 FLYTAU Crew Repository
-Database access for crew members and assignments
+Database access for crew assignments (Pilots and Flight Attendants)
+
+Schema:
+- Pilot: Id (PK), FirstName, SecondName, LongFlightsTraining, etc.
+- FlightAttendant: Id (PK), FirstName, SecondName, LongFlightsTraining, etc.
+- Pilot_has_Flights: Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId (junction)
+- FlightAttendant_has_Flights: FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId (junction)
 """
 from app.db import execute_query
 
 
-def get_available_employees(role, departure_datetime, arrival_datetime):
+# ============ PILOT CREW OPERATIONS ============
+
+def get_available_pilots(departure_date, require_long_flight_cert=False):
     """
-    Get employees of a role not assigned to overlapping flights.
+    Get pilots not assigned to flights on the given date.
     
     Args:
-        role: 'pilot' or 'attendant'
-        departure_datetime: Flight departure time
-        arrival_datetime: Flight arrival time
+        departure_date: Date to check (DATE or 'YYYY-MM-DD')
+        require_long_flight_cert: If True, only return pilots with LongFlightsTraining=1
+    """
+    cert_condition = "AND p.LongFlightsTraining = 1" if require_long_flight_cert else ""
+    sql = f"""
+        SELECT p.Id, p.FirstName, p.SecondName, p.LongFlightsTraining
+        FROM Pilot p
+        WHERE p.Id NOT IN (
+            SELECT pf.Pilot_Id
+            FROM Pilot_has_Flights pf
+            JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
+                AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+            WHERE f.DepartureDate = %s
+              AND f.Status != 'cancelled'
+        )
+        {cert_condition}
+        ORDER BY p.SecondName, p.FirstName
+    """
+    return execute_query(sql, (departure_date,))
+
+
+def get_pilots_for_flight(flight_id, airplane_id):
+    """Get all pilots assigned to a specific flight."""
+    sql = """
+        SELECT p.Id, p.FirstName, p.SecondName, p.LongFlightsTraining, p.PhoneNum
+        FROM Pilot p
+        JOIN Pilot_has_Flights pf ON p.Id = pf.Pilot_Id
+        WHERE pf.Flights_FlightId = %s 
+          AND pf.Flights_Airplanes_AirplaneId = %s
+        ORDER BY p.SecondName, p.FirstName
+    """
+    return execute_query(sql, (flight_id, airplane_id))
+
+
+def assign_pilot_to_flight(pilot_id, flight_id, airplane_id):
+    """Assign a pilot to a flight."""
+    sql = """
+        INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId)
+        VALUES (%s, %s, %s)
+    """
+    return execute_query(sql, (pilot_id, flight_id, airplane_id), commit=True)
+
+
+def remove_pilot_from_flight(pilot_id, flight_id, airplane_id):
+    """Remove a pilot assignment from a flight."""
+    sql = """
+        DELETE FROM Pilot_has_Flights 
+        WHERE Pilot_Id = %s 
+          AND Flights_FlightId = %s 
+          AND Flights_Airplanes_AirplaneId = %s
+    """
+    return execute_query(sql, (pilot_id, flight_id, airplane_id), commit=True)
+
+
+def delete_all_pilots_from_flight(flight_id, airplane_id):
+    """Remove all pilot assignments from a flight."""
+    sql = """
+        DELETE FROM Pilot_has_Flights 
+        WHERE Flights_FlightId = %s AND Flights_Airplanes_AirplaneId = %s
+    """
+    return execute_query(sql, (flight_id, airplane_id), commit=True)
+
+
+# ============ FLIGHT ATTENDANT CREW OPERATIONS ============
+
+def get_available_flight_attendants(departure_date, require_long_flight_cert=False):
+    """
+    Get flight attendants not assigned to flights on the given date.
     
-    Returns:
-        List of available employee dicts
+    Args:
+        departure_date: Date to check (DATE or 'YYYY-MM-DD')
+        require_long_flight_cert: If True, only return attendants with LongFlightsTraining=1
     """
+    cert_condition = "AND fa.LongFlightsTraining = 1" if require_long_flight_cert else ""
+    sql = f"""
+        SELECT fa.Id, fa.FirstName, fa.SecondName, fa.LongFlightsTraining
+        FROM FlightAttendant fa
+        WHERE fa.Id NOT IN (
+            SELECT faf.FlightAttendant_Id
+            FROM FlightAttendant_has_Flights faf
+            JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
+                AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+            WHERE f.DepartureDate = %s
+              AND f.Status != 'cancelled'
+        )
+        {cert_condition}
+        ORDER BY fa.SecondName, fa.FirstName
+    """
+    return execute_query(sql, (departure_date,))
+
+
+def get_attendants_for_flight(flight_id, airplane_id):
+    """Get all flight attendants assigned to a specific flight."""
     sql = """
-        SELECT e.id, e.employee_code, e.first_name, e.last_name, e.role, e.long_flight_certified
-        FROM employees e
-        WHERE e.role = %s
-          AND e.id NOT IN (
-              SELECT ca.employee_id
-              FROM crew_assignments ca
-              JOIN flights f ON ca.flight_id = f.id
-              WHERE f.status IN ('active', 'full')
-                AND NOT (f.arrival_datetime <= %s OR f.departure_datetime >= %s)
-          )
-        ORDER BY e.last_name, e.first_name
+        SELECT fa.Id, fa.FirstName, fa.SecondName, fa.LongFlightsTraining, fa.PhoneNum
+        FROM FlightAttendant fa
+        JOIN FlightAttendant_has_Flights faf ON fa.Id = faf.FlightAttendant_Id
+        WHERE faf.Flights_FlightId = %s 
+          AND faf.Flights_Airplanes_AirplaneId = %s
+        ORDER BY fa.SecondName, fa.FirstName
     """
-    return execute_query(sql, (role, departure_datetime, arrival_datetime))
+    return execute_query(sql, (flight_id, airplane_id))
 
 
-def get_crew_for_flight(flight_id):
-    """Get all crew members assigned to a flight."""
+def assign_attendant_to_flight(attendant_id, flight_id, airplane_id):
+    """Assign a flight attendant to a flight."""
     sql = """
-        SELECT e.id, e.employee_code, e.first_name, e.last_name, e.role, e.long_flight_certified
-        FROM employees e
-        JOIN crew_assignments ca ON e.id = ca.employee_id
-        WHERE ca.flight_id = %s
-        ORDER BY e.role, e.last_name
+        INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId)
+        VALUES (%s, %s, %s)
     """
-    return execute_query(sql, (flight_id,))
+    return execute_query(sql, (attendant_id, flight_id, airplane_id), commit=True)
 
 
-def create_crew_assignment(flight_id, employee_id):
-    """Create a crew assignment."""
+def remove_attendant_from_flight(attendant_id, flight_id, airplane_id):
+    """Remove a flight attendant assignment from a flight."""
     sql = """
-        INSERT INTO crew_assignments (flight_id, employee_id)
-        VALUES (%s, %s)
+        DELETE FROM FlightAttendant_has_Flights 
+        WHERE FlightAttendant_Id = %s 
+          AND Flights_FlightId = %s 
+          AND Flights_Airplanes_AirplaneId = %s
     """
-    return execute_query(sql, (flight_id, employee_id), commit=True)
+    return execute_query(sql, (attendant_id, flight_id, airplane_id), commit=True)
 
 
-def delete_crew_assignments(flight_id):
-    """Delete all crew assignments for a flight."""
-    sql = "DELETE FROM crew_assignments WHERE flight_id = %s"
-    return execute_query(sql, (flight_id,), commit=True)
+def delete_all_attendants_from_flight(flight_id, airplane_id):
+    """Remove all flight attendant assignments from a flight."""
+    sql = """
+        DELETE FROM FlightAttendant_has_Flights 
+        WHERE Flights_FlightId = %s AND Flights_Airplanes_AirplaneId = %s
+    """
+    return execute_query(sql, (flight_id, airplane_id), commit=True)
 
 
-def count_crew():
-    """Count total crew members (pilots + attendants)."""
-    sql = "SELECT COUNT(*) AS count FROM employees WHERE role IN ('pilot', 'attendant')"
+# ============ COMBINED CREW OPERATIONS ============
+
+def get_all_crew_for_flight(flight_id, airplane_id):
+    """
+    Get all crew (pilots + attendants) assigned to a flight.
+    
+    Returns dict with 'pilots' and 'attendants' lists.
+    """
+    pilots = get_pilots_for_flight(flight_id, airplane_id)
+    attendants = get_attendants_for_flight(flight_id, airplane_id)
+    
+    return {
+        'pilots': pilots if pilots else [],
+        'attendants': attendants if attendants else []
+    }
+
+
+def delete_all_crew_from_flight(flight_id, airplane_id):
+    """Remove all crew assignments (pilots + attendants) from a flight."""
+    delete_all_pilots_from_flight(flight_id, airplane_id)
+    delete_all_attendants_from_flight(flight_id, airplane_id)
+
+
+def count_pilots():
+    """Count total pilots."""
+    sql = "SELECT COUNT(*) AS count FROM Pilot"
     result = execute_query(sql, fetch_one=True)
     return result['count'] if result else 0
 
 
-def get_pilots():
+def count_flight_attendants():
+    """Count total flight attendants."""
+    sql = "SELECT COUNT(*) AS count FROM FlightAttendant"
+    result = execute_query(sql, fetch_one=True)
+    return result['count'] if result else 0
+
+
+def count_crew():
+    """Count total crew members (pilots + attendants)."""
+    return count_pilots() + count_flight_attendants()
+
+
+def get_all_pilots():
     """Get all pilots."""
     sql = """
-        SELECT id, employee_code, first_name, last_name, long_flight_certified
-        FROM employees
-        WHERE role = 'pilot'
-        ORDER BY last_name, first_name
+        SELECT Id, FirstName, SecondName, LongFlightsTraining, JoinDate, PhoneNum
+        FROM Pilot
+        ORDER BY SecondName, FirstName
     """
     return execute_query(sql)
 
 
-def get_attendants():
-    """Get all attendants."""
+def get_all_flight_attendants():
+    """Get all flight attendants."""
     sql = """
-        SELECT id, employee_code, first_name, last_name, long_flight_certified
-        FROM employees
-        WHERE role = 'attendant'
-        ORDER BY last_name, first_name
+        SELECT Id, FirstName, SecondName, LongFlightsTraining, JoinDate, PhoneNum
+        FROM FlightAttendant
+        ORDER BY SecondName, FirstName
     """
     return execute_query(sql)

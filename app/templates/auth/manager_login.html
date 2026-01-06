@@ -88,7 +88,7 @@
         <h1>Manager Login</h1>
         <p class="auth-subtitle">Access the flight management system</p>
         
-        <form method="POST" action="{{ url_for('manager_login') }}" class="auth-form">
+        <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
             <div class="form-group">
                 <label for="email">Email Address</label>
                 <input type="email" 
@@ -114,7 +114,7 @@
         </form>
         
         <div class="auth-links">
-            <p>Not a manager? <a href="{{ url_for('auth.login') }}">Customer Login</a></p>
+            <p>Not a manager? <a href="{{ url_for('login') }}">Customer Login</a></p>
         </div>
     </div>
 </div>
