@@ -11,22 +11,7 @@
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
 
-    /* Top navigation */
-    .top-nav {
-        background: rgba(255,255,255,0.96);
-        padding: 12px 20px;
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        align-items: center;
-        box-shadow: 0 1px 6px rgba(2,32,47,0.06);
-        position: sticky;
-        top: 0;
-        z-index: 50;
-    }
-    .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; }
-    .top-nav .links { display:flex; gap:16px; align-items:center; }
-    .top-nav a { color: #004b71; text-decoration: none; font-weight: 600; }
+
 
     /* Hero: centered content */
     .hero {
@@ -125,15 +110,6 @@
     }
 </style>
 
-<nav class="top-nav" aria-label="Main navigation">
-    <a class="brand" href="{{ url_for('index') }}">FLYTAU</a>
-    <div class="links" role="navigation">
-        <a href="{{ url_for('login') }}">Log in</a>
-        <a href="{{ url_for('admin_login') }}">Manager Login</a>
-        <a href="{{ url_for('my_orders') }}">My orders</a>
-        <a href="{{ url_for('static', filename='about.html') }}">About us</a>
-    </div>
-</nav>
 
 <div class="hero" role="banner">
     <h1>Welcome to FLYTAU</h1>

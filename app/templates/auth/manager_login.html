@@ -4,85 +4,269 @@
 
 {% block content %}
 <style>
-    /* Ombre background */
-    body {
-        background: linear-gradient(180deg, #e8f6ff 0%, #f7fcff 60%, #ffffff 100%);
-        color: #06232b;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
     }
 
-    /* Top navigation */
-    .top-nav {
-        background: rgba(255,255,255,0.96);
-        padding: 12px 20px;
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        align-items: center;
-        box-shadow: 0 1px 6px rgba(2,32,47,0.06);
-        position: sticky;
-        top: 0;
-        z-index: 50;
-    }
-    .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; }
-    .top-nav .links { display:flex; gap:16px; align-items:center; }
-    .top-nav a { color: #004b71; text-decoration: none; font-weight: 600; }
-
-    /* Buttons */
-    .btn {
-        padding: 10px 16px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-block;
-        text-align: center;
-    }
-    .btn-primary { background: #0077b6; color: white; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-outline { background: transparent; border: 1px solid #0077b6; color: #0077b6; }
-    .btn-block { width: 100%; }
-
-    /* Feature grid */
-    .features { max-width: 1100px; margin: 18px auto 60px; padding: 0 20px; }
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; }
-    .feature-card { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 6px 18px rgba(2,32,47,0.04); }
-
-    /* Main content */
-    .main-content {
-        min-height: calc(100vh - 200px);
-        padding: 20px;
-    }
-
-    /* Footer */
-    .footer {
-        background: rgba(255,255,255,0.9);
-        padding: 20px;
-        text-align: center;
-        color: #235366;
-        border-top: 1px solid #d7e9f5;
-    }
-
-    @media (max-width: 760px) {
-        .top-nav { padding: 10px 14px; }
-        .top-nav .links { display: none; }
+    body {
+        background: #f5f5f5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #333;
     }
 
     .auth-container {
         display: flex;
+        min-height: 100vh;
+        width: 100%;
+    }
+
+    /* Left sidebar with branding */
+    .auth-container::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 45%;
+        height: 100vh;
+        background: linear-gradient(135deg, #1a3a52 0%, #2d5a7b 100%);
+        z-index: 0;
+    }
+
+    .auth-card {
+        display: flex;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+    }
+
+    .auth-sidebar {
+        width: 45%;
+        padding: 60px 40px;
+        color: white;
+        display: flex;
+        flex-direction: column;
         justify-content: center;
+    }
+
+    .auth-sidebar .logo {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 30px;
+        letter-spacing: -1px;
+    }
+
+    .auth-sidebar h2 {
+        font-size: 2rem;
+        font-weight: 300;
+        margin-bottom: 20px;
+        line-height: 1.3;
+    }
+
+    .auth-sidebar p {
+        font-size: 1rem;
+        line-height: 1.6;
+        opacity: 0.9;
+        margin-bottom: 30px;
+    }
+
+    .auth-sidebar ul {
+        list-style: none;
+    }
+
+    .auth-sidebar li {
+        padding: 10px 0;
+        font-size: 0.95rem;
+        opacity: 0.85;
+        display: flex;
         align-items: center;
-        min-height: 70vh;
+        gap: 10px;
+    }
+
+    .auth-sidebar li:before {
+        content: '✓';
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .auth-form-wrapper {
+        width: 55%;
+        padding: 60px 50px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .auth-card-manager h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #1a3a52;
+        margin-bottom: 8px;
+    }
+
+    .auth-subtitle {
+        color: #888;
+        font-size: 0.95rem;
+        margin-bottom: 36px;
+    }
+
+    .auth-form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group {
+        margin-bottom: 22px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1a3a52;
+        font-size: 0.9rem;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        background: #fff;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #1a3a52;
+        box-shadow: 0 0 0 3px rgba(26, 58, 82, 0.05);
+    }
+
+    .form-group input::placeholder {
+        color: #bbb;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 12px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    .btn-primary {
+        background: #1a3a52;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0f2738;
+    }
+
+    .btn-primary:active {
+        background: #0a1a28;
+    }
+
+    .auth-links {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #eee;
+    }
+
+    .auth-links p {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
+    .auth-links a {
+        color: #1a3a52;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .auth-links a:hover {
+        color: #2d5a7b;
+    }
+
+    @media (max-width: 1024px) {
+        .auth-container::before {
+            width: 40%;
+        }
+
+        .auth-sidebar {
+            width: 40%;
+            padding: 40px 30px;
+        }
+
+        .auth-form-wrapper {
+            width: 60%;
+            padding: 40px 40px;
+        }
+
+        .auth-sidebar h2 {
+            font-size: 1.6rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .auth-container {
+            flex-direction: column;
+        }
+
+        .auth-container::before {
+            width: 100%;
+            height: 200px;
+        }
+
+        .auth-sidebar {
+            width: 100%;
+            height: auto;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .auth-form-wrapper {
+            width: 100%;
+            padding: 40px 20px;
+            border-radius: 12px 12px 0 0;
+            margin-top: -20px;
+        }
+
+        .auth-sidebar h2 {
+            font-size: 1.4rem;
+        }
+
+        .auth-sidebar ul {
+            display: none;
+        }
     }
 </style>
 
 <div class="auth-container">
     <div class="auth-card auth-card-manager">
-        <div class="manager-badge">
-            <span>✈</span> Staff Portal
+        <div class="auth-sidebar">
+            <div class="logo">FLYTAU</div>
+            <h2>Management Portal</h2>
+            <p>Manage flights, crew assignments, and monitor operations efficiently.</p>
+            <ul>
+                <li>Real-time flight management</li>
+                <li>Crew assignment & scheduling</li>
+                <li>Revenue & occupancy reports</li>
+                <li>Advanced analytics</li>
+            </ul>
         </div>
         
         <h1>Manager Login</h1>
@@ -99,14 +283,30 @@
                        value="{{ request.form.get('employee_code', '') }}">
             </div>
             
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" 
-                       id="password" 
-                       name="password" 
-                       required 
-                       placeholder="Your password">
-            </div>
+            <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           required 
+                           placeholder="manager@flytau.com"
+                           value="{{ request.form.get('email', '') }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           required 
+                           placeholder="Enter your password">
+                </div>
+                
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+                    Sign In
+                </a>
+            </form>
             
             <button type="submit" class="btn btn-primary btn-block">
                 Sign In as Manager
