@@ -5,38 +5,41 @@
 {% block content %}
 <div class="page-header">
     <h1>Available Flights</h1>
-    <p>{{ origin }} → {{ destination }} on {{ date }}</p>
+    <p>{{ origin }} → {{ destination }}{% if date %} on {{ date }}{% endif %}</p>
 </div>
 
 <div class="results-summary">
-    <span class="result-count">{{ flights|length }} flight{{ 's' if flights|length != 1 else '' }} found</span>
-    <a href="{{ url_for('flight_search') }}" class="btn btn-secondary btn-sm">Modify Search</a>
+    <span class="result-count">{{ flights|length }} flight option{{ 's' if flights|length != 1 else '' }} found</span>
+    <a href="{{ url_for('flights') }}" class="btn btn-secondary btn-sm">Modify Search</a>
 </div>
 
 {% if flights %}
 <div class="flight-list">
     {% for flight in flights %}
-    <div class="flight-card">
+    <div class="flight-card {% if not flight.is_direct %}connecting-flight{% endif %}">
+        {% if flight.is_direct %}
+        {# Direct Flight Display #}
+        <div class="flight-badge direct">Direct</div>
         <div class="flight-times">
             <div class="departure">
-                <span class="time">{{ flight.departure_time.strftime('%H:%M') }}</span>
-                <span class="city">{{ flight.origin }}</span>
+                <span class="time">{{ flight.DepartureHour }}</span>
+                <span class="city">{{ flight.OriginPort }}</span>
             </div>
             <div class="flight-duration">
                 <span class="duration-line"></span>
-                <span class="duration-text">{{ flight.duration_minutes // 60 }}h {{ flight.duration_minutes % 60 }}m</span>
-                <span class="flight-number">{{ flight.flight_number }}</span>
+                <span class="duration-text">{{ (flight.Duration or 0) // 60 }}h {{ (flight.Duration or 0) % 60 }}m</span>
+                <span class="flight-number">{{ flight.FlightId }}</span>
             </div>
             <div class="arrival">
-                <span class="time">{{ flight.arrival_time.strftime('%H:%M') }}</span>
-                <span class="city">{{ flight.destination }}</span>
+                <span class="time">{{ flight.ArrivalHour or '--:--' }}</span>
+                <span class="city">{{ flight.DestPort }}</span>
             </div>
         </div>
         
         <div class="flight-info">
             <div class="aircraft-info">
-                <span class="aircraft-type">{{ flight.aircraft_type }}</span>
-                <span class="seats-available">{{ flight.available_seats }} seats available</span>
+                <span class="aircraft-type">{{ flight.Manufacturer }}</span>
+                <span class="seats-available">{{ flight.total_available_seats }} seats available</span>
             </div>
         </div>
         
@@ -44,23 +47,79 @@
             <div class="price-options">
                 <div class="price-option">
                     <span class="class-name">Economy</span>
-                    <span class="price">${{ "%.2f"|format(flight.economy_price) }}</span>
+                    <span class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}</span>
                 </div>
                 <div class="price-option">
                     <span class="class-name">Business</span>
-                    <span class="price">${{ "%.2f"|format(flight.business_price) }}</span>
-                </div>
-                <div class="price-option">
-                    <span class="class-name">First</span>
-                    <span class="price">${{ "%.2f"|format(flight.first_price) }}</span>
+                    <span class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}</span>
                 </div>
             </div>
             
-            <a href="{{ url_for('flight_detail', flight_id=flight.id) }}?passengers={{ passengers }}" 
+            <a href="{{ url_for('flight_detail', flight_id=flight.FlightId, airplane_id=flight.Airplanes_AirplaneId) }}?passengers={{ passengers }}" 
                class="btn btn-primary">
                 Select Flight
             </a>
         </div>
+        
+        {% else %}
+        {# Connecting Flight Display #}
+        <div class="flight-badge connecting">{{ flight.stops }} Stop{% if flight.stops > 1 %}s{% endif %}</div>
+        <div class="flight-times">
+            <div class="departure">
+                <span class="time">{{ flight.DepartureHour }}</span>
+                <span class="city">{{ flight.OriginPort }}</span>
+            </div>
+            <div class="flight-duration">
+                <span class="duration-line connecting-line"></span>
+                <span class="connection-info">
+                    <span class="connection-city">via {{ flight.connection_city }}</span>
+                    <span class="layover-time">({{ flight.layover_minutes // 60 }}h {{ flight.layover_minutes % 60 }}m layover)</span>
+                </span>
+                <span class="duration-text">Total: {{ (flight.total_duration or 0) // 60 }}h {{ (flight.total_duration or 0) % 60 }}m</span>
+            </div>
+            <div class="arrival">
+                <span class="time">{{ flight.ArrivalHour or '--:--' }}</span>
+                <span class="city">{{ flight.DestPort }}</span>
+            </div>
+        </div>
+        
+        {# Show each leg of the connecting flight #}
+        <div class="connecting-flight-legs">
+            {% for leg in flight.flights %}
+            <div class="flight-leg">
+                <span class="leg-number">Flight {{ loop.index }}: {{ leg.FlightId }}</span>
+                <span class="leg-route">{{ leg.OriginPort }} → {{ leg.DestPort }}</span>
+                <span class="leg-time">{{ leg.DepartureHour }} - {{ leg.ArrivalHour or '--:--' }}</span>
+                <span class="leg-duration">({{ (leg.Duration or 0) // 60 }}h {{ (leg.Duration or 0) % 60 }}m)</span>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="flight-info">
+            <div class="aircraft-info">
+                <span class="seats-available">{{ flight.total_available_seats }} seats available on each leg</span>
+            </div>
+        </div>
+        
+        <div class="flight-pricing">
+            <div class="price-options">
+                <div class="price-option">
+                    <span class="class-name">Economy (total)</span>
+                    <span class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}</span>
+                </div>
+                <div class="price-option">
+                    <span class="class-name">Business (total)</span>
+                    <span class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}</span>
+                </div>
+            </div>
+            
+            {# For connecting flights, link to the first leg's detail page with info about connection #}
+            <a href="{{ url_for('flight_detail', flight_id=flight.flights[0].FlightId, airplane_id=flight.flights[0].Airplanes_AirplaneId) }}?passengers={{ passengers }}&connecting={{ flight.flights[1].FlightId }}&connecting_airplane={{ flight.flights[1].Airplanes_AirplaneId }}" 
+               class="btn btn-primary">
+                Select Flights
+            </a>
+        </div>
+        {% endif %}
     </div>
     {% endfor %}
 </div>
@@ -70,7 +129,7 @@
     <h2>No flights found</h2>
     <p>We couldn't find any flights matching your search criteria.</p>
     <p>Try adjusting your search parameters or selecting different dates.</p>
-    <a href="{{ url_for('flight_search') }}" class="btn btn-primary">Search Again</a>
+    <a href="{{ url_for('flights') }}" class="btn btn-primary">Search Again</a>
 </div>
 {% endif %}
 {% endblock %}

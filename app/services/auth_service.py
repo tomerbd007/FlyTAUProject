@@ -69,7 +69,16 @@ def login_customer(email, password):
     if not check_password(password, customer['Password']):
         return None
     
-    return customer
+    # Map database columns to expected keys
+    return {
+        'id': customer['UniqueMail'],
+        'email': customer['UniqueMail'],
+        'first_name': customer['FirstName'],
+        'last_name': customer['SecondName'],
+        'passport': customer.get('PassportNum'),
+        'birth_date': customer.get('BirthDate'),
+        'phone': customer.get('PhoneNum')
+    }
 
 
 def login_manager(manager_id, password):
@@ -91,7 +100,14 @@ def login_manager(manager_id, password):
     if not check_password(password, manager['Password']):
         return None
     
-    return manager
+    # Map database columns to expected keys
+    return {
+        'id': manager['ManagerId'],
+        'employee_code': manager['ManagerId'],
+        'first_name': manager['FirstName'],
+        'last_name': manager['SecondName'],
+        'phone': manager.get('PhoneNum')
+    }
 
 
 def get_registered_customer_by_email(email):

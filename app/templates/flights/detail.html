@@ -1,47 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}{{ flight.flight_number }} - Flight Details - FLYTAU{% endblock %}
+{% block title %}{{ flight.FlightId }} - Flight Details - FLYTAU{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <a href="{{ url_for('flight_search_results') }}?origin={{ flight.origin }}&destination={{ flight.destination }}&date={{ flight.departure_time.strftime('%Y-%m-%d') }}&passengers={{ passengers }}" 
+    <a href="{{ url_for('flight_search_results') }}?origin={{ flight.OriginPort }}&destination={{ flight.DestPort }}&date={{ flight.DepartureDate }}&passengers={{ passengers }}" 
        class="back-link">← Back to results</a>
-    <h1>Flight {{ flight.flight_number }}</h1>
+    <h1>Flight {{ flight.FlightId }}</h1>
 </div>
 
 <div class="flight-detail-container">
     <div class="flight-detail-card">
         <div class="flight-route">
             <div class="route-point">
-                <span class="city">{{ flight.origin }}</span>
-                <span class="time">{{ flight.departure_time.strftime('%H:%M') }}</span>
-                <span class="date">{{ flight.departure_time.strftime('%a, %b %d, %Y') }}</span>
+                <span class="city">{{ flight.OriginPort }}</span>
+                <span class="time">{{ flight.DepartureHour }}</span>
+                <span class="date">{{ flight.DepartureDate }}</span>
             </div>
             
             <div class="route-line">
                 <div class="plane-icon">✈</div>
-                <div class="duration">{{ flight.duration_minutes // 60 }}h {{ flight.duration_minutes % 60 }}m</div>
+                <div class="duration">{{ (flight.Duration or 0) // 60 }}h {{ (flight.Duration or 0) % 60 }}m</div>
             </div>
             
             <div class="route-point">
-                <span class="city">{{ flight.destination }}</span>
-                <span class="time">{{ flight.arrival_time.strftime('%H:%M') }}</span>
-                <span class="date">{{ flight.arrival_time.strftime('%a, %b %d, %Y') }}</span>
+                <span class="city">{{ flight.DestPort }}</span>
+                <span class="time">{{ flight.ArrivalHour or '--:--' }}</span>
+                <span class="date">{{ flight.DepartureDate }}</span>
             </div>
         </div>
         
         <div class="flight-meta">
             <div class="meta-item">
                 <span class="meta-label">Aircraft</span>
-                <span class="meta-value">{{ flight.aircraft_type }}</span>
+                <span class="meta-value">{{ flight.Manufacturer }} ({{ flight.Airplanes_AirplaneId }})</span>
             </div>
             <div class="meta-item">
                 <span class="meta-label">Flight Number</span>
-                <span class="meta-value">{{ flight.flight_number }}</span>
+                <span class="meta-value">{{ flight.FlightId }}</span>
             </div>
             <div class="meta-item">
                 <span class="meta-label">Status</span>
-                <span class="meta-value status-{{ flight.status }}">{{ flight.status|capitalize }}</span>
+                <span class="meta-value status-{{ flight.Status }}">{{ flight.Status|capitalize }}</span>
             </div>
         </div>
     </div>
@@ -50,32 +50,22 @@
         <h2>Seat Availability</h2>
         <div class="class-cards">
             <div class="class-card">
-                <h3>First Class</h3>
-                <div class="seats-info">
-                    <span class="available">{{ seat_counts.first_available }}</span>
-                    <span class="label">seats available</span>
-                </div>
-                <div class="price">${{ "%.2f"|format(flight.first_price) }}</div>
-                <div class="price-label">per seat</div>
-            </div>
-            
-            <div class="class-card">
                 <h3>Business Class</h3>
                 <div class="seats-info">
-                    <span class="available">{{ seat_counts.business_available }}</span>
+                    <span class="available">{{ seat_counts.business.available if seat_counts.business else 0 }}</span>
                     <span class="label">seats available</span>
                 </div>
-                <div class="price">${{ "%.2f"|format(flight.business_price) }}</div>
+                <div class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}</div>
                 <div class="price-label">per seat</div>
             </div>
             
             <div class="class-card">
                 <h3>Economy Class</h3>
                 <div class="seats-info">
-                    <span class="available">{{ seat_counts.economy_available }}</span>
+                    <span class="available">{{ seat_counts.economy.available if seat_counts.economy else 0 }}</span>
                     <span class="label">seats available</span>
                 </div>
-                <div class="price">${{ "%.2f"|format(flight.economy_price) }}</div>
+                <div class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}</div>
                 <div class="price-label">per seat</div>
             </div>
         </div>
@@ -83,10 +73,14 @@
     
     <div class="booking-action">
         <p>Booking for <strong>{{ passengers }} passenger{{ 's' if passengers|int > 1 else '' }}</strong></p>
-        <a href="{{ url_for('seat_selection', flight_id=flight.id) }}?passengers={{ passengers }}" 
+        {% if flight.Status == 'active' %}
+        <a href="{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}&passengers={{ passengers }}" 
            class="btn btn-primary btn-lg">
             Select Seats
         </a>
+        {% else %}
+        <p class="text-warning">This flight is not available for booking (Status: {{ flight.Status }})</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

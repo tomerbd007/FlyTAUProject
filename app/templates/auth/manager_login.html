@@ -268,10 +268,20 @@
                 <li>Advanced analytics</li>
             </ul>
         </div>
-
-        <div class="auth-form-wrapper">
-            <h1>Manager Login</h1>
-            <p class="auth-subtitle">Sign in to access the management system</p>
+        
+        <h1>Manager Login</h1>
+        <p class="auth-subtitle">Access the flight management system</p>
+        
+        <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
+            <div class="form-group">
+                <label for="employee_code">Employee Code</label>
+                <input type="text" 
+                       id="employee_code" 
+                       name="employee_code" 
+                       required 
+                       placeholder="M001"
+                       value="{{ request.form.get('employee_code', '') }}">
+            </div>
             
             <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
                 <div class="form-group">
@@ -298,9 +308,13 @@
                 </a>
             </form>
             
-            <div class="auth-links">
-                <p>Not a manager? <a href="{{ url_for('login') }}">Customer Login</a></p>
-            </div>
+            <button type="submit" class="btn btn-primary btn-block">
+                Sign In as Manager
+            </button>
+        </form>
+        
+        <div class="auth-links">
+            <p>Not a manager? <a href="{{ url_for('login') }}">Customer Login</a></p>
         </div>
     </div>
 </div>

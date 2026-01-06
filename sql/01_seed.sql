@@ -8,10 +8,11 @@ USE flytau;
 
 -- =============================================================================
 -- MANAGERS (2)
+-- Password: password123
 -- =============================================================================
 INSERT INTO Managers (ManagerId, Password, FirstName, SecondName, PhoneNum) VALUES
-('M001', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4I1P3VE.X6W3E.Gy', 'David', 'Cohen', '["972-54-1234567"]'),
-('M002', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4I1P3VE.X6W3E.Gy', 'Sarah', 'Levi', '["972-50-7654321"]');
+('M001', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'David', 'Cohen', '["972-54-1234567"]'),
+('M002', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'Sarah', 'Levi', '["972-50-7654321"]');
 
 -- =============================================================================
 -- PILOTS (10) - 6 certified for long flights
@@ -55,10 +56,11 @@ INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTra
 
 -- =============================================================================
 -- REGISTERED CUSTOMERS (2)
+-- Password: password123
 -- =============================================================================
 INSERT INTO RegisteredCustomer (UniqueMail, Password, PassportNum, FirstName, SecondName, BirthDate) VALUES
-('customer1@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4I1P3VE.X6W3E.Gy', 'P123456', 'John', 'Doe', '1985-06-15'),
-('customer2@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4I1P3VE.X6W3E.Gy', 'P789012', 'Jane', 'Smith', '1990-09-22');
+('customer1@example.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'P123456', 'John', 'Doe', '1985-06-15'),
+('customer2@example.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'P789012', 'Jane', 'Smith', '1990-09-22');
 
 -- =============================================================================
 -- GUEST CUSTOMERS (1)

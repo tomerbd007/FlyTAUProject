@@ -775,3 +775,241 @@ tr:hover {
         font-size: 0.75rem;
     }
 }
+
+/* -----------------------------------------------------------------------------
+   Connecting Flights Display
+   ----------------------------------------------------------------------------- */
+.flight-card.connecting-flight {
+    border-left: 4px solid var(--color-info);
+}
+
+.flight-badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.flight-badge.direct {
+    background-color: var(--color-success);
+    color: white;
+}
+
+.flight-badge.connecting {
+    background-color: var(--color-info);
+    color: white;
+}
+
+.connection-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.connection-city {
+    font-weight: 600;
+    color: var(--color-info);
+}
+
+.layover-time {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+}
+
+.connecting-line {
+    border-style: dashed !important;
+}
+
+.connecting-flight-legs {
+    background: var(--color-gray-100);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+.flight-leg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.flight-leg:last-child {
+    border-bottom: none;
+}
+
+.leg-number {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.leg-route {
+    color: var(--color-gray-700);
+}
+
+.leg-time {
+    color: var(--color-gray-600);
+}
+
+.leg-duration {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-500);
+}
+
+/* Results summary improvements */
+.results-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.result-count {
+    font-weight: 500;
+    color: var(--color-gray-700);
+}
+
+/* Flight list improvements */
+.flight-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.flight-card {
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.flight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.flight-times {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+}
+
+.flight-times .departure,
+.flight-times .arrival {
+    text-align: center;
+}
+
+.flight-times .time {
+    display: block;
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-gray-900);
+}
+
+.flight-times .city {
+    display: block;
+    color: var(--color-gray-600);
+    font-size: var(--font-size-sm);
+}
+
+.flight-duration {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 var(--spacing-lg);
+}
+
+.duration-line {
+    width: 100%;
+    height: 2px;
+    background: var(--color-gray-300);
+    position: relative;
+    margin-bottom: var(--spacing-xs);
+}
+
+.duration-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+}
+
+.flight-number {
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
+.flight-info {
+    margin-bottom: var(--spacing-md);
+}
+
+.aircraft-info {
+    display: flex;
+    gap: var(--spacing-lg);
+    color: var(--color-gray-600);
+    font-size: var(--font-size-sm);
+}
+
+.flight-pricing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.price-options {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.price-option {
+    text-align: center;
+}
+
+.price-option .class-name {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+    margin-bottom: var(--spacing-xs);
+}
+
+.price-option .price {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-gray-900);
+}
+
+/* No results styling */
+.no-results {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+}
+
+.no-results-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.no-results h2 {
+    color: var(--color-gray-700);
+    margin-bottom: var(--spacing-sm);
+}
+
+.no-results p {
+    color: var(--color-gray-600);
+    margin-bottom: var(--spacing-md);
+}

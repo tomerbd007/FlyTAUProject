@@ -257,14 +257,14 @@
 </style>
 <div class="admin-header">
     <div class="header-left">
-        <button class="btn btn-secondary" onclick="window.location.href='{{ url_for('report_index') }}'">Statistics</button>
+        <button class="btn btn-secondary" onclick="window.location.href='{{ url_for('reports_index') }}'">Statistics</button>
     </div>
     <div class="header-center">
         <h1>Manager Dashboard</h1>
-        <p>Welcome, {{ session.get('user_name', 'Manager') }}</p>
+        <p>Welcome, {{ session.get('name', 'Manager') }}</p>
     </div>
     <div class="header-right">
-        <button class="btn btn-primary" onclick="window.location.href='{{ url_for('admin_add_flight_step1') }}'">Add Flight</button>
+        <button class="btn btn-primary" onclick="window.location.href='{{ url_for('add_flight_step1') }}'">Add Flight</button>
     </div>
 </div>
 
@@ -277,7 +277,7 @@
             </div>
         </div>
         
-        {% if all_flights %}
+        {% if stats and stats.flights %}
         <table class="data-table" id="flights-table">
             <thead>
                 <tr>
@@ -285,31 +285,24 @@
                     <th>Route</th>
                     <th>Date</th>
                     <th>Status</th>
-                    <th>Occupancy</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for flight in all_flights %}
+                {% for flight in stats.flights %}
                 <tr>
-                    <td><button class="btn-link" onclick="window.location.href='{{ url_for('admin_edit_flight', flight_id=flight.id) }}'">{{ flight.flight_number }}</button></td>
-                    <td>{{ flight.origin }} → {{ flight.destination }}</td>
-                    <td>{{ flight.departure_time.strftime('%b %d, %Y') }}</td>
+                    <td>{{ flight.FlightId }}</td>
+                    <td>{{ flight.OriginPort }} → {{ flight.DestPort }}</td>
+                    <td>{{ flight.DepartureDate }}</td>
                     <td>
-                        <span class="status-badge status-{{ flight.status }}">
-                            {{ flight.status|capitalize }}
+                        <span class="status-badge status-{{ flight.Status }}">
+                            {{ flight.Status|capitalize }}
                         </span>
                     </td>
                     <td>
-                        <div class="occupancy-bar">
-                            <div class="occupancy-fill" style="width: {{ flight.occupancy_percent }}%"></div>
-                            <span class="occupancy-text">{{ flight.occupancy_percent }}%</span>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="btn-icon" onclick="deleteFlight({{ flight.id }})" title="Delete Flight">
-                            🗑️
-                        </button>
+                        {% if flight.Status == 'active' %}
+                        <a href="{{ url_for('cancel_flight', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}" class="btn btn-sm btn-danger">Cancel</a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -338,13 +331,6 @@
                     tr[i].style.display = 'none';
                 }
             }
-        }
-    }
-    
-    function deleteFlight(flightId) {
-        if (confirm('Are you sure you want to delete this flight?')) {
-            // Assume a delete route exists
-            window.location.href = '{{ url_for('admin_delete_flight', flight_id=flightId) }}';
         }
     }
 </script>
