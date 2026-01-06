@@ -3,128 +3,203 @@
 {% block title %}Select Seats - {{ flight.FlightId }} - FLYTAU{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <a href="{{ url_for('flight_detail', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}&passengers={{ request.args.get('passengers', '1') }}" 
-       class="back-link">← Back to flight details</a>
-    <h1>Select Your Seats</h1>
-    <p>Flight {{ flight.FlightId }}: {{ flight.OriginPort }} → {{ flight.DestPort }}</p>
-</div>
+<style>
+    .seat-shell {
+        display: flex;
+        min-height: calc(100vh - 150px);
+        position: relative;
+    }
+    .seat-shell::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 45%;
+        height: 100%;
+        background: linear-gradient(135deg, #004b71 0%, #006a9e 100%);
+        z-index: 0;
+    }
+    .seat-card {
+        display: flex;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+        border-radius: 18px;
+        overflow: hidden;
+        background: transparent;
+    }
+    .seat-sidebar {
+        width: 45%;
+        padding: 60px 40px;
+        color: #f8fbff;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        justify-content: center;
+    }
+    .seat-sidebar .logo { font-size: 2.4rem; font-weight: 700; letter-spacing: -1px; }
+    .seat-sidebar h1 { margin: 0; font-size: 1.8rem; font-weight: 600; }
+    .seat-sidebar p { margin: 0; opacity: 0.9; line-height: 1.6; }
+    .flight-meta { display: grid; gap: 8px; font-size: 0.95rem; }
+    .badge { display: inline-block; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.14); font-weight: 700; }
 
-<div class="seat-selection-container">
-    <div class="seat-map-section">
-        <div class="seat-legend">
-            <div class="legend-item">
-                <span class="seat-demo seat-available"></span>
-                <span>Available</span>
+    .seat-main {
+        width: 55%;
+        background: #ffffff;
+        padding: 48px 46px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .seat-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .seat-header h2 { margin: 0; color: #004b71; }
+    .back-link { color: #004b71; text-decoration: none; font-weight: 700; }
+
+    .card {
+        border: 1px solid #e7edf5;
+        border-radius: 14px;
+        padding: 16px;
+        background: #fbfdff;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.04);
+    }
+    .card h3 { margin: 0 0 12px; color: #1a3a52; }
+
+    .seat-legend, .class-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .seat-demo { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+    .seat-available { background: #d7f5e8; }
+    .seat-occupied { background: #f8d7da; }
+    .seat-selected { background: #cce5ff; }
+    .class-tag { padding: 6px 10px; border-radius: 12px; font-weight: 700; }
+    .class-tag.business { background: #e9d8fd; color: #5b21b6; }
+    .class-tag.economy { background: #e0f2fe; color: #075985; }
+
+    .aircraft-cabin { margin-top: 10px; display: grid; gap: 10px; }
+    .class-divider { text-align: left; font-weight: 700; color: #1a3a52; margin: 10px 0 4px; }
+    .seat-row { display: grid; grid-template-columns: 50px 1fr; align-items: center; gap: 8px; }
+    .row-number { font-weight: 700; color: #1a3a52; text-align: center; }
+    .seats-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(34px, 1fr)); gap: 6px; }
+    .seat { border: 1px solid #d8e2ec; border-radius: 10px; padding: 10px 0; text-align: center; background: #fff; cursor: pointer; transition: all 0.15s ease; }
+    .seat input { display: none; }
+    .seat-label { font-weight: 700; color: #1a3a52; }
+    .seat:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.06); }
+    .seat-occupied { background: #f4f6f9; color: #9aa6b2; border-style: dashed; cursor: not-allowed; }
+    .seat-occupied .seat-label { color: #9aa6b2; }
+
+    .selection-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .summary-info p { margin: 4px 0; color: #1a3a52; }
+    .btn-primary { background: #004b71; color: #fff; padding: 12px 16px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; }
+
+    .pricing-card ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .pricing-card li { display: flex; justify-content: space-between; font-weight: 700; color: #1a3a52; }
+    .info-box { margin-top: 10px; background: #f6fbff; border: 1px solid #e1edf7; border-radius: 12px; padding: 12px; }
+
+    @media (max-width: 1024px) {
+        .seat-shell::before { width: 100%; height: 240px; }
+        .seat-card { flex-direction: column; border-radius: 0; box-shadow: none; }
+        .seat-sidebar { width: 100%; padding: 40px 28px; text-align: center; }
+        .seat-main { width: 100%; padding: 32px 24px; margin-top: -20px; border-radius: 20px 20px 0 0; }
+        .seat-row { grid-template-columns: 40px 1fr; }
+    }
+
+    @media (max-width: 640px) {
+        .seats-group { grid-template-columns: repeat(auto-fit, minmax(30px, 1fr)); }
+    }
+</style>
+
+<div class="seat-shell">
+    <div class="seat-card">
+        <div class="seat-sidebar">
+            <div class="logo">FLYTAU</div>
+            <h1>Select Your Seats</h1>
+            <span class="badge">Flight {{ flight.FlightId }}</span>
+            <div class="flight-meta">
+                <div><strong>Route:</strong> {{ flight.OriginPort }} → {{ flight.DestPort }}</div>
+                <div><strong>Aircraft:</strong> {{ flight.Airplanes_AirplaneId }}</div>
             </div>
-            <div class="legend-item">
-                <span class="seat-demo seat-occupied"></span>
-                <span>Occupied</span>
-            </div>
-            <div class="legend-item">
-                <span class="seat-demo seat-selected"></span>
-                <span>Selected</span>
-            </div>
+            <p>Choose your preferred seats. You can still edit seats later from My Account until 36 hours before departure.</p>
         </div>
-        
-        <div class="class-legend">
-            <span class="class-tag business">Business</span>
-            <span class="class-tag economy">Economy</span>
-        </div>
-        
-        <form method="POST" action="{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}" id="seat-form">
-            <input type="hidden" name="passengers" value="{{ request.args.get('passengers', '1') }}">
-            
-            <div class="aircraft-cabin">
-                <div class="cabin-front">
-                    <div class="cockpit"></div>
-                </div>
-                
-                {# Business Class Section #}
-                {% if seat_map and seat_map.business and seat_map.business.rows %}
-                <div class="class-divider">
-                    <span>Business Class</span>
-                </div>
-                {% for row_num, seats in seat_map.business.rows.items() %}
-                <div class="seat-row">
-                    <span class="row-number">{{ row_num }}</span>
-                    <div class="seats-group">
-                        {% for seat in seats %}
-                        <label class="seat seat-business {% if seat.status == 'taken' %}seat-occupied{% endif %}"
-                               title="Seat {{ seat.code }} - ${{ '%.2f'|format(flight.BusinessPrice|float) }}">
-                            <input type="checkbox" 
-                                   name="seats" 
-                                   value="{{ seat.code }}"
-                                   {% if seat.status == 'taken' %}disabled{% endif %}
-                                   data-price="{{ flight.BusinessPrice }}"
-                                   data-class="business">
-                            <span class="seat-label">{{ seat.col }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endfor %}
-                {% endif %}
-                
-                {# Economy Class Section #}
-                {% if seat_map and seat_map.economy and seat_map.economy.rows %}
-                <div class="class-divider">
-                    <span>Economy Class</span>
-                </div>
-                {% for row_num, seats in seat_map.economy.rows.items() %}
-                <div class="seat-row">
-                    <span class="row-number">{{ row_num }}</span>
-                    <div class="seats-group">
-                        {% for seat in seats %}
-                        <label class="seat seat-economy {% if seat.status == 'taken' %}seat-occupied{% endif %}"
-                               title="Seat {{ seat.code }} - ${{ '%.2f'|format(flight.EconomyPrice|float) }}">
-                            <input type="checkbox" 
-                                   name="seats" 
-                                   value="{{ seat.code }}"
-                                   {% if seat.status == 'taken' %}disabled{% endif %}
-                                   data-price="{{ flight.EconomyPrice }}"
-                                   data-class="economy">
-                            <span class="seat-label">{{ seat.col }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endfor %}
-                {% endif %}
+
+        <div class="seat-main">
+            <div class="seat-header">
+                <h2>Cabin Map</h2>
+                <a href="{{ url_for('flight_detail', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}&passengers={{ request.args.get('passengers', '1') }}" class="back-link">← Back to flight details</a>
             </div>
-            
-            <div class="selection-summary">
-                <div class="summary-info">
-                    <p>Select your seat{{ 's' if (request.args.get('passengers', '1')|int) > 1 else '' }}</p>
-                    <p class="selected-count">Selected: <span id="selected-seats-count">0</span></p>
-                    <p class="total-price">Total: $<span id="total-price">0.00</span></p>
+
+            <div class="card">
+                <div class="seat-legend">
+                    <div class="legend-item"><span class="seat-demo seat-available"></span><span>Available</span></div>
+                    <div class="legend-item"><span class="seat-demo seat-occupied"></span><span>Occupied</span></div>
+                    <div class="legend-item"><span class="seat-demo seat-selected"></span><span>Selected</span></div>
                 </div>
-                
-                <div class="summary-actions">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        Continue to Checkout
-                    </button>
+                <div class="class-legend" style="margin-top:8px;">
+                    <span class="class-tag business">Business</span>
+                    <span class="class-tag economy">Economy</span>
+                </div>
+
+                <form method="POST" action="{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}" id="seat-form">
+                    <input type="hidden" name="passengers" value="{{ request.args.get('passengers', '1') }}">
+
+                    <div class="aircraft-cabin">
+                        {% if seat_map and seat_map.business and seat_map.business.rows %}
+                        <div class="class-divider"><span>Business Class</span></div>
+                        {% for row_num, seats in seat_map.business.rows.items() %}
+                        <div class="seat-row">
+                            <span class="row-number">{{ row_num }}</span>
+                            <div class="seats-group">
+                                {% for seat in seats %}
+                                <label class="seat seat-business {% if seat.status == 'taken' %}seat-occupied{% endif %}" title="Seat {{ seat.code }} - ${{ '%.2f'|format(flight.BusinessPrice|float) }}">
+                                    <input type="checkbox" name="seats" value="{{ seat.code }}" {% if seat.status == 'taken' %}disabled{% endif %} data-price="{{ flight.BusinessPrice }}" data-class="business">
+                                    <span class="seat-label">{{ seat.col }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+
+                        {% if seat_map and seat_map.economy and seat_map.economy.rows %}
+                        <div class="class-divider"><span>Economy Class</span></div>
+                        {% for row_num, seats in seat_map.economy.rows.items() %}
+                        <div class="seat-row">
+                            <span class="row-number">{{ row_num }}</span>
+                            <div class="seats-group">
+                                {% for seat in seats %}
+                                <label class="seat seat-economy {% if seat.status == 'taken' %}seat-occupied{% endif %}" title="Seat {{ seat.code }} - ${{ '%.2f'|format(flight.EconomyPrice|float) }}">
+                                    <input type="checkbox" name="seats" value="{{ seat.code }}" {% if seat.status == 'taken' %}disabled{% endif %} data-price="{{ flight.EconomyPrice }}" data-class="economy">
+                                    <span class="seat-label">{{ seat.col }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="selection-summary">
+                        <div class="summary-info">
+                            <p>Select your seat{{ 's' if (request.args.get('passengers', '1')|int) > 1 else '' }}</p>
+                            <p class="selected-count">Selected: <span id="selected-seats-count">0</span></p>
+                            <p class="total-price">Total: $<span id="total-price">0.00</span></p>
+                        </div>
+                        <div class="summary-actions">
+                            <button type="submit" class="btn-primary">Continue to Checkout</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card pricing-card">
+                <h3>Pricing</h3>
+                <ul class="price-list">
+                    <li><span class="class-name">Business Class</span><span class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}</span></li>
+                    <li><span class="class-name">Economy Class</span><span class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}</span></li>
+                </ul>
+                <div class="info-box">
+                    <h4>Cancellation Policy</h4>
+                    <p>Free cancellation up to 36 hours before departure. A 5% cancellation fee applies after that.</p>
                 </div>
             </div>
-        </form>
-    </div>
-    
-    <div class="pricing-info-sidebar">
-        <h3>Pricing</h3>
-        <ul class="price-list">
-            <li>
-                <span class="class-name">Business Class</span>
-                <span class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}</span>
-            </li>
-            <li>
-                <span class="class-name">Economy Class</span>
-                <span class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}</span>
-            </li>
-        </ul>
-        
-        <div class="info-box">
-            <h4>Cancellation Policy</h4>
-            <p>Free cancellation up to 36 hours before departure. A 5% cancellation fee applies after that.</p>
         </div>
     </div>
 </div>
@@ -134,22 +209,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('input[name="seats"]');
     const countDisplay = document.getElementById('selected-seats-count');
     const priceDisplay = document.getElementById('total-price');
-    
+
     function updateSummary() {
         let count = 0;
         let total = 0;
-        
+
         checkboxes.forEach(cb => {
             if (cb.checked) {
                 count++;
                 total += parseFloat(cb.dataset.price) || 0;
+                cb.parentElement.classList.add('seat-selected');
+            } else {
+                cb.parentElement.classList.remove('seat-selected');
             }
         });
-        
+
         countDisplay.textContent = count;
         priceDisplay.textContent = total.toFixed(2);
     }
-    
+
     checkboxes.forEach(cb => {
         cb.addEventListener('change', updateSummary);
     });

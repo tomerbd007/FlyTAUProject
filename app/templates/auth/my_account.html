@@ -27,12 +27,29 @@
         opacity: 0.9;
     }
     
+    .filters {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .filters select, .filters button {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #d6dde6;
+        background: #fff;
+        font-weight: 600;
+        color: #004b71;
+        cursor: pointer;
+    }
+
     .account-sections {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 24px;
     }
-    
+
     @media (max-width: 768px) {
         .account-sections {
             grid-template-columns: 1fr;
@@ -119,8 +136,9 @@
     }
     
     .recent-order-item {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
         align-items: center;
         padding: 12px;
         background: #f8fbfd;
@@ -143,22 +161,33 @@
         font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
+        width: fit-content;
     }
-    
-    .status-confirmed {
-        background: #d4edda;
-        color: #155724;
+
+    .status-confirmed { background: #d4edda; color: #155724; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    .status-completed { background: #cce5ff; color: #004085; }
+
+    .order-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
     }
-    
-    .status-cancelled {
-        background: #f8d7da;
-        color: #721c24;
+
+    .btn-small {
+        padding: 8px 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: none;
+        cursor: pointer;
+        display: inline-block;
     }
-    
-    .status-completed {
-        background: #cce5ff;
-        color: #004085;
-    }
+
+    .btn-primary { background: #004b71; color: #fff; }
+    .btn-secondary { background: #2d5a7b; color: #fff; }
+    .btn-muted { background: #e6ebf1; color: #6b7b8c; cursor: not-allowed; }
     
     .no-orders {
         text-align: center;
@@ -192,6 +221,20 @@
         <h1>Welcome, {{ user_name }}!</h1>
         <p>Manage your account and view your bookings</p>
     </div>
+
+    <form class="filters" method="GET" action="{{ url_for('my_account') }}">
+        <select name="status">
+            <option value="" {% if not status_filter %}selected{% endif %}>All statuses</option>
+            <option value="confirmed" {% if status_filter=='confirmed' %}selected{% endif %}>Confirmed</option>
+            <option value="cancelled" {% if status_filter=='cancelled' %}selected{% endif %}>Cancelled</option>
+            <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
+        </select>
+        <select name="sort">
+            <option value="date" {% if sort_key!='status' %}selected{% endif %}>Sort by date</option>
+            <option value="status" {% if sort_key=='status' %}selected{% endif %}>Sort by status</option>
+        </select>
+        <button type="submit">Apply</button>
+    </form>
     
     <div class="account-sections">
         <div class="account-card">
@@ -235,13 +278,27 @@
             {% if recent_orders %}
             <div class="recent-orders-list">
                 {% for order in recent_orders %}
-                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="recent-order-item" style="text-decoration: none;">
+                <div class="recent-order-item">
                     <div>
                         <div class="recent-order-route">{{ order.origin }} → {{ order.destination }}</div>
-                        <div class="recent-order-date">{{ order.departure_time.strftime('%b %d, %Y') }} • {{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</div>
+                        <div class="recent-order-date">{{ order.departure_time.strftime('%b %d, %Y') if order.departure_time else '' }} • {{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</div>
+                        <div class="recent-order-status status-{{ order.status }}">{{ order.status|capitalize }}</div>
                     </div>
-                    <span class="recent-order-status status-{{ order.status }}">{{ order.status }}</span>
-                </a>
+                    <div class="order-actions">
+                        <a href="{{ url_for('order_confirmation', booking_code=order.booking_code) }}" class="btn-small btn-primary">View</a>
+                        {% if order.can_cancel %}
+                        <form method="POST" action="{{ url_for('customer_cancel_order') }}">
+                            <input type="hidden" name="booking_code" value="{{ order.booking_code }}">
+                            <button type="submit" class="btn-small btn-secondary">Cancel</button>
+                        </form>
+                        {% else %}
+                        <span class="btn-small btn-muted">Cancel (locked)</span>
+                        {% endif %}
+                        {% if order.status == 'confirmed' %}
+                        <a href="{{ url_for('seat_selection', flight_id=order.flight_id, airplane_id=order.airplane_id) }}" class="btn-small btn-primary">Edit Seats</a>
+                        {% endif %}
+                    </div>
+                </div>
                 {% endfor %}
             </div>
             <a href="{{ url_for('my_orders') }}" class="btn-view-all">View All Orders →</a>
