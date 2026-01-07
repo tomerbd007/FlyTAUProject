@@ -137,7 +137,7 @@
                     <span class="class-tag economy">Economy</span>
                 </div>
 
-                <form method="POST" action="{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}" id="seat-form">
+                <form method="POST" action="{% if edit_mode %}{{ url_for('edit_order_seats', booking_code=booking_code) }}{% else %}{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}{% endif %}" id="seat-form">
                     <input type="hidden" name="passengers" value="{{ request.args.get('passengers', '1') }}">
 
                     <div class="aircraft-cabin">
@@ -178,12 +178,12 @@
 
                     <div class="selection-summary">
                         <div class="summary-info">
-                            <p>Select your seat{{ 's' if (request.args.get('passengers', '1')|int) > 1 else '' }}</p>
+                            <p>{% if edit_mode %}Update your seat selection{% else %}Select your seat{{ 's' if (request.args.get('passengers', '1')|int) > 1 else '' }}{% endif %}</p>
                             <p class="selected-count">Selected: <span id="selected-seats-count">0</span></p>
                             <p class="total-price">Total: $<span id="total-price">0.00</span></p>
                         </div>
                         <div class="summary-actions">
-                            <button type="submit" class="btn-primary">Continue to Checkout</button>
+                            <button type="submit" class="btn-primary">{% if edit_mode %}Finish Changes{% else %}Continue to Checkout{% endif %}</button>
                         </div>
                     </div>
                 </form>
@@ -210,6 +210,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const countDisplay = document.getElementById('selected-seats-count');
     const priceDisplay = document.getElementById('total-price');
 
+    // Pre-select current seats when in edit mode
+    {% if edit_mode and current_seats %}
+    const currentSeats = {{ current_seats | tojson }};
+    checkboxes.forEach(cb => {
+        if (currentSeats.includes(cb.value)) {
+            cb.checked = true;
+        }
+    });
+    {% endif %}
+
     function updateSummary() {
         let count = 0;
         let total = 0;
@@ -231,6 +241,9 @@ document.addEventListener('DOMContentLoaded', function() {
     checkboxes.forEach(cb => {
         cb.addEventListener('change', updateSummary);
     });
+
+    // Call immediately to update display on page load
+    updateSummary();
 });
 </script>
 {% endblock %}
