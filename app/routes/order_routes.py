@@ -129,6 +129,9 @@ def register_order_routes(app):
 
         email = order.get('RegisteredCustomer_UniqueMail') or order.get('GuestCustomer_UniqueMail') or session.get('email', '')
         customer_name = session.get('name') if session.get('role') == 'customer' else None
+        
+        # Check if order can still be modified (36h rule)
+        can_cancel = order_service.can_cancel_order(order)
 
         order_vm = {
             'booking_code': order.get('UniqueOrderCode'),
@@ -143,6 +146,7 @@ def register_order_routes(app):
             'status': (order.get('Status') or '').lower(),
             'email': email,
             'customer_name': customer_name,
+            'can_cancel': can_cancel,
         }
 
         tickets_vm = []
@@ -417,3 +421,65 @@ def register_order_routes(app):
             flash(str(e), 'error')
         
         return redirect(url_for('guest_lookup'))
+
+    @app.route('/orders/<booking_code>/edit-seats', methods=['GET', 'POST'])
+    @login_required
+    def edit_order_seats(booking_code):
+        """Edit seats for an existing order."""
+        if session.get('role') != 'customer':
+            flash('Access denied.', 'error')
+            return redirect(url_for('index'))
+
+        # Get the order
+        order = order_service.get_order_with_tickets(booking_code.upper())
+        if not order:
+            flash('Order not found.', 'error')
+            return redirect(url_for('my_orders'))
+
+        # Verify ownership
+        owner_email = order.get('RegisteredCustomer_UniqueMail') or order.get('GuestCustomer_UniqueMail')
+        if not owner_email or owner_email.lower() != session.get('email', '').lower():
+            flash('Access denied.', 'error')
+            return redirect(url_for('my_orders'))
+
+        # Check if order can still be modified (36h rule)
+        if not order_service.can_cancel_order(order):
+            flash('This order can no longer be modified (less than 36 hours before departure).', 'error')
+            return redirect(url_for('my_orders'))
+
+        flight_id = order.get('Flights_FlightId')
+        airplane_id = order.get('Flights_Airplanes_AirplaneId')
+
+        # Get flight details
+        flight = flight_service.get_flight_details(flight_id, airplane_id)
+        if not flight:
+            flash('Flight not found.', 'error')
+            return redirect(url_for('my_orders'))
+
+        if request.method == 'POST':
+            selected_seats = request.form.getlist('seats')
+
+            if not selected_seats:
+                flash('Please select at least one seat.', 'warning')
+                return redirect(url_for('edit_order_seats', booking_code=booking_code))
+
+            try:
+                order_service.update_order_seats(booking_code.upper(), selected_seats, flight)
+                flash('Your seats have been updated successfully!', 'success')
+                return redirect(url_for('order_confirmation', booking_code=booking_code))
+            except ValueError as e:
+                flash(str(e), 'error')
+                return redirect(url_for('edit_order_seats', booking_code=booking_code))
+
+        # Get current seats for this order to pre-select them
+        current_seats = [f"{t.get('RowNum')}{t.get('Seat')}" for t in order.get('tickets', [])]
+
+        # Build seat map - exclude current seats so they appear as available
+        seat_map = flight_service.build_seat_map(flight_id, airplane_id, exclude_seats=current_seats)
+
+        return render_template('flights/seat_selection.html',
+                               flight=flight,
+                               seat_map=seat_map,
+                               edit_mode=True,
+                               booking_code=booking_code,
+                               current_seats=current_seats)

@@ -467,13 +467,15 @@ def get_available_seats_for_class(flight_id, airplane_id, seat_class):
     return available
 
 
-def build_seat_map(flight_id, airplane_id):
+def build_seat_map(flight_id, airplane_id, exclude_seats=None):
     """
     Build a seat map for display showing all seats and their status.
     
     Args:
         flight_id: Flight ID
         airplane_id: Airplane ID
+        exclude_seats: Optional list of seat codes (e.g., ['1A', '2B']) to NOT mark as taken
+                       Used when editing an order to show user's current seats as available
     
     Returns:
         Dict with seat map organized by class and row
@@ -483,7 +485,18 @@ def build_seat_map(flight_id, airplane_id):
         return None
     
     taken_seats = flight_repository.get_taken_seats(flight_id, airplane_id)
-    taken_set = {(t['RowNum'], t['Seat']) for t in taken_seats}
+    
+    # Build exclusion set from exclude_seats parameter
+    exclude_set = set()
+    if exclude_seats:
+        for seat_code in exclude_seats:
+            # Parse seat code like "1A" into (1, 'A')
+            import re
+            match = re.match(r'^(\d+)([A-Z])$', seat_code.upper())
+            if match:
+                exclude_set.add((int(match.group(1)), match.group(2)))
+    
+    taken_set = {(t['RowNum'], t['Seat']) for t in taken_seats if (t['RowNum'], t['Seat']) not in exclude_set}
     
     seat_map = {
         'business': None,

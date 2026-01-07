@@ -22,9 +22,73 @@ def register_admin_routes(app):
     @manager_required
     def admin_flights():
         """Admin flight list with status filter."""
+        from datetime import datetime, timedelta
+
         status_filter = request.args.get('status', '')
-        flights = admin_service.get_all_flights(status_filter)
-        
+        flights_raw = admin_service.get_all_flights(status_filter) or []
+
+        flights = []
+        for f in flights_raw:
+            # Parse departure date/time into a single datetime object
+            dep_date = f.get('DepartureDate')
+            dep_hour = f.get('DepartureHour')
+
+            if isinstance(dep_date, str):
+                try:
+                    dep_date_obj = datetime.strptime(dep_date, '%Y-%m-%d').date()
+                except ValueError:
+                    dep_date_obj = None
+            else:
+                dep_date_obj = dep_date
+
+            if dep_hour:
+                if isinstance(dep_hour, str):
+                    try:
+                        parts = dep_hour.split(':')
+                        dep_time_obj = datetime.strptime(f"{parts[0]}:{parts[1]}", '%H:%M').time()
+                    except ValueError:
+                        dep_time_obj = datetime.min.time()
+                elif hasattr(dep_hour, 'seconds'):
+                    total_seconds = int(dep_hour.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    dep_time_obj = datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
+                else:
+                    dep_time_obj = datetime.min.time()
+            else:
+                dep_time_obj = datetime.min.time()
+
+            departure_dt = datetime.combine(dep_date_obj, dep_time_obj) if dep_date_obj else datetime.now()
+
+            # Seat availability for booked/total calculation
+            seat_avail = flight_service.get_seat_availability(f.get('FlightId'), f.get('Airplanes_AirplaneId')) or {}
+            business_avail = seat_avail.get('business', {}) or {}
+            economy_avail = seat_avail.get('economy', {}) or {}
+
+            business_total = business_avail.get('total', 0) or 0
+            economy_total = economy_avail.get('total', 0) or 0
+            business_available = business_avail.get('available', 0) or 0
+            economy_available = economy_avail.get('available', 0) or 0
+
+            total_seats = business_total + economy_total
+            total_available = business_available + economy_available
+            booked_seats = max(total_seats - total_available, 0)
+
+            can_cancel = (departure_dt - datetime.now()) > timedelta(hours=36)
+
+            flights.append({
+                'id': f.get('FlightId'),
+                'flight_number': f.get('FlightId'),
+                'origin': f.get('OriginPort'),
+                'destination': f.get('DestPort'),
+                'departure_time': departure_dt,
+                'aircraft_type': f.get('Manufacturer'),
+                'status': (f.get('Status') or '').lower(),
+                'booked_seats': booked_seats,
+                'total_seats': total_seats,
+                'can_cancel': can_cancel
+            })
+
         return render_template('admin/flight_list.html',
                                flights=flights,
                                current_filter=status_filter)
