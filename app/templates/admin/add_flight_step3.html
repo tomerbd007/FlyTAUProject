@@ -3,10 +3,226 @@
 {% block title %}Add Flight - Step 3 - FLYTAU Admin{% endblock %}
 
 {% block content %}
+<style>
+    .admin-header {
+        margin-bottom: 24px;
+    }
+    .admin-header h1 {
+        margin-top: 8px;
+        color: #333;
+    }
+    .back-link {
+        color: #0066cc;
+        text-decoration: none;
+    }
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    .wizard-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    .wizard-steps {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-bottom: 32px;
+    }
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #999;
+    }
+    .step.active {
+        color: #0066cc;
+    }
+    .step.completed {
+        color: #28a745;
+    }
+    .step-number {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    .step.active .step-number {
+        background: #0066cc;
+        color: #fff;
+    }
+    .step.completed .step-number {
+        background: #28a745;
+        color: #fff;
+    }
+    .wizard-content h2 {
+        margin-bottom: 24px;
+        color: #333;
+    }
+    .flight-summary-bar {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 12px 20px;
+        display: flex;
+        gap: 24px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+    .summary-item {
+        color: #555;
+    }
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .form-section h3 {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #eee;
+        color: #333;
+    }
+    .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    .pricing-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .class-header {
+        padding: 16px;
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .class-header h4 {
+        margin: 0;
+    }
+    .class-header.business {
+        background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+    }
+    .class-header.economy {
+        background: linear-gradient(135deg, #2196f3, #1976d2);
+    }
+    .seat-count {
+        background: rgba(255,255,255,0.2);
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
+    .pricing-card .form-group {
+        padding: 16px;
+    }
+    .pricing-card label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+    }
+    .pricing-card input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
+    .pricing-card input:focus {
+        outline: none;
+        border-color: #0066cc;
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+    .summary-table {
+        overflow-x: auto;
+    }
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+    .data-table th {
+        width: 180px;
+        color: #666;
+        font-weight: 500;
+    }
+    .wizard-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #eee;
+    }
+    .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    .btn-primary {
+        background: #0066cc;
+        color: #fff;
+    }
+    .btn-primary:hover {
+        background: #0052a3;
+    }
+    .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+    }
+    .btn-secondary:hover {
+        background: #e0e0e0;
+    }
+    .btn-lg {
+        padding: 14px 32px;
+        font-size: 1.1rem;
+    }
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+    }
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+    }
+</style>
+
 <div class="admin-header">
     <a href="{{ url_for('add_flight_step2') }}" class="back-link">← Back to Step 2</a>
     <h1>Add New Flight</h1>
 </div>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 
 <div class="wizard-container">
     <div class="wizard-steps">
@@ -36,48 +252,18 @@
                 Flight {{ flight_data.flight_number }}
             </span>
             <span class="summary-item">
-                {{ flight_data.aircraft_type }}
+                {{ flight_data.aircraft_type }} ({{ flight_data.aircraft_registration }})
             </span>
         </div>
         
         <h2>Step 3: Set Ticket Prices</h2>
         
         <form method="POST" action="{{ url_for('add_flight_step3') }}" class="wizard-form">
-            <!-- Preserve previous steps data -->
-            <input type="hidden" name="route_id" value="{{ flight_data.route_id }}">
-            <input type="hidden" name="departure_date" value="{{ flight_data.departure_date }}">
-            <input type="hidden" name="departure_time" value="{{ flight_data.departure_time }}">
-            <input type="hidden" name="flight_number" value="{{ flight_data.flight_number }}">
-            <input type="hidden" name="aircraft_id" value="{{ flight_data.aircraft_id }}">
-            {% for pilot_id in flight_data.pilot_ids %}
-            <input type="hidden" name="pilot_ids" value="{{ pilot_id }}">
-            {% endfor %}
-            {% for attendant_id in flight_data.attendant_ids %}
-            <input type="hidden" name="attendant_ids" value="{{ attendant_id }}">
-            {% endfor %}
-            
             <div class="form-section">
                 <h3>Ticket Pricing</h3>
                 
                 <div class="pricing-grid">
-                    <div class="pricing-card">
-                        <div class="class-header first">
-                            <h4>First Class</h4>
-                            <span class="seat-count">{{ seat_counts.first }} seats</span>
-                        </div>
-                        <div class="form-group">
-                            <label for="first_price">Price per seat ($)</label>
-                            <input type="number" 
-                                   id="first_price" 
-                                   name="first_price" 
-                                   required
-                                   min="1"
-                                   step="0.01"
-                                   placeholder="500.00"
-                                   value="{{ request.form.get('first_price', suggested_prices.first) }}">
-                        </div>
-                    </div>
-                    
+                    {% if is_large %}
                     <div class="pricing-card">
                         <div class="class-header business">
                             <h4>Business Class</h4>
@@ -91,10 +277,11 @@
                                    required
                                    min="1"
                                    step="0.01"
-                                   placeholder="300.00"
+                                   placeholder="{{ suggested_prices.business }}"
                                    value="{{ request.form.get('business_price', suggested_prices.business) }}">
                         </div>
                     </div>
+                    {% endif %}
                     
                     <div class="pricing-card">
                         <div class="class-header economy">
@@ -109,7 +296,7 @@
                                    required
                                    min="1"
                                    step="0.01"
-                                   placeholder="150.00"
+                                   placeholder="{{ suggested_prices.economy }}"
                                    value="{{ request.form.get('economy_price', suggested_prices.economy) }}">
                         </div>
                     </div>
@@ -135,20 +322,24 @@
                                 <td>{{ flight_data.departure_date }} at {{ flight_data.departure_time }}</td>
                             </tr>
                             <tr>
+                                <th>Duration</th>
+                                <td>{{ (flight_data.duration_minutes / 60)|round(1) }} hours</td>
+                            </tr>
+                            <tr>
                                 <th>Aircraft</th>
                                 <td>{{ flight_data.aircraft_type }} ({{ flight_data.aircraft_registration }})</td>
                             </tr>
                             <tr>
+                                <th>Aircraft Size</th>
+                                <td>{{ flight_data.aircraft_size|capitalize }}</td>
+                            </tr>
+                            <tr>
                                 <th>Total Seats</th>
-                                <td>{{ seat_counts.total }}</td>
+                                <td>{{ seat_counts.total }} ({{ seat_counts.economy }} Economy{% if is_large %} + {{ seat_counts.business }} Business{% endif %})</td>
                             </tr>
                             <tr>
-                                <th>Pilots</th>
-                                <td>{{ flight_data.pilot_names|join(', ') }}</td>
-                            </tr>
-                            <tr>
-                                <th>Flight Attendants</th>
-                                <td>{{ flight_data.attendant_names|join(', ') }}</td>
+                                <th>Crew</th>
+                                <td>{{ flight_data.pilot_ids|length }} pilots, {{ flight_data.attendant_ids|length }} flight attendants</td>
                             </tr>
                         </tbody>
                     </table>

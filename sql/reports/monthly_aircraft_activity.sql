@@ -4,8 +4,8 @@
 SELECT 
     DATE_FORMAT(f.departure_datetime, '%Y-%m') AS month,
     CONCAT(a.manufacturer, ' ', a.registration) AS aircraft,
-    SUM(CASE WHEN f.status = 'occurred' THEN 1 ELSE 0 END) AS flights_completed,
-    SUM(CASE WHEN f.status = 'canceled' THEN 1 ELSE 0 END) AS flights_canceled,
+    SUM(CASE WHEN f.status = 'done' THEN 1 ELSE 0 END) AS flights_completed,
+    SUM(CASE WHEN f.status = 'cancelled' THEN 1 ELSE 0 END) AS flights_canceled,
     ROUND(
         SUM(CASE WHEN f.status = 'occurred' THEN 1 ELSE 0 END) * 100.0 / 
         NULLIF(COUNT(*), 0),

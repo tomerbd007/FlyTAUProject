@@ -2,8 +2,11 @@
 FLYTAU Admin Routes
 Handles admin dashboard, flight management, and flight cancellation
 """
+import json
+from datetime import datetime, timedelta
 from flask import render_template, request, redirect, url_for, flash, session
 from app.services import admin_service, flight_service
+from app.repositories import flight_repository, crew_repository
 from app.utils.decorators import manager_required
 
 
@@ -38,6 +41,7 @@ def register_admin_routes(app):
             departure_time = request.form.get('departure_time', '')
             origin = request.form.get('origin', '')
             destination = request.form.get('destination', '')
+            flight_number = request.form.get('flight_number', '').upper().strip()
             
             # Validation
             errors = []
@@ -52,18 +56,35 @@ def register_admin_routes(app):
             if origin and destination and origin == destination:
                 errors.append('Origin and destination must be different.')
             
+            # Validate flight number: exactly 6 alphanumeric characters
+            if not flight_number:
+                errors.append('Flight number is required.')
+            elif len(flight_number) != 6:
+                errors.append('Flight number must be exactly 6 characters.')
+            elif not flight_number.isalnum():
+                errors.append('Flight number must contain only letters and numbers.')
+            else:
+                # Check if flight number already exists
+                existing = flight_repository.get_flight_by_id(flight_number)
+                if existing:
+                    errors.append(f'Flight number {flight_number} already exists.')
+            
             if errors:
                 for error in errors:
                     flash(error, 'error')
                 airports = flight_service.get_all_airports()
-                return render_template('admin/add_flight_step1.html', airports=airports)
+                return render_template('admin/add_flight_step1.html', 
+                                       airports=airports,
+                                       suggested_flight_number=flight_number or flight_repository.generate_flight_number())
             
             # Get route and compute duration
             route = admin_service.get_route(origin, destination)
             if not route:
                 flash('No route found for this origin-destination pair.', 'error')
                 airports = flight_service.get_all_airports()
-                return render_template('admin/add_flight_step1.html', airports=airports)
+                return render_template('admin/add_flight_step1.html', 
+                                       airports=airports,
+                                       suggested_flight_number=flight_number)
             
             # Calculate arrival datetime
             departure_datetime, arrival_datetime = admin_service.compute_flight_times(
@@ -75,15 +96,22 @@ def register_admin_routes(app):
                 'route_id': route['id'],
                 'origin': origin,
                 'destination': destination,
+                'departure_date': departure_date,
+                'departure_time': departure_time,
                 'duration_minutes': route['duration_minutes'],
                 'departure_datetime': departure_datetime.isoformat(),
-                'arrival_datetime': arrival_datetime.isoformat()
+                'arrival_datetime': arrival_datetime.isoformat(),
+                'flight_number': flight_number  # Use user-provided flight number
             }
             
             return redirect(url_for('add_flight_step2'))
         
+        # Generate a suggested flight number for the form
+        suggested_flight_number = flight_repository.generate_flight_number()
         airports = flight_service.get_all_airports()
-        return render_template('admin/add_flight_step1.html', airports=airports)
+        return render_template('admin/add_flight_step1.html', 
+                               airports=airports,
+                               suggested_flight_number=suggested_flight_number)
     
     @app.route('/admin/flights/add/crew', methods=['GET', 'POST'])
     @manager_required
@@ -99,15 +127,15 @@ def register_admin_routes(app):
         
         if request.method == 'POST':
             aircraft_id = request.form.get('aircraft_id')
-            pilot_ids = request.form.getlist('pilots')
-            attendant_ids = request.form.getlist('attendants')
+            pilot_ids = request.form.getlist('pilot_ids')
+            attendant_ids = request.form.getlist('attendant_ids')
             
             if not aircraft_id:
                 flash('Please select an aircraft.', 'error')
                 return redirect(url_for('add_flight_step2'))
             
             # Get aircraft to determine crew requirements
-            aircraft = admin_service.get_aircraft_by_id(aircraft_id)
+            aircraft = admin_service.get_airplane_by_id(aircraft_id)
             if not aircraft:
                 flash('Invalid aircraft selection.', 'error')
                 return redirect(url_for('add_flight_step2'))
@@ -171,6 +199,30 @@ def register_admin_routes(app):
         
         is_large = flight_data['aircraft_size'] == 'large'
         
+        # Get aircraft details for seat counts
+        aircraft = admin_service.get_airplane_by_id(flight_data['aircraft_id'])
+        if not aircraft:
+            flash('Aircraft not found.', 'error')
+            return redirect(url_for('add_flight_step2'))
+        
+        # Calculate seat counts from aircraft configuration
+        seat_counts = {
+            'economy': aircraft.get('economy_seats', 0),
+            'business': aircraft.get('business_seats', 0),
+            'total': aircraft.get('total_seats', 0)
+        }
+        
+        # Add aircraft info to flight_data for display
+        flight_data['aircraft_type'] = aircraft.get('Manufacturer', 'Unknown')
+        flight_data['aircraft_registration'] = f"TAU-{flight_data['aircraft_id']}"
+        
+        # Suggested prices based on flight duration (simple formula)
+        duration_hours = flight_data.get('duration_minutes', 120) / 60
+        suggested_prices = {
+            'economy': round(50 + (duration_hours * 30), 2),
+            'business': round(150 + (duration_hours * 80), 2) if is_large else 0
+        }
+        
         if request.method == 'POST':
             economy_price = request.form.get('economy_price', '')
             business_price = request.form.get('business_price', '') if is_large else None
@@ -184,7 +236,9 @@ def register_admin_routes(app):
                 flash('Please enter a valid economy price.', 'error')
                 return render_template('admin/add_flight_step3.html',
                                        flight_data=flight_data,
-                                       is_large=is_large)
+                                       is_large=is_large,
+                                       seat_counts=seat_counts,
+                                       suggested_prices=suggested_prices)
             
             if is_large:
                 try:
@@ -195,41 +249,57 @@ def register_admin_routes(app):
                     flash('Please enter a valid business price.', 'error')
                     return render_template('admin/add_flight_step3.html',
                                            flight_data=flight_data,
-                                           is_large=is_large)
+                                           is_large=is_large,
+                                           seat_counts=seat_counts,
+                                           suggested_prices=suggested_prices)
             
             # Create the flight
             try:
+                # Parse departure datetime to extract date and time
+                departure_dt = datetime.fromisoformat(flight_data['departure_datetime'])
+                departure_date_str = departure_dt.strftime('%Y-%m-%d')
+                departure_hour_str = departure_dt.strftime('%H:%M')
+                
                 flight_id = admin_service.create_flight(
-                    route_id=flight_data['route_id'],
-                    aircraft_id=flight_data['aircraft_id'],
-                    departure_datetime=flight_data['departure_datetime'],
-                    arrival_datetime=flight_data['arrival_datetime'],
+                    airplane_id=flight_data['aircraft_id'],
+                    origin=flight_data['origin'],
+                    destination=flight_data['destination'],
+                    departure_date=departure_date_str,
+                    departure_hour=departure_hour_str,
+                    duration=flight_data['duration_minutes'],
                     economy_price=economy_price,
                     business_price=business_price,
                     pilot_ids=flight_data['pilot_ids'],
-                    attendant_ids=flight_data['attendant_ids']
+                    attendant_ids=flight_data['attendant_ids'],
+                    manager_id=session.get('user_id'),
+                    flight_id=flight_data.get('flight_number')
                 )
                 
                 # Clear session data
                 session.pop('add_flight', None)
                 
                 flash('Flight created successfully!', 'success')
-                return redirect(url_for('admin_flights'))
+                return redirect(url_for('admin_dashboard'))
             except Exception as e:
                 flash(f'Error creating flight: {str(e)}', 'error')
                 return render_template('admin/add_flight_step3.html',
                                        flight_data=flight_data,
-                                       is_large=is_large)
+                                       is_large=is_large,
+                                       seat_counts=seat_counts,
+                                       suggested_prices=suggested_prices)
         
         return render_template('admin/add_flight_step3.html',
                                flight_data=flight_data,
-                               is_large=is_large)
+                               is_large=is_large,
+                               seat_counts=seat_counts,
+                               suggested_prices=suggested_prices)
     
-    @app.route('/admin/flights/<int:flight_id>/cancel', methods=['GET', 'POST'])
+    @app.route('/admin/flights/<flight_id>/cancel', methods=['GET', 'POST'])
     @manager_required
     def cancel_flight(flight_id):
         """Cancel a flight (72h rule applies)."""
-        flight = flight_service.get_flight_details(flight_id)
+        airplane_id = request.args.get('airplane_id')
+        flight = flight_service.get_flight_details(flight_id, airplane_id)
         
         if not flight:
             flash('Flight not found.', 'error')

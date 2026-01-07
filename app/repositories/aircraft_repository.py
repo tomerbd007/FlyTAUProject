@@ -14,10 +14,10 @@ from app.db import execute_query
 
 def parse_seat_config(config_str):
     """
-    Parse seat configuration string "rows,cols" into tuple (rows, cols).
+    Parse seat configuration string "rows,cols" or "rows cols" into tuple (rows, cols).
     
     Args:
-        config_str: String like "20,6" or "(20,6)" or "20, 6"
+        config_str: String like "20,6" or "(20,6)" or "20, 6" or "20 6"
     
     Returns:
         Tuple of (rows, cols) as integers, or (0, 0) if parsing fails
@@ -25,11 +25,15 @@ def parse_seat_config(config_str):
     if not config_str:
         return (0, 0)
     try:
-        # Remove parentheses and spaces
-        cleaned = config_str.replace('(', '').replace(')', '').replace(' ', '')
-        parts = cleaned.split(',')
+        # Remove parentheses and extra spaces
+        cleaned = config_str.replace('(', '').replace(')', '').strip()
+        # Split by comma or space
+        if ',' in cleaned:
+            parts = cleaned.split(',')
+        else:
+            parts = cleaned.split()
         if len(parts) >= 2:
-            return (int(parts[0]), int(parts[1]))
+            return (int(parts[0].strip()), int(parts[1].strip()))
     except (ValueError, IndexError):
         pass
     return (0, 0)
@@ -67,8 +71,8 @@ def get_airplane_by_id(airplane_id):
         result['business_seats'] = business_rows * business_cols
         result['total_seats'] = result['economy_seats'] + result['business_seats']
         
-        # Determine size based on total seats (large >= 100 seats)
-        result['size'] = 'large' if result['total_seats'] >= 100 else 'small'
+        # Determine size: Big = has Business class, Small = no Business class
+        result['size'] = 'large' if result['business_seats'] > 0 else 'small'
     return result
 
 
@@ -98,7 +102,8 @@ def get_all_airplanes():
         airplane['economy_seats'] = economy_rows * economy_cols
         airplane['business_seats'] = business_rows * business_cols
         airplane['total_seats'] = airplane['economy_seats'] + airplane['business_seats']
-        airplane['size'] = 'large' if airplane['total_seats'] >= 100 else 'small'
+        # Determine size: Big = has Business class, Small = no Business class
+        airplane['size'] = 'large' if airplane['business_seats'] > 0 else 'small'
         parsed_results.append(airplane)
     
     return parsed_results
@@ -119,7 +124,7 @@ def get_available_airplanes(departure_date):
         WHERE a.AirplaneId NOT IN (
             SELECT f.Airplanes_AirplaneId
             FROM Flights f
-            WHERE f.Status IN ('scheduled', 'active')
+            WHERE f.Status IN ('active', 'full')
               AND f.DepartureDate = %s
         )
         ORDER BY a.Manufacturer, a.AirplaneId
@@ -141,7 +146,8 @@ def get_available_airplanes(departure_date):
         airplane['economy_seats'] = economy_rows * economy_cols
         airplane['business_seats'] = business_rows * business_cols
         airplane['total_seats'] = airplane['economy_seats'] + airplane['business_seats']
-        airplane['size'] = 'large' if airplane['total_seats'] >= 100 else 'small'
+        # Determine size: Big = has Business class, Small = no Business class
+        airplane['size'] = 'large' if airplane['business_seats'] > 0 else 'small'
         parsed_results.append(airplane)
     
     return parsed_results

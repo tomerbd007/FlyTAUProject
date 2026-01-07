@@ -13,30 +13,55 @@ from app.db import execute_query
 
 # ============ PILOT CREW OPERATIONS ============
 
-def get_available_pilots(departure_date, require_long_flight_cert=False):
+def get_available_pilots(departure_date, require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
     """
     Get pilots not assigned to flights on the given date.
     
     Args:
         departure_date: Date to check (DATE or 'YYYY-MM-DD')
         require_long_flight_cert: If True, only return pilots with LongFlightsTraining=1
+        exclude_flight_id: Flight ID to exclude from conflict check (for editing)
+        exclude_airplane_id: Airplane ID to exclude from conflict check (for editing)
     """
     cert_condition = "AND p.LongFlightsTraining = 1" if require_long_flight_cert else ""
-    sql = f"""
-        SELECT p.Id, p.FirstName, p.SecondName, p.LongFlightsTraining
-        FROM Pilot p
-        WHERE p.Id NOT IN (
-            SELECT pf.Pilot_Id
-            FROM Pilot_has_Flights pf
-            JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
-                AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
-            WHERE f.DepartureDate = %s
-              AND f.Status != 'cancelled'
-        )
-        {cert_condition}
-        ORDER BY p.SecondName, p.FirstName
-    """
-    return execute_query(sql, (departure_date,))
+    
+    # Build exclusion condition for the flight being edited
+    if exclude_flight_id and exclude_airplane_id:
+        exclude_condition = "AND NOT (f.FlightId = %s AND f.Airplanes_AirplaneId = %s)"
+        sql = f"""
+            SELECT p.Id as id, p.FirstName as first_name, p.SecondName as last_name, 
+                   p.Id as employee_code, p.LongFlightsTraining as long_flight_cert
+            FROM Pilot p
+            WHERE p.Id NOT IN (
+                SELECT pf.Pilot_Id
+                FROM Pilot_has_Flights pf
+                JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
+                    AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+                WHERE f.DepartureDate = %s
+                  AND f.Status != 'cancelled'
+                  {exclude_condition}
+            )
+            {cert_condition}
+            ORDER BY p.SecondName, p.FirstName
+        """
+        return execute_query(sql, (departure_date, exclude_flight_id, exclude_airplane_id))
+    else:
+        sql = f"""
+            SELECT p.Id as id, p.FirstName as first_name, p.SecondName as last_name, 
+                   p.Id as employee_code, p.LongFlightsTraining as long_flight_cert
+            FROM Pilot p
+            WHERE p.Id NOT IN (
+                SELECT pf.Pilot_Id
+                FROM Pilot_has_Flights pf
+                JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
+                    AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+                WHERE f.DepartureDate = %s
+                  AND f.Status != 'cancelled'
+            )
+            {cert_condition}
+            ORDER BY p.SecondName, p.FirstName
+        """
+        return execute_query(sql, (departure_date,))
 
 
 def get_pilots_for_flight(flight_id, airplane_id):
@@ -83,30 +108,55 @@ def delete_all_pilots_from_flight(flight_id, airplane_id):
 
 # ============ FLIGHT ATTENDANT CREW OPERATIONS ============
 
-def get_available_flight_attendants(departure_date, require_long_flight_cert=False):
+def get_available_flight_attendants(departure_date, require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
     """
     Get flight attendants not assigned to flights on the given date.
     
     Args:
         departure_date: Date to check (DATE or 'YYYY-MM-DD')
         require_long_flight_cert: If True, only return attendants with LongFlightsTraining=1
+        exclude_flight_id: Flight ID to exclude from conflict check (for editing)
+        exclude_airplane_id: Airplane ID to exclude from conflict check (for editing)
     """
     cert_condition = "AND fa.LongFlightsTraining = 1" if require_long_flight_cert else ""
-    sql = f"""
-        SELECT fa.Id, fa.FirstName, fa.SecondName, fa.LongFlightsTraining
-        FROM FlightAttendant fa
-        WHERE fa.Id NOT IN (
-            SELECT faf.FlightAttendant_Id
-            FROM FlightAttendant_has_Flights faf
-            JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
-                AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
-            WHERE f.DepartureDate = %s
-              AND f.Status != 'cancelled'
-        )
-        {cert_condition}
-        ORDER BY fa.SecondName, fa.FirstName
-    """
-    return execute_query(sql, (departure_date,))
+    
+    # Build exclusion condition for the flight being edited
+    if exclude_flight_id and exclude_airplane_id:
+        exclude_condition = "AND NOT (f.FlightId = %s AND f.Airplanes_AirplaneId = %s)"
+        sql = f"""
+            SELECT fa.Id as id, fa.FirstName as first_name, fa.SecondName as last_name,
+                   fa.Id as employee_code, fa.LongFlightsTraining as long_flight_cert
+            FROM FlightAttendant fa
+            WHERE fa.Id NOT IN (
+                SELECT faf.FlightAttendant_Id
+                FROM FlightAttendant_has_Flights faf
+                JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
+                    AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+                WHERE f.DepartureDate = %s
+                  AND f.Status != 'cancelled'
+                  {exclude_condition}
+            )
+            {cert_condition}
+            ORDER BY fa.SecondName, fa.FirstName
+        """
+        return execute_query(sql, (departure_date, exclude_flight_id, exclude_airplane_id))
+    else:
+        sql = f"""
+            SELECT fa.Id as id, fa.FirstName as first_name, fa.SecondName as last_name,
+                   fa.Id as employee_code, fa.LongFlightsTraining as long_flight_cert
+            FROM FlightAttendant fa
+            WHERE fa.Id NOT IN (
+                SELECT faf.FlightAttendant_Id
+                FROM FlightAttendant_has_Flights faf
+                JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
+                    AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+                WHERE f.DepartureDate = %s
+                  AND f.Status != 'cancelled'
+            )
+            {cert_condition}
+            ORDER BY fa.SecondName, fa.FirstName
+        """
+        return execute_query(sql, (departure_date,))
 
 
 def get_attendants_for_flight(flight_id, airplane_id):

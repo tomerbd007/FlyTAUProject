@@ -56,6 +56,348 @@
         align-items: center;
         min-height: 70vh;
     }
+    
+    /* Aircraft Selection Styles */
+    .aircraft-selection {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+    }
+    
+    .aircraft-option {
+        display: block;
+        cursor: pointer;
+    }
+    
+    .aircraft-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .aircraft-card {
+        background: #fff;
+        border: 2px solid #ddd;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.2s ease;
+    }
+    
+    .aircraft-option input[type="radio"]:checked + .aircraft-card {
+        border-color: #0066cc;
+        background: #e8f4fd;
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
+    }
+    
+    .aircraft-option:hover .aircraft-card {
+        border-color: #0066cc;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .aircraft-option.disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    .aircraft-option.disabled .aircraft-card {
+        background: #f5f5f5;
+    }
+    
+    .aircraft-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    
+    .aircraft-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #333;
+    }
+    
+    .aircraft-reg {
+        font-size: 0.9rem;
+        color: #666;
+        background: #f0f0f0;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    
+    .aircraft-details {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .aircraft-details .detail {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .aircraft-details .label {
+        font-size: 0.75rem;
+        color: #888;
+        text-transform: uppercase;
+    }
+    
+    .aircraft-details .value {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .unavailable-reason {
+        margin-top: 12px;
+        padding: 8px 12px;
+        background: #fff3cd;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #856404;
+    }
+    
+    /* Crew Selection Styles */
+    .crew-requirements-info {
+        background: #e8f4fd;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .crew-requirements-info ul {
+        margin: 8px 0 0 20px;
+    }
+    
+    .crew-requirements-info .warning {
+        margin-top: 12px;
+        color: #856404;
+        background: #fff3cd;
+        padding: 8px 12px;
+        border-radius: 6px;
+    }
+    
+    .crew-section {
+        margin-bottom: 24px;
+    }
+    
+    .crew-section h4 {
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .selection-hint {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 12px;
+    }
+    
+    .crew-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+    }
+    
+    .crew-option {
+        display: block;
+        cursor: pointer;
+    }
+    
+    .crew-option input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .crew-card {
+        background: #fff;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .crew-option input[type="checkbox"]:checked + .crew-card {
+        border-color: #28a745;
+        background: #e8f5e9;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+    }
+    
+    .crew-option:hover .crew-card {
+        border-color: #28a745;
+    }
+    
+    .crew-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .crew-code {
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .cert-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        background: #9c27b0;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        margin-top: 4px;
+        width: fit-content;
+    }
+    
+    /* Form Section Styles */
+    .form-section {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-section h3 {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #eee;
+        color: #333;
+    }
+    
+    .no-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+    
+    /* Wizard Styles */
+    .wizard-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .wizard-steps {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-bottom: 32px;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #999;
+    }
+    
+    .step.active {
+        color: #0066cc;
+    }
+    
+    .step.completed {
+        color: #28a745;
+    }
+    
+    .step-number {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .step.active .step-number {
+        background: #0066cc;
+        color: #fff;
+    }
+    
+    .step.completed .step-number {
+        background: #28a745;
+        color: #fff;
+    }
+    
+    .wizard-content h2 {
+        margin-bottom: 24px;
+        color: #333;
+    }
+    
+    .flight-summary-bar {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 12px 20px;
+        display: flex;
+        gap: 24px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+    
+    .summary-item {
+        color: #555;
+    }
+    
+    .wizard-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #eee;
+    }
+    
+    .admin-header {
+        margin-bottom: 24px;
+    }
+    
+    .admin-header h1 {
+        margin-top: 8px;
+        color: #333;
+    }
+    
+    .back-link {
+        color: #0066cc;
+        text-decoration: none;
+    }
+    
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    
+    /* Button Styles */
+    .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+        background: #0066cc;
+        color: #fff;
+    }
+    
+    .btn-primary:hover {
+        background: #0052a3;
+    }
+    
+    .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+    }
+    
+    .btn-secondary:hover {
+        background: #e0e0e0;
+    }
 </style>
 
 <div class="auth-container">
@@ -64,6 +406,17 @@
             <a href="{{ url_for('add_flight_step1') }}" class="back-link">← Back to Step 1</a>
             <h1>Add New Flight</h1>
         </div>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" style="background: {% if category == 'error' %}#f8d7da{% else %}#d4edda{% endif %}; color: {% if category == 'error' %}#721c24{% else %}#155724{% endif %}; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         <div class="wizard-container">
             <div class="wizard-steps">
@@ -109,12 +462,11 @@
                         {% if aircraft_list %}
                         <div class="aircraft-selection">
                             {% for aircraft in aircraft_list %}
-                            <label class="aircraft-option {% if not aircraft.is_available %}disabled{% endif %}">
+                            <label class="aircraft-option">
                                 <input type="radio" 
                                        name="aircraft_id" 
                                        value="{{ aircraft.id }}"
-                                       {% if not aircraft.is_available %}disabled{% endif %}
-                                       {% if request.form.get('aircraft_id')|int == aircraft.id %}checked{% endif %}
+                                       {% if request.form.get('aircraft_id')|string == aircraft.id|string %}checked{% endif %}
                                        required>
                                 <div class="aircraft-card">
                                     <div class="aircraft-header">
@@ -131,18 +483,13 @@
                                             <span class="value">{{ aircraft.size|capitalize }}</span>
                                         </span>
                                     </div>
-                                    {% if not aircraft.is_available %}
-                                    <div class="unavailable-reason">
-                                        {{ aircraft.unavailable_reason }}
-                                    </div>
-                                    {% endif %}
                                 </div>
                             </label>
                             {% endfor %}
                         </div>
                         {% else %}
                         <div class="no-data-message">
-                            <p>No aircraft available for this route and time.</p>
+                            <p>No aircraft available for this route and date.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -157,7 +504,7 @@
                                 <li>Small Aircraft: 2 pilots + 3 flight attendants</li>
                             </ul>
                             {% if is_long_flight %}
-                            <p class="warning">⚠ This is a long flight (>4 hours). Only certified crew members are shown.</p>
+                            <p class="warning">⚠ This is a long flight (>6 hours). Only certified crew members are shown.</p>
                             {% endif %}
                         </div>
                         
@@ -210,7 +557,7 @@
                     
                     <div class="wizard-actions">
                         <a href="{{ url_for('add_flight_step1') }}" class="btn btn-secondary">← Back</a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
                             Continue to Pricing →
                         </button>
                     </div>
@@ -219,4 +566,196 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.wizard-form');
+    const aircraftRadios = document.querySelectorAll('input[name="aircraft_id"]');
+    const pilotCheckboxes = document.querySelectorAll('input[name="pilot_ids"]');
+    const attendantCheckboxes = document.querySelectorAll('input[name="attendant_ids"]');
+    
+    // Find the crew sections by their h4 content
+    const crewSections = document.querySelectorAll('.crew-section');
+    let pilotsSection = null;
+    let attendantsSection = null;
+    
+    crewSections.forEach(section => {
+        const h4 = section.querySelector('h4');
+        if (h4) {
+            if (h4.textContent.includes('Pilots')) {
+                pilotsSection = h4;
+            } else if (h4.textContent.includes('Flight Attendants')) {
+                attendantsSection = h4;
+            }
+        }
+    });
+    
+    // Create counter elements if sections found
+    let pilotCounter = null;
+    let attendantCounter = null;
+    
+    if (pilotsSection) {
+        pilotCounter = document.createElement('span');
+        pilotCounter.className = 'selection-counter';
+        pilotCounter.id = 'pilot-counter';
+        pilotsSection.appendChild(pilotCounter);
+    }
+    
+    if (attendantsSection) {
+        attendantCounter = document.createElement('span');
+        attendantCounter.className = 'selection-counter';
+        attendantCounter.id = 'attendant-counter';
+        attendantsSection.appendChild(attendantCounter);
+    }
+    
+    // Add style for counter and validation
+    const style = document.createElement('style');
+    style.textContent = `
+        .selection-counter {
+            margin-left: 12px;
+            font-size: 0.85rem;
+            font-weight: normal;
+            padding: 2px 10px;
+            border-radius: 12px;
+            background: #f0f0f0;
+        }
+        .selection-counter.valid {
+            background: #d4edda;
+            color: #155724;
+        }
+        .selection-counter.invalid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .validation-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #f5c6cb;
+        }
+        .validation-error ul {
+            margin: 8px 0 0 20px;
+            padding: 0;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Aircraft sizes mapping
+    const aircraftSizes = {};
+    {% for aircraft in aircraft_list %}
+    aircraftSizes['{{ aircraft.id }}'] = '{{ aircraft.size }}';
+    {% endfor %}
+    
+    function getRequirements() {
+        const selectedAircraft = document.querySelector('input[name="aircraft_id"]:checked');
+        if (!selectedAircraft) {
+            return { pilots: 0, attendants: 0, size: null };
+        }
+        const size = aircraftSizes[selectedAircraft.value];
+        if (size === 'large') {
+            return { pilots: 3, attendants: 6, size: 'large' };
+        }
+        return { pilots: 2, attendants: 3, size: 'small' };
+    }
+    
+    function updateCounters() {
+        const reqs = getRequirements();
+        const selectedPilots = document.querySelectorAll('input[name="pilot_ids"]:checked').length;
+        const selectedAttendants = document.querySelectorAll('input[name="attendant_ids"]:checked').length;
+        
+        // Update pilot counter
+        if (pilotCounter) {
+            if (reqs.pilots > 0) {
+                pilotCounter.textContent = `${selectedPilots}/${reqs.pilots} selected`;
+                pilotCounter.className = 'selection-counter ' + (selectedPilots === reqs.pilots ? 'valid' : 'invalid');
+            } else {
+                pilotCounter.textContent = 'Select aircraft first';
+                pilotCounter.className = 'selection-counter';
+            }
+        }
+        
+        // Update attendant counter
+        if (attendantCounter) {
+            if (reqs.attendants > 0) {
+                attendantCounter.textContent = `${selectedAttendants}/${reqs.attendants} selected`;
+                attendantCounter.className = 'selection-counter ' + (selectedAttendants === reqs.attendants ? 'valid' : 'invalid');
+            } else {
+                attendantCounter.textContent = 'Select aircraft first';
+                attendantCounter.className = 'selection-counter';
+            }
+        }
+    }
+    
+    // Add event listeners
+    aircraftRadios.forEach(radio => {
+        radio.addEventListener('change', updateCounters);
+    });
+    
+    pilotCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateCounters);
+    });
+    
+    attendantCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateCounters);
+    });
+    
+    // Form validation on submit
+    form.addEventListener('submit', function(e) {
+        // Remove any existing validation error
+        const existingError = document.getElementById('validation-error');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        const selectedAircraft = document.querySelector('input[name="aircraft_id"]:checked');
+        const errors = [];
+        
+        if (!selectedAircraft) {
+            errors.push('Please select an aircraft.');
+        } else {
+            const reqs = getRequirements();
+            const selectedPilots = document.querySelectorAll('input[name="pilot_ids"]:checked').length;
+            const selectedAttendants = document.querySelectorAll('input[name="attendant_ids"]:checked').length;
+            
+            if (selectedPilots !== reqs.pilots) {
+                errors.push(`Please select exactly ${reqs.pilots} pilots for a ${reqs.size} aircraft (you selected ${selectedPilots}).`);
+            }
+            
+            if (selectedAttendants !== reqs.attendants) {
+                errors.push(`Please select exactly ${reqs.attendants} flight attendants for a ${reqs.size} aircraft (you selected ${selectedAttendants}).`);
+            }
+        }
+        
+        if (errors.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Create and show validation error
+            const validationError = document.createElement('div');
+            validationError.className = 'validation-error';
+            validationError.id = 'validation-error';
+            
+            if (errors.length === 1) {
+                validationError.textContent = errors[0];
+            } else {
+                validationError.innerHTML = '<strong>Please fix the following errors:</strong><ul>' + 
+                    errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+            }
+            
+            // Insert at the top of the form
+            form.insertBefore(validationError, form.firstChild);
+            
+            // Scroll to error
+            validationError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            return false;
+        }
+    });
+    
+    // Initialize counters
+    updateCounters();
+});
+</script>
 {% endblock %}

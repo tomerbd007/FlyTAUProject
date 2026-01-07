@@ -169,6 +169,31 @@
         border-color: #1a3a52;
     }
 
+    .filter-controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .filter-controls select,
+    .filter-controls input {
+        padding: 10px 14px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .filter-controls select:focus,
+    .filter-controls input:focus {
+        outline: none;
+        border-color: #1a3a52;
+    }
+
+    .filter-controls input {
+        width: 200px;
+    }
+
     /* Data table */
     .data-table {
         width: 100%;
@@ -204,8 +229,57 @@
     }
 
     .status-badge.status-active { background: #d4edda; color: #155724; }
-    .status-badge.status-inactive { background: #f8d7da; color: #721c24; }
-    .status-badge.status-pending { background: #fff3cd; color: #856404; }
+    .status-badge.status-full { background: #fff3cd; color: #856404; }
+    .status-badge.status-done { background: #e2e3e5; color: #383d41; }
+    .status-badge.status-cancelled { background: #f8d7da; color: #721c24; }
+
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .sortable:hover {
+        background: #e9ecef;
+    }
+
+    .occupancy-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .occupancy-bar {
+        width: 60px;
+        height: 8px;
+        background: #e0e0e0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .occupancy-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #20c997);
+        border-radius: 4px;
+    }
+
+    .occupancy-pct {
+        font-size: 0.8rem;
+        color: #666;
+        min-width: 35px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 6px;
+    }
+
+    .table-footer {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid #e0e0e0;
+        font-size: 0.85rem;
+        color: #666;
+    }
 
     .btn {
         padding: 8px 12px;
@@ -339,45 +413,73 @@
     <div class="dashboard-section">
         <div class="section-header">
             <h2>All Flights</h2>
-            <div class="search-bar">
-                <input type="text" id="flight-search" placeholder="Search by flight number..." onkeyup="filterFlights()">
+            <div class="filter-controls">
+                <select id="status-filter" onchange="filterFlights()">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="full">Full</option>
+                    <option value="done">Done</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <input type="text" id="flight-search" placeholder="Search flight number..." onkeyup="filterFlights()">
             </div>
         </div>
         
-        {% if stats and stats.flights %}
+        {% if stats and stats.flights and stats.flights|length > 0 %}
         <table class="data-table" id="flights-table">
             <thead>
                 <tr>
-                    <th>Flight Number</th>
+                    <th class="sortable" onclick="sortTable(0)">Flight Number ↕</th>
                     <th>Route</th>
-                    <th>Date</th>
-                    <th>Status</th>
+                    <th class="sortable" onclick="sortTable(2)">Date ↕</th>
+                    <th class="sortable" onclick="sortTable(3)">Status ↕</th>
+                    <th class="sortable" onclick="sortTable(4)">Occupancy ↕</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for flight in stats.flights %}
-                <tr>
-                    <td>{{ flight.FlightId }}</td>
-                    <td>{{ flight.OriginPort }} → {{ flight.DestPort }}</td>
-                    <td>{{ flight.DepartureDate }}</td>
-                    <td>
-                        <span class="status-badge status-{{ flight.Status }}">
-                            {{ flight.Status|capitalize }}
-                        </span>
+                <tr data-status="{{ flight.status }}">
+                    <td>{{ flight.flight_number }}</td>
+                    <td>{{ flight.origin }} → {{ flight.destination }}</td>
+                    <td data-sort="{{ flight.departure_time.strftime('%Y%m%d%H%M') if flight.departure_time else '' }}">
+                        {{ flight.departure_time.strftime('%b %d, %Y %H:%M') if flight.departure_time else 'N/A' }}
                     </td>
                     <td>
-                        <a href="{{ url_for('edit_flight', flight_id=flight.FlightId) }}" class="btn btn-sm btn-primary">Edit</a>
-                        {% if flight.Status == 'active' %}
-                        <a href="{{ url_for('cancel_flight', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}" class="btn btn-sm btn-danger">Cancel</a>
+                        <span class="status-badge status-{{ flight.status }}">
+                            {{ flight.status|capitalize }}
+                        </span>
+                    </td>
+                    <td data-sort="{{ ((flight.booked_seats / flight.total_seats * 100) if flight.total_seats > 0 else 0)|int }}">
+                        {% if flight.total_seats > 0 %}
+                        <div class="occupancy-cell">
+                            <span>{{ flight.booked_seats }}/{{ flight.total_seats }}</span>
+                            <div class="occupancy-bar">
+                                <div class="occupancy-fill" style="width: {{ (flight.booked_seats / flight.total_seats * 100)|int }}%"></div>
+                            </div>
+                            <span class="occupancy-pct">{{ (flight.booked_seats / flight.total_seats * 100)|int }}%</span>
+                        </div>
+                        {% else %}
+                        <span>0/0</span>
                         {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('flight_detail', flight_id=flight.id) }}?airplane_id={{ flight.airplane_id }}" class="btn btn-sm btn-secondary" title="View">👁</a>
+                            {% if flight.status != 'cancelled' and flight.status != 'done' %}
+                            <a href="{{ url_for('cancel_flight', flight_id=flight.id) }}?airplane_id={{ flight.airplane_id }}" class="btn btn-sm btn-danger" title="Cancel">✕</a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        <div class="table-footer">
+            <span class="result-count" id="result-count">Showing {{ stats.flights|length }} flight{{ 's' if stats.flights|length != 1 else '' }}</span>
+        </div>
         {% else %}
-        <p class="no-data">No flights available.</p>
+        <p class="no-data">No flights available. <a href="{{ url_for('add_flight_step1') }}">Add your first flight</a></p>
         {% endif %}
     </div>
 </div>
@@ -385,22 +487,83 @@
 
 <script>
     function filterFlights() {
-        const input = document.getElementById('flight-search');
-        const filter = input.value.toUpperCase();
+        const searchInput = document.getElementById('flight-search');
+        const statusFilter = document.getElementById('status-filter');
+        const filter = searchInput ? searchInput.value.toUpperCase() : '';
+        const statusValue = statusFilter ? statusFilter.value.toLowerCase() : '';
         const table = document.getElementById('flights-table');
+        if (!table) return;
+        
         const tr = table.getElementsByTagName('tr');
+        let visibleCount = 0;
         
         for (let i = 1; i < tr.length; i++) {
             const td = tr[i].getElementsByTagName('td')[0];
-            if (td) {
+            const rowStatus = tr[i].getAttribute('data-status');
+            
+            let showRow = true;
+            
+            // Text filter
+            if (td && filter) {
                 const txtValue = td.textContent || td.innerText;
-                if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                    tr[i].style.display = '';
-                } else {
-                    tr[i].style.display = 'none';
+                if (txtValue.toUpperCase().indexOf(filter) === -1) {
+                    showRow = false;
                 }
             }
+            
+            // Status filter
+            if (statusValue && rowStatus !== statusValue) {
+                showRow = false;
+            }
+            
+            tr[i].style.display = showRow ? '' : 'none';
+            if (showRow) visibleCount++;
         }
+        
+        // Update count
+        const countEl = document.getElementById('result-count');
+        if (countEl) {
+            countEl.textContent = `Showing ${visibleCount} flight${visibleCount !== 1 ? 's' : ''}`;
+        }
+    }
+    
+    let sortDirection = {};
+    
+    function sortTable(columnIndex) {
+        const table = document.getElementById('flights-table');
+        if (!table) return;
+        
+        const tbody = table.getElementsByTagName('tbody')[0];
+        const rows = Array.from(tbody.getElementsByTagName('tr'));
+        
+        // Toggle sort direction
+        sortDirection[columnIndex] = !sortDirection[columnIndex];
+        const ascending = sortDirection[columnIndex];
+        
+        rows.sort((a, b) => {
+            let aVal = a.getElementsByTagName('td')[columnIndex];
+            let bVal = b.getElementsByTagName('td')[columnIndex];
+            
+            // Use data-sort attribute if present
+            aVal = aVal.getAttribute('data-sort') || aVal.textContent.trim();
+            bVal = bVal.getAttribute('data-sort') || bVal.textContent.trim();
+            
+            // Check if numeric
+            const aNum = parseFloat(aVal);
+            const bNum = parseFloat(bVal);
+            
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return ascending ? aNum - bNum : bNum - aNum;
+            }
+            
+            // String comparison
+            return ascending 
+                ? aVal.localeCompare(bVal) 
+                : bVal.localeCompare(aVal);
+        });
+        
+        // Re-append rows in new order
+        rows.forEach(row => tbody.appendChild(row));
     }
 </script>
 {% endblock %}

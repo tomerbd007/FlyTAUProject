@@ -153,11 +153,14 @@
                                    id="flight_number" 
                                    name="flight_number" 
                                    required
-                                   pattern="TAU[0-9]{3,4}"
-                                   placeholder="TAU101"
-                                   title="Format: TAU followed by 3-4 digits"
+                                   pattern="[A-Za-z0-9]{6}"
+                                   maxlength="6"
+                                   minlength="6"
+                                   placeholder="ABC123"
+                                   title="Must be exactly 6 alphanumeric characters"
+                                   style="text-transform: uppercase;"
                                    value="{{ request.form.get('flight_number', suggested_flight_number) }}">
-                            <small class="form-hint">Format: TAU followed by 3-4 digits (e.g., TAU101)</small>
+                            <small class="form-hint">Exactly 6 alphanumeric characters (e.g., ABC123, FL1234)</small>
                         </div>
                     </div>
                     
