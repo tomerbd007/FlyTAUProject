@@ -11,6 +11,22 @@ Schema:
 from app.db import execute_query
 
 
+# ============ SINGLE CREW MEMBER LOOKUP ============
+
+def get_pilot_by_id(pilot_id):
+    """Get a single pilot by ID."""
+    sql = "SELECT Id, FirstName, SecondName, LongFlightsTraining, PhoneNum FROM Pilot WHERE Id = %s"
+    results = execute_query(sql, (pilot_id,))
+    return results[0] if results else None
+
+
+def get_attendant_by_id(attendant_id):
+    """Get a single flight attendant by ID."""
+    sql = "SELECT Id, FirstName, SecondName, LongFlightsTraining, PhoneNum FROM FlightAttendant WHERE Id = %s"
+    results = execute_query(sql, (attendant_id,))
+    return results[0] if results else None
+
+
 # ============ PILOT CREW OPERATIONS ============
 
 def get_available_pilots(departure_date, require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
