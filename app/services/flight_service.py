@@ -379,6 +379,32 @@ def get_flight_details(flight_id, airplane_id):
     if flight:
         flight = dict(flight)
         flight['seat_availability'] = flight_repository.get_seat_availability(flight_id, airplane_id)
+        
+        # Calculate arrival time from departure + duration
+        departure_hour = flight.get('DepartureHour')
+        duration = flight.get('Duration', 0)
+        
+        if departure_hour and duration:
+            from datetime import datetime, timedelta
+            
+            # Handle timedelta or string departure hour
+            if hasattr(departure_hour, 'total_seconds'):
+                total_seconds = int(departure_hour.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                departure_hour = f"{hours:02d}:{minutes:02d}"
+            elif isinstance(departure_hour, str) and len(departure_hour) > 5:
+                departure_hour = departure_hour[:5]  # Normalize HH:MM:SS to HH:MM
+            
+            try:
+                dep_time = datetime.strptime(str(departure_hour), "%H:%M")
+                arrival_time = dep_time + timedelta(minutes=int(duration))
+                flight['ArrivalHour'] = arrival_time.strftime("%H:%M")
+            except (ValueError, TypeError):
+                flight['ArrivalHour'] = None
+        else:
+            flight['ArrivalHour'] = None
+            
     return flight
 
 
@@ -465,6 +491,61 @@ def get_available_seats_for_class(flight_id, airplane_id, seat_class):
                     })
     
     return available
+
+
+def get_seats_by_codes(flight_id, airplane_id, seat_codes):
+    """
+    Get seat details with prices for given seat codes.
+    
+    Args:
+        flight_id: Flight ID
+        airplane_id: Airplane ID
+        seat_codes: List of seat codes like ['1A', '2B', '10C']
+    
+    Returns:
+        List of seat dicts with code, row, col, seat_class, and price
+    """
+    import re
+    
+    # Get flight for pricing info
+    flight = flight_repository.get_flight_by_id(flight_id, airplane_id)
+    if not flight:
+        return []
+    
+    # Get airplane to determine business class row boundaries
+    airplane = aircraft_repository.get_airplane_by_id(airplane_id)
+    if not airplane:
+        return []
+    
+    business_rows = airplane.get('business_rows', 0)
+    business_price = float(flight.get('BusinessPrice', 0))
+    economy_price = float(flight.get('EconomyPrice', 0))
+    
+    seats_info = []
+    for seat_code in seat_codes:
+        # Parse seat code like "1A" into row number and column letter
+        match = re.match(r'^(\d+)([A-Z])$', seat_code.upper())
+        if match:
+            row = int(match.group(1))
+            col = match.group(2)
+            
+            # Determine class based on row number
+            if row <= business_rows:
+                seat_class = 'business'
+                price = business_price
+            else:
+                seat_class = 'economy'
+                price = economy_price
+            
+            seats_info.append({
+                'code': seat_code.upper(),
+                'row': row,
+                'col': col,
+                'seat_class': seat_class,
+                'price': price
+            })
+    
+    return seats_info
 
 
 def build_seat_map(flight_id, airplane_id, exclude_seats=None):

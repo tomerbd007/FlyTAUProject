@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
     <h1>Checkout</h1>
-    <p>Complete your booking for Flight {{ flight.flight_number }}</p>
+    <p>Complete your booking for Flight {{ flight.FlightId }}</p>
 </div>
 
 <div class="checkout-container">
@@ -15,12 +15,12 @@
             
             <div class="flight-summary">
                 <div class="flight-route-mini">
-                    <span class="origin">{{ flight.origin }}</span>
+                    <span class="origin">{{ flight.OriginPort }}</span>
                     <span class="arrow">→</span>
-                    <span class="destination">{{ flight.destination }}</span>
+                    <span class="destination">{{ flight.DestPort }}</span>
                 </div>
                 <div class="flight-datetime">
-                    {{ flight.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}
+                    {{ flight.DepartureDate }} at {{ flight.DepartureHour }}
                 </div>
             </div>
             
@@ -35,9 +35,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for seat in selected_seats %}
+                        {% for seat in seats %}
                         <tr>
-                            <td>{{ seat.seat_number }}</td>
+                            <td>{{ seat.code }}</td>
                             <td>{{ seat.seat_class|capitalize }}</td>
                             <td>${{ "%.2f"|format(seat.price) }}</td>
                         </tr>
@@ -46,7 +46,7 @@
                     <tfoot>
                         <tr class="total-row">
                             <td colspan="2"><strong>Total</strong></td>
-                            <td><strong>${{ "%.2f"|format(total_price) }}</strong></td>
+                            <td><strong>${{ "%.2f"|format(total) }}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -54,9 +54,9 @@
         </div>
         
         <form method="POST" action="{{ url_for('checkout') }}" class="checkout-form">
-            <input type="hidden" name="flight_id" value="{{ flight.id }}">
-            {% for seat in selected_seats %}
-            <input type="hidden" name="seat_ids" value="{{ seat.id }}">
+            <input type="hidden" name="flight_id" value="{{ flight.FlightId }}">
+            {% for seat in seats %}
+            <input type="hidden" name="seat_codes" value="{{ seat.code }}">
             {% endfor %}
             
             {% if not session.get('user_id') or session.get('role') == 'guest' %}
@@ -118,7 +118,7 @@
             </div>
             
             <div class="checkout-actions">
-                <a href="{{ url_for('seat_selection', flight_id=flight.id) }}?passengers={{ selected_seats|length }}" 
+                <a href="{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}&passengers={{ seats|length }}" 
                    class="btn btn-secondary">
                     ← Change Seats
                 </a>
