@@ -139,11 +139,11 @@ def get_flight_hours_per_employee():
             ROUND(SUM(Duration / 60.0), 1) AS total_hours
         FROM (
             SELECT 
-                CONCAT(p.FirstName, ' ', p.LastName) AS crew_member,
+                CONCAT(p.FirstName, ' ', p.SecondName) AS crew_member,
                 'Pilot' AS role,
                 f.Duration
             FROM Pilot p
-            JOIN Pilot_has_Flights phf ON p.PilotId = phf.Pilot_PilotId
+            JOIN Pilot_has_Flights phf ON p.Id = phf.Pilot_Id
             JOIN Flights f ON phf.Flights_FlightId = f.FlightId 
                 AND phf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
             WHERE f.Status IN ('occurred', 'active')
@@ -151,11 +151,11 @@ def get_flight_hours_per_employee():
             UNION ALL
             
             SELECT 
-                CONCAT(fa.FirstName, ' ', fa.LastName) AS crew_member,
+                CONCAT(fa.FirstName, ' ', fa.SecondName) AS crew_member,
                 'Flight Attendant' AS role,
                 f.Duration
             FROM FlightAttendant fa
-            JOIN FlightAttendant_has_Flights fahf ON fa.FlightAttendantId = fahf.FlightAttendant_FlightAttendantId
+            JOIN FlightAttendant_has_Flights fahf ON fa.Id = fahf.FlightAttendant_Id
             JOIN Flights f ON fahf.Flights_FlightId = f.FlightId 
                 AND fahf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
             WHERE f.Status IN ('occurred', 'active')
@@ -201,7 +201,7 @@ def get_monthly_aircraft_activity():
     """
     sql = """
         SELECT 
-            DATE_FORMAT(f.DepartureDate, '%Y-%m') AS month,
+            f.month,
             a.Manufacturer AS aircraft,
             SUM(CASE WHEN f.Status = 'done' THEN 1 ELSE 0 END) AS flights_completed,
             SUM(CASE WHEN f.Status = 'cancelled' THEN 1 ELSE 0 END) AS flights_canceled,
@@ -215,14 +215,20 @@ def get_monthly_aircraft_activity():
                 SELECT CONCAT(f2.OriginPort, ' → ', f2.DestPort)
                 FROM Flights f2
                 WHERE f2.Airplanes_AirplaneId = a.AirplaneId
-                  AND DATE_FORMAT(f2.DepartureDate, '%Y-%m') = DATE_FORMAT(f.DepartureDate, '%Y-%m')
+                  AND DATE_FORMAT(f2.DepartureDate, '%Y-%m') = f.month
                 GROUP BY f2.OriginPort, f2.DestPort
                 ORDER BY COUNT(*) DESC
                 LIMIT 1
             ) AS most_common_route
-        FROM Flights f
+        FROM (
+            SELECT 
+                DATE_FORMAT(DepartureDate, '%Y-%m') AS month,
+                Airplanes_AirplaneId,
+                Status
+            FROM Flights
+        ) AS f
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
-        GROUP BY DATE_FORMAT(f.DepartureDate, '%Y-%m'), a.AirplaneId, a.Manufacturer
-        ORDER BY month DESC, aircraft
+        GROUP BY f.month, a.AirplaneId, a.Manufacturer
+        ORDER BY f.month DESC, aircraft
     """
     return _execute_report_sql(sql)

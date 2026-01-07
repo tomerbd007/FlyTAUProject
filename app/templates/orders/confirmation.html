@@ -166,8 +166,8 @@
                     {% else %}
                     <a href="{{ url_for('guest_lookup') }}" class="btn btn-primary">Look Up Order</a>
                     {% endif %}
-                    {% if order.status == 'confirmed' %}
-                    <a href="{{ url_for('seat_selection', flight_id=order.flight_id, airplane_id=order.airplane_id) }}" class="btn btn-primary">Edit Seats</a>
+                    {% if order.status == 'confirmed' and order.can_cancel %}
+                    <a href="{{ url_for('edit_order_seats', booking_code=order.booking_code) }}" class="btn btn-primary">Edit Seats</a>
                     {% endif %}
                     <a href="{{ url_for('flight_search') }}" class="btn btn-secondary">Book Another Flight</a>
                 </div>

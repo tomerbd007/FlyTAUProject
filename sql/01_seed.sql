@@ -149,6 +149,21 @@ INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, Depar
 ('FT104', 'A002', 'TLV', 'ATH', '2026-02-18', '06:00:00', 120, 'active', 150.00, 450.00);
 
 -- =============================================================================
+-- ADDITIONAL FUTURE FLIGHTS (mixed statuses)
+-- =============================================================================
+INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
+('FT201', 'A001', 'TLV', 'JFK', '2026-02-05', '08:45:00', 640, 'active',   520.00, 1550.00),
+('FT202', 'A003', 'TLV', 'LHR', '2026-02-06', '10:15:00', 305, 'active',   310.00,  910.00),
+('FT203', 'A002', 'TLV', 'ATH', '2026-02-07', '06:20:00', 125, 'active',   155.00,  460.00),
+('FT204', 'A004', 'TLV', 'CDG', '2026-02-08', '13:40:00', 280, 'active',   265.00,  820.00),
+('FT205', 'A003', 'TLV', 'AMS', '2026-02-09', '09:05:00', 290, 'active',   275.00,  840.00),
+('FT206', 'A005', 'TLV', 'BCN', '2026-03-01', '11:10:00', 285, 'inactive', 240.00,   NULL),
+('FT207', 'A006', 'TLV', 'FRA', '2026-03-02', '15:25:00', 255, 'inactive', 260.00,   NULL),
+('FT208', 'A001', 'TLV', 'IST', '2026-03-03', '07:55:00', 150, 'inactive', 170.00,  520.00),
+('FT209', 'A004', 'TLV', 'VIE', '2026-03-04', '12:35:00', 225, 'inactive', 230.00,  690.00),
+('FT210', 'A002', 'TLV', 'CAI', '2026-03-05', '18:10:00',  95, 'inactive', 140.00,  420.00);
+
+-- =============================================================================
 -- PILOT ASSIGNMENTS
 -- =============================================================================
 INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES

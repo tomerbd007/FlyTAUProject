@@ -274,3 +274,97 @@ def cancel_order(booking_code, email):
     order_repository.delete_tickets_for_order(booking_code)
     
     return (fee, refund)
+
+
+def update_order_seats(booking_code, new_seats, flight):
+    """
+    Update seats for an existing order.
+    
+    Args:
+        booking_code: Order booking code
+        new_seats: List of new seat codes (e.g., ['1A', '1B'])
+        flight: Flight dict with pricing info
+    
+    Raises:
+        ValueError: If seats are not available
+    """
+    from decimal import Decimal
+    
+    order = get_order_with_tickets(booking_code)
+    if not order:
+        raise ValueError("Order not found.")
+    
+    flight_id = order.get('Flights_FlightId')
+    airplane_id = order.get('Flights_Airplanes_AirplaneId')
+    
+    # Get current seats for this order
+    current_seat_codes = set(f"{t.get('RowNum')}{t.get('Seat')}" for t in order.get('tickets', []))
+    
+    # Get all taken seats for the flight (excluding this order's seats)
+    taken_seats = flight_repository.get_taken_seats(flight_id, airplane_id)
+    taken_set = set()
+    for t in taken_seats:
+        seat_code = f"{t['RowNum']}{t['Seat']}"
+        if seat_code not in current_seat_codes:
+            taken_set.add(seat_code)
+    
+    # Verify new seats are available
+    for seat_code in new_seats:
+        if seat_code in taken_set:
+            raise ValueError(f"Seat {seat_code} is no longer available.")
+    
+    # Parse seat codes and calculate new total
+    economy_price = Decimal(str(flight.get('EconomyPrice') or 0))
+    business_price = Decimal(str(flight.get('BusinessPrice') or 0))
+    
+    # Get business row count from flight config
+    business_config = flight.get('BusinessConfig', '')
+    business_rows = 0
+    if business_config:
+        parts = business_config.split()
+        if len(parts) >= 1:
+            try:
+                business_rows = int(parts[0])
+            except ValueError:
+                pass
+    
+    new_total = Decimal('0')
+    seat_details = []
+    for seat_code in new_seats:
+        # Parse row number and seat letter
+        row_num = int(''.join(c for c in seat_code if c.isdigit()))
+        seat_letter = ''.join(c for c in seat_code if c.isalpha())
+        
+        # Determine class based on row
+        if row_num <= business_rows:
+            seat_class = 'business'
+            price = business_price
+        else:
+            seat_class = 'economy'
+            price = economy_price
+        
+        new_total += price
+        seat_details.append({
+            'row': row_num,
+            'seat': seat_letter,
+            'class': seat_class,
+            'price': price
+        })
+    
+    # Delete old tickets
+    order_repository.delete_tickets_for_order(booking_code)
+    
+    # Create new tickets
+    for seat in seat_details:
+        order_repository.create_ticket(
+            order_code=booking_code,
+            flight_id=flight_id,
+            airplane_id=airplane_id,
+            row_num=seat['row'],
+            seat=seat['seat'],
+            seat_class=seat['class'],
+            price=seat['price']
+        )
+    
+    # Update order total
+    order_repository.update_order_status(booking_code, status='confirmed', total_cost=new_total)

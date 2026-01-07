@@ -81,7 +81,11 @@
                             <span class="booked">{{ flight.booked_seats }}</span> / 
                             <span class="total">{{ flight.total_seats }}</span>
                             <div class="mini-bar">
-                                <div class="mini-fill" style="width: {{ (flight.booked_seats / flight.total_seats * 100)|int }}%"></div>
+                                {% set fill = 0 %}
+                                {% if flight.total_seats %}
+                                    {% set fill = (flight.booked_seats / flight.total_seats * 100)|int %}
+                                {% endif %}
+                                <div class="mini-fill" style="width: {{ fill }}%"></div>
                             </div>
                         </div>
                     </td>
