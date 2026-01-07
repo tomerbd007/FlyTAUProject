@@ -242,14 +242,17 @@
 
     .aircraft-option {
         display: block;
+        cursor: pointer;
     }
 
     .aircraft-option input {
-        display: none;
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
     }
 
     .aircraft-card {
-        border: 1px solid #dce6ef;
+        border: 2px solid #dce6ef;
         border-radius: 8px;
         padding: 14px;
         background: white;
@@ -257,16 +260,39 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        cursor: pointer;
+    }
+
+    .aircraft-card:hover {
+        border-color: #4b6a82;
+        box-shadow: 0 2px 8px rgba(26, 58, 82, 0.1);
     }
 
     .aircraft-option input:checked + .aircraft-card {
         border-color: #1a3a52;
-        box-shadow: 0 4px 16px rgba(26, 58, 82, 0.08);
+        background: #f0f7fc;
+        box-shadow: 0 4px 16px rgba(26, 58, 82, 0.15);
     }
 
-    .aircraft-option.disabled .aircraft-card {
-        opacity: 0.55;
-        pointer-events: none;
+    .aircraft-option input:checked + .aircraft-card::before {
+        content: '✓';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #1a3a52;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .aircraft-card {
+        position: relative;
     }
 
     .aircraft-header {
@@ -326,10 +352,36 @@
         font-weight: 600;
     }
 
+    .crew-section {
+        margin-top: 20px;
+    }
+
+    .crew-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
     .crew-section h4 {
-        margin: 0 0 6px 0;
+        margin: 0;
         font-size: 1rem;
         color: #1a3a52;
+    }
+
+    .selection-counter {
+        background: #e8f4fc;
+        color: #1a3a52;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        border: 1px solid #c5dff0;
+    }
+
+    .selection-counter strong {
+        color: #0d6efd;
     }
 
     .selection-hint {
@@ -344,24 +396,56 @@
         gap: 12px;
     }
 
+    .crew-option {
+        display: block;
+        cursor: pointer;
+    }
+
     .crew-option input {
-        margin-right: 10px;
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
     }
 
     .crew-card {
-        border: 1px solid #dce6ef;
+        border: 2px solid #dce6ef;
         border-radius: 8px;
         padding: 12px;
         background: white;
         display: flex;
         flex-direction: column;
         gap: 6px;
-        transition: border 0.2s ease, box-shadow 0.2s ease;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .crew-card:hover {
+        border-color: #4b6a82;
+        box-shadow: 0 2px 8px rgba(26, 58, 82, 0.1);
     }
 
     .crew-option input:checked + .crew-card {
         border-color: #1a3a52;
-        box-shadow: 0 4px 14px rgba(26, 58, 82, 0.07);
+        background: #f0f7fc;
+        box-shadow: 0 4px 14px rgba(26, 58, 82, 0.12);
+    }
+
+    .crew-option input:checked + .crew-card::before {
+        content: '✓';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #1a3a52;
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
     }
 
     .crew-name {
@@ -574,11 +658,10 @@
                     {% if aircraft_list %}
                     <div class="aircraft-selection">
                         {% for aircraft in aircraft_list %}
-                        <label class="aircraft-option {% if not aircraft.is_available %}disabled{% endif %}">
+                        <label class="aircraft-option">
                             <input type="radio" 
                                    name="aircraft_id" 
                                    value="{{ aircraft.id }}"
-                                   {% if not aircraft.is_available %}disabled{% endif %}
                                    {% if request.form.get('aircraft_id')|int == aircraft.id %}checked{% endif %}
                                    required>
                             <div class="aircraft-card">
@@ -596,11 +679,6 @@
                                         <span class="value">{{ aircraft.size|capitalize }}</span>
                                     </span>
                                 </div>
-                                {% if not aircraft.is_available %}
-                                <div class="unavailable-reason">
-                                    {{ aircraft.unavailable_reason }}
-                                </div>
-                                {% endif %}
                             </div>
                         </label>
                         {% endfor %}
@@ -627,8 +705,10 @@
                     </div>
                     
                     <div class="crew-section">
-                        <h4>Pilots</h4>
-                        <p class="selection-hint">Select pilots for this flight</p>
+                        <div class="crew-section-header">
+                            <h4>Pilots</h4>
+                            <span class="selection-counter">Select <strong>2</strong> (small) or <strong>3</strong> (large aircraft)</span>
+                        </div>
                         
                         <div class="crew-grid">
                             {% for pilot in available_pilots %}
@@ -650,8 +730,10 @@
                     </div>
                     
                     <div class="crew-section">
-                        <h4>Flight Attendants</h4>
-                        <p class="selection-hint">Select flight attendants for this flight</p>
+                        <div class="crew-section-header">
+                            <h4>Flight Attendants</h4>
+                            <span class="selection-counter">Select <strong>3</strong> (small) or <strong>6</strong> (large aircraft)</span>
+                        </div>
                         
                         <div class="crew-grid">
                             {% for attendant in available_attendants %}
@@ -683,196 +765,4 @@
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('.wizard-form');
-    const aircraftRadios = document.querySelectorAll('input[name="aircraft_id"]');
-    const pilotCheckboxes = document.querySelectorAll('input[name="pilot_ids"]');
-    const attendantCheckboxes = document.querySelectorAll('input[name="attendant_ids"]');
-    
-    // Find the crew sections by their h4 content
-    const crewSections = document.querySelectorAll('.crew-section');
-    let pilotsSection = null;
-    let attendantsSection = null;
-    
-    crewSections.forEach(section => {
-        const h4 = section.querySelector('h4');
-        if (h4) {
-            if (h4.textContent.includes('Pilots')) {
-                pilotsSection = h4;
-            } else if (h4.textContent.includes('Flight Attendants')) {
-                attendantsSection = h4;
-            }
-        }
-    });
-    
-    // Create counter elements if sections found
-    let pilotCounter = null;
-    let attendantCounter = null;
-    
-    if (pilotsSection) {
-        pilotCounter = document.createElement('span');
-        pilotCounter.className = 'selection-counter';
-        pilotCounter.id = 'pilot-counter';
-        pilotsSection.appendChild(pilotCounter);
-    }
-    
-    if (attendantsSection) {
-        attendantCounter = document.createElement('span');
-        attendantCounter.className = 'selection-counter';
-        attendantCounter.id = 'attendant-counter';
-        attendantsSection.appendChild(attendantCounter);
-    }
-    
-    // Add style for counter and validation
-    const style = document.createElement('style');
-    style.textContent = `
-        .selection-counter {
-            margin-left: 12px;
-            font-size: 0.85rem;
-            font-weight: normal;
-            padding: 2px 10px;
-            border-radius: 12px;
-            background: #f0f0f0;
-        }
-        .selection-counter.valid {
-            background: #d4edda;
-            color: #155724;
-        }
-        .selection-counter.invalid {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        .validation-error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border: 1px solid #f5c6cb;
-        }
-        .validation-error ul {
-            margin: 8px 0 0 20px;
-            padding: 0;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // Aircraft sizes mapping
-    const aircraftSizes = {};
-    {% for aircraft in aircraft_list %}
-    aircraftSizes['{{ aircraft.id }}'] = '{{ aircraft.size }}';
-    {% endfor %}
-    
-    function getRequirements() {
-        const selectedAircraft = document.querySelector('input[name="aircraft_id"]:checked');
-        if (!selectedAircraft) {
-            return { pilots: 0, attendants: 0, size: null };
-        }
-        const size = aircraftSizes[selectedAircraft.value];
-        if (size === 'large') {
-            return { pilots: 3, attendants: 6, size: 'large' };
-        }
-        return { pilots: 2, attendants: 3, size: 'small' };
-    }
-    
-    function updateCounters() {
-        const reqs = getRequirements();
-        const selectedPilots = document.querySelectorAll('input[name="pilot_ids"]:checked').length;
-        const selectedAttendants = document.querySelectorAll('input[name="attendant_ids"]:checked').length;
-        
-        // Update pilot counter
-        if (pilotCounter) {
-            if (reqs.pilots > 0) {
-                pilotCounter.textContent = `${selectedPilots}/${reqs.pilots} selected`;
-                pilotCounter.className = 'selection-counter ' + (selectedPilots === reqs.pilots ? 'valid' : 'invalid');
-            } else {
-                pilotCounter.textContent = 'Select aircraft first';
-                pilotCounter.className = 'selection-counter';
-            }
-        }
-        
-        // Update attendant counter
-        if (attendantCounter) {
-            if (reqs.attendants > 0) {
-                attendantCounter.textContent = `${selectedAttendants}/${reqs.attendants} selected`;
-                attendantCounter.className = 'selection-counter ' + (selectedAttendants === reqs.attendants ? 'valid' : 'invalid');
-            } else {
-                attendantCounter.textContent = 'Select aircraft first';
-                attendantCounter.className = 'selection-counter';
-            }
-        }
-    }
-    
-    // Add event listeners
-    aircraftRadios.forEach(radio => {
-        radio.addEventListener('change', updateCounters);
-    });
-    
-    pilotCheckboxes.forEach(cb => {
-        cb.addEventListener('change', updateCounters);
-    });
-    
-    attendantCheckboxes.forEach(cb => {
-        cb.addEventListener('change', updateCounters);
-    });
-    
-    // Form validation on submit
-    form.addEventListener('submit', function(e) {
-        // Remove any existing validation error
-        const existingError = document.getElementById('validation-error');
-        if (existingError) {
-            existingError.remove();
-        }
-        
-        const selectedAircraft = document.querySelector('input[name="aircraft_id"]:checked');
-        const errors = [];
-        
-        if (!selectedAircraft) {
-            errors.push('Please select an aircraft.');
-        } else {
-            const reqs = getRequirements();
-            const selectedPilots = document.querySelectorAll('input[name="pilot_ids"]:checked').length;
-            const selectedAttendants = document.querySelectorAll('input[name="attendant_ids"]:checked').length;
-            
-            if (selectedPilots !== reqs.pilots) {
-                errors.push(`Please select exactly ${reqs.pilots} pilots for a ${reqs.size} aircraft (you selected ${selectedPilots}).`);
-            }
-            
-            if (selectedAttendants !== reqs.attendants) {
-                errors.push(`Please select exactly ${reqs.attendants} flight attendants for a ${reqs.size} aircraft (you selected ${selectedAttendants}).`);
-            }
-        }
-        
-        if (errors.length > 0) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Create and show validation error
-            const validationError = document.createElement('div');
-            validationError.className = 'validation-error';
-            validationError.id = 'validation-error';
-            
-            if (errors.length === 1) {
-                validationError.textContent = errors[0];
-            } else {
-                validationError.innerHTML = '<strong>Please fix the following errors:</strong><ul>' + 
-                    errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
-            }
-            
-            // Insert at the top of the form
-            form.insertBefore(validationError, form.firstChild);
-            
-            // Scroll to error
-            validationError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            return false;
-        }
-    });
-    
-    // Initialize counters
-    updateCounters();
-});
-</script>
 {% endblock %}

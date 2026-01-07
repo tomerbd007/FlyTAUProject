@@ -137,18 +137,22 @@ def register_admin_routes(app):
                 for error in errors:
                     flash(error, 'error')
                 airports = flight_service.get_all_airports()
+                min_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
                 return render_template('admin/add_flight_step1.html', 
                                        airports=airports,
-                                       suggested_flight_number=flight_number or flight_repository.generate_flight_number())
+                                       suggested_flight_number=flight_number or flight_repository.generate_flight_number(),
+                                       min_date=min_date)
             
             # Get route and compute duration
             route = admin_service.get_route(origin, destination)
             if not route:
                 flash('No route found for this origin-destination pair.', 'error')
                 airports = flight_service.get_all_airports()
+                min_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
                 return render_template('admin/add_flight_step1.html', 
                                        airports=airports,
-                                       suggested_flight_number=flight_number)
+                                       suggested_flight_number=flight_number,
+                                       min_date=min_date)
             
             # Calculate arrival datetime
             departure_datetime, arrival_datetime = admin_service.compute_flight_times(
@@ -173,9 +177,14 @@ def register_admin_routes(app):
         # Generate a suggested flight number for the form
         suggested_flight_number = flight_repository.generate_flight_number()
         airports = flight_service.get_all_airports()
+        
+        # Minimum date is tomorrow
+        min_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        
         return render_template('admin/add_flight_step1.html', 
                                airports=airports,
-                               suggested_flight_number=suggested_flight_number)
+                               suggested_flight_number=suggested_flight_number,
+                               min_date=min_date)
     
     @app.route('/admin/flights/add/crew', methods=['GET', 'POST'])
     @manager_required
@@ -268,6 +277,22 @@ def register_admin_routes(app):
         if not aircraft:
             flash('Aircraft not found.', 'error')
             return redirect(url_for('add_flight_step2'))
+        
+        # Get pilot and attendant names for display
+        pilot_names = []
+        for pid in flight_data.get('pilot_ids', []):
+            pilot = crew_repository.get_pilot_by_id(pid)
+            if pilot:
+                pilot_names.append(f"{pilot['FirstName']} {pilot['SecondName']}")
+        
+        attendant_names = []
+        for aid in flight_data.get('attendant_ids', []):
+            attendant = crew_repository.get_attendant_by_id(aid)
+            if attendant:
+                attendant_names.append(f"{attendant['FirstName']} {attendant['SecondName']}")
+        
+        flight_data['pilot_names'] = pilot_names
+        flight_data['attendant_names'] = attendant_names
         
         # Calculate seat counts from aircraft configuration
         seat_counts = {

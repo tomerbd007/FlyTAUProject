@@ -257,16 +257,16 @@ def get_available_airplanes(departure_datetime, arrival_datetime, for_long_fligh
         - Long flights (> 6 hours): Only big airplanes (those with Business class)
         - Short flights (≤ 6 hours): All airplanes (big and small)
         - An airplane is considered 'big' if it has Business config (not null)
+        - An airplane is unavailable if it has any flight that overlaps with the
+          requested time period (from departure to landing)
     """
     if isinstance(departure_datetime, str):
         departure_datetime = datetime.fromisoformat(departure_datetime)
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    # Repository expects just the departure date
-    departure_date = departure_datetime.date()
-    
-    airplanes = aircraft_repository.get_available_airplanes(departure_date)
+    # Repository now checks for time overlap, not just date
+    airplanes = aircraft_repository.get_available_airplanes(departure_datetime, arrival_datetime)
     
     # For long flights, only big airplanes are allowed
     # A big airplane has Business class seats (business_seats > 0)
@@ -274,6 +274,7 @@ def get_available_airplanes(departure_datetime, arrival_datetime, for_long_fligh
         airplanes = [a for a in airplanes if a.get('business_seats', 0) > 0]
     
     # Transform to template-friendly format
+    # All aircraft returned by repository are already available
     result = []
     for airplane in airplanes:
         airplane_id = airplane['AirplaneId']
@@ -284,7 +285,8 @@ def get_available_airplanes(departure_datetime, arrival_datetime, for_long_fligh
             'total_seats': airplane['total_seats'],
             'economy_seats': airplane['economy_seats'],
             'business_seats': airplane['business_seats'],
-            'size': airplane['size']
+            'size': airplane['size'],
+            'is_available': True  # All returned aircraft are available
         })
     
     return result

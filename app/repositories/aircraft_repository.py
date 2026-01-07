@@ -109,33 +109,53 @@ def get_all_airplanes():
     return parsed_results
 
 
-def get_available_airplanes(departure_date):
+def get_available_airplanes(departure_datetime, arrival_datetime):
     """
-    Get airplanes not assigned to flights on the given date.
+    Get airplanes not assigned to flights during the given time range.
+    
+    An airplane is unavailable if it has any flight that overlaps with the
+    requested time period (from departure to landing).
     
     Args:
-        departure_date: Date to check availability (DATE or string 'YYYY-MM-DD')
+        departure_datetime: Departure datetime of the new flight
+        arrival_datetime: Arrival/landing datetime of the new flight
     """
-    sql = """
+    # Get all airplanes
+    sql_all = """
         SELECT a.AirplaneId, a.PurchaseDate, a.Manufacturer, 
                a.`Couch (Rows, Cols)` as EconomyConfig,
                a.`Business (Rows, Cols)` as BusinessConfig
         FROM Airplanes a
-        WHERE a.AirplaneId NOT IN (
-            SELECT f.Airplanes_AirplaneId
-            FROM Flights f
-            WHERE f.Status IN ('active', 'full')
-              AND f.DepartureDate = %s
-        )
         ORDER BY a.Manufacturer, a.AirplaneId
     """
-    results = execute_query(sql, (departure_date,))
-    if not results:
+    all_airplanes = execute_query(sql_all)
+    if not all_airplanes:
         return []
     
+    # Get busy airplane IDs (those with overlapping flights)
+    # A flight overlaps if: existing_departure < new_arrival AND existing_arrival > new_departure
+    sql_busy = """
+        SELECT DISTINCT f.Airplanes_AirplaneId
+        FROM Flights f
+        WHERE f.Status IN ('active', 'full')
+          AND (
+              -- Calculate existing flight's departure datetime
+              TIMESTAMP(f.DepartureDate, f.DepartureHour) < %s
+              AND 
+              -- Calculate existing flight's arrival datetime (departure + duration minutes)
+              DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) > %s
+          )
+    """
+    busy_results = execute_query(sql_busy, (arrival_datetime, departure_datetime))
+    busy_ids = set(row['Airplanes_AirplaneId'] for row in busy_results) if busy_results else set()
+    
     parsed_results = []
-    for row in results:
+    for row in all_airplanes:
         airplane = dict(row)
+        # Skip if airplane is busy
+        if airplane['AirplaneId'] in busy_ids:
+            continue
+            
         economy_rows, economy_cols = parse_seat_config(airplane.get('EconomyConfig'))
         business_rows, business_cols = parse_seat_config(airplane.get('BusinessConfig'))
         
