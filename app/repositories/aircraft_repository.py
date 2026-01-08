@@ -109,16 +109,54 @@ def get_all_airplanes():
     return parsed_results
 
 
-def get_available_airplanes(departure_datetime, arrival_datetime):
+# Default home base airport (where aircraft start if no flight history)
+HOME_BASE_AIRPORT = 'TLV'
+
+
+def get_aircraft_location_at_time(airplane_id, at_datetime):
+    """
+    Determine where an aircraft will be at a given datetime.
+    
+    Logic:
+    - Find the most recent flight (by landing time) that lands before at_datetime
+    - If found, aircraft is at that flight's destination (DestPort)
+    - If no prior flight, assume aircraft starts at HOME_BASE_AIRPORT
+    
+    Args:
+        airplane_id: The airplane ID to check
+        at_datetime: The datetime to check location at
+    
+    Returns:
+        Airport code string (e.g., 'TLV', 'JFK')
+    """
+    sql = """
+        SELECT f.DestPort
+        FROM Flights f
+        WHERE f.Airplanes_AirplaneId = %s
+          AND f.Status IN ('active', 'full', 'done')
+          AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) <= %s
+        ORDER BY DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) DESC
+        LIMIT 1
+    """
+    result = execute_query(sql, (airplane_id, at_datetime), fetch_one=True)
+    
+    if result:
+        return result['DestPort']
+    return HOME_BASE_AIRPORT
+
+
+def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport=None):
     """
     Get airplanes not assigned to flights during the given time range.
     
-    An airplane is unavailable if it has any flight that overlaps with the
-    requested time period (from departure to landing).
+    An airplane is available if:
+    1. Not assigned to any overlapping flight (departure to landing)
+    2. Located at origin_airport at departure time (if origin_airport specified)
     
     Args:
         departure_datetime: Departure datetime of the new flight
         arrival_datetime: Arrival/landing datetime of the new flight
+        origin_airport: Origin airport code - only return aircraft at this location
     """
     # Get all airplanes
     sql_all = """
@@ -168,6 +206,14 @@ def get_available_airplanes(departure_datetime, arrival_datetime):
         airplane['total_seats'] = airplane['economy_seats'] + airplane['business_seats']
         # Determine size: Big = has Business class, Small = no Business class
         airplane['size'] = 'large' if airplane['business_seats'] > 0 else 'small'
+        
+        # Check location if origin_airport specified
+        if origin_airport:
+            aircraft_location = get_aircraft_location_at_time(airplane['AirplaneId'], departure_datetime)
+            if aircraft_location != origin_airport:
+                continue  # Skip aircraft not at origin
+            airplane['current_location'] = aircraft_location
+        
         parsed_results.append(airplane)
     
     return parsed_results

@@ -27,14 +27,95 @@ def get_attendant_by_id(attendant_id):
     return results[0] if results else None
 
 
-# ============ PILOT CREW OPERATIONS ============
+# ============ CREW LOCATION TRACKING ============
 
-def get_available_pilots(departure_date, require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
+# Default home base airport (where crew start if no flight history)
+HOME_BASE_AIRPORT = 'TLV'
+
+
+def get_pilot_location_at_time(pilot_id, at_datetime):
     """
-    Get pilots not assigned to flights on the given date.
+    Determine where a pilot will be at a given datetime.
+    
+    Logic:
+    - Find the most recent flight (by landing time) that the pilot was on before at_datetime
+    - If found, pilot is at that flight's destination (DestPort)
+    - If no prior flight, assume pilot starts at HOME_BASE_AIRPORT
     
     Args:
-        departure_date: Date to check (DATE or 'YYYY-MM-DD')
+        pilot_id: The pilot ID to check
+        at_datetime: The datetime to check location at
+    
+    Returns:
+        Airport code string (e.g., 'TLV', 'JFK')
+    """
+    sql = """
+        SELECT f.DestPort
+        FROM Pilot_has_Flights pf
+        JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
+                      AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        WHERE pf.Pilot_Id = %s
+          AND f.Status IN ('active', 'full', 'done')
+          AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) <= %s
+        ORDER BY DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) DESC
+        LIMIT 1
+    """
+    result = execute_query(sql, (pilot_id, at_datetime), fetch_one=True)
+    
+    if result:
+        return result['DestPort']
+    return HOME_BASE_AIRPORT
+
+
+def get_attendant_location_at_time(attendant_id, at_datetime):
+    """
+    Determine where a flight attendant will be at a given datetime.
+    
+    Logic:
+    - Find the most recent flight (by landing time) that the attendant was on before at_datetime
+    - If found, attendant is at that flight's destination (DestPort)
+    - If no prior flight, assume attendant starts at HOME_BASE_AIRPORT
+    
+    Args:
+        attendant_id: The flight attendant ID to check
+        at_datetime: The datetime to check location at
+    
+    Returns:
+        Airport code string (e.g., 'TLV', 'JFK')
+    """
+    sql = """
+        SELECT f.DestPort
+        FROM FlightAttendant_has_Flights faf
+        JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
+                      AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        WHERE faf.FlightAttendant_Id = %s
+          AND f.Status IN ('active', 'full', 'done')
+          AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) <= %s
+        ORDER BY DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) DESC
+        LIMIT 1
+    """
+    result = execute_query(sql, (attendant_id, at_datetime), fetch_one=True)
+    
+    if result:
+        return result['DestPort']
+    return HOME_BASE_AIRPORT
+
+
+# ============ PILOT CREW OPERATIONS ============
+
+def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=None, 
+                         require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
+    """
+    Get pilots available for a flight during the given time range.
+    
+    A pilot is available if:
+    1. Not assigned to any flight that overlaps with [departure, arrival]
+    2. Located at origin_airport at departure time (if origin_airport specified)
+    
+    Args:
+        departure_datetime: Departure datetime of the new flight
+        arrival_datetime: Arrival/landing datetime of the new flight  
+        origin_airport: Origin airport code - only return pilots at this location
         require_long_flight_cert: If True, only return pilots with LongFlightsTraining=1
         exclude_flight_id: Flight ID to exclude from conflict check (for editing)
         exclude_airplane_id: Airplane ID to exclude from conflict check (for editing)
@@ -42,42 +123,50 @@ def get_available_pilots(departure_date, require_long_flight_cert=False, exclude
     cert_condition = "AND p.LongFlightsTraining = 1" if require_long_flight_cert else ""
     
     # Build exclusion condition for the flight being edited
+    exclude_condition = ""
+    params = [arrival_datetime, departure_datetime]
+    
     if exclude_flight_id and exclude_airplane_id:
         exclude_condition = "AND NOT (f.FlightId = %s AND f.Airplanes_AirplaneId = %s)"
-        sql = f"""
-            SELECT p.Id as id, p.FirstName as first_name, p.SecondName as last_name, 
-                   p.Id as employee_code, p.LongFlightsTraining as long_flight_cert
-            FROM Pilot p
-            WHERE p.Id NOT IN (
-                SELECT pf.Pilot_Id
-                FROM Pilot_has_Flights pf
-                JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
-                    AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
-                WHERE f.DepartureDate = %s
-                  AND f.Status != 'cancelled'
-                  {exclude_condition}
-            )
-            {cert_condition}
-            ORDER BY p.SecondName, p.FirstName
-        """
-        return execute_query(sql, (departure_date, exclude_flight_id, exclude_airplane_id))
-    else:
-        sql = f"""
-            SELECT p.Id as id, p.FirstName as first_name, p.SecondName as last_name, 
-                   p.Id as employee_code, p.LongFlightsTraining as long_flight_cert
-            FROM Pilot p
-            WHERE p.Id NOT IN (
-                SELECT pf.Pilot_Id
-                FROM Pilot_has_Flights pf
-                JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
-                    AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
-                WHERE f.DepartureDate = %s
-                  AND f.Status != 'cancelled'
-            )
-            {cert_condition}
-            ORDER BY p.SecondName, p.FirstName
-        """
-        return execute_query(sql, (departure_date,))
+        params.extend([exclude_flight_id, exclude_airplane_id])
+    
+    # Use time overlap check instead of date check
+    # A flight overlaps if: existing_departure < new_arrival AND existing_arrival > new_departure
+    sql = f"""
+        SELECT p.Id as id, p.FirstName as first_name, p.SecondName as last_name, 
+               p.Id as employee_code, p.LongFlightsTraining as long_flight_cert
+        FROM Pilot p
+        WHERE p.Id NOT IN (
+            SELECT pf.Pilot_Id
+            FROM Pilot_has_Flights pf
+            JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
+                AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+            WHERE f.Status != 'cancelled'
+              AND TIMESTAMP(f.DepartureDate, f.DepartureHour) < %s
+              AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) > %s
+              {exclude_condition}
+        )
+        {cert_condition}
+        ORDER BY p.SecondName, p.FirstName
+    """
+    
+    pilots = execute_query(sql, tuple(params))
+    
+    if not pilots:
+        return []
+    
+    # Filter by location if origin_airport specified
+    if origin_airport:
+        available_pilots = []
+        for pilot in pilots:
+            pilot_dict = dict(pilot)
+            pilot_location = get_pilot_location_at_time(pilot_dict['id'], departure_datetime)
+            if pilot_location == origin_airport:
+                pilot_dict['current_location'] = pilot_location
+                available_pilots.append(pilot_dict)
+        return available_pilots
+    
+    return [dict(p) for p in pilots]
 
 
 def get_pilots_for_flight(flight_id, airplane_id):
@@ -124,12 +213,19 @@ def delete_all_pilots_from_flight(flight_id, airplane_id):
 
 # ============ FLIGHT ATTENDANT CREW OPERATIONS ============
 
-def get_available_flight_attendants(departure_date, require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
+def get_available_flight_attendants(departure_datetime, arrival_datetime, origin_airport=None,
+                                    require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
     """
-    Get flight attendants not assigned to flights on the given date.
+    Get flight attendants available for a flight during the given time range.
+    
+    A flight attendant is available if:
+    1. Not assigned to any flight that overlaps with [departure, arrival]
+    2. Located at origin_airport at departure time (if origin_airport specified)
     
     Args:
-        departure_date: Date to check (DATE or 'YYYY-MM-DD')
+        departure_datetime: Departure datetime of the new flight
+        arrival_datetime: Arrival/landing datetime of the new flight  
+        origin_airport: Origin airport code - only return attendants at this location
         require_long_flight_cert: If True, only return attendants with LongFlightsTraining=1
         exclude_flight_id: Flight ID to exclude from conflict check (for editing)
         exclude_airplane_id: Airplane ID to exclude from conflict check (for editing)
@@ -137,42 +233,50 @@ def get_available_flight_attendants(departure_date, require_long_flight_cert=Fal
     cert_condition = "AND fa.LongFlightsTraining = 1" if require_long_flight_cert else ""
     
     # Build exclusion condition for the flight being edited
+    exclude_condition = ""
+    params = [arrival_datetime, departure_datetime]
+    
     if exclude_flight_id and exclude_airplane_id:
         exclude_condition = "AND NOT (f.FlightId = %s AND f.Airplanes_AirplaneId = %s)"
-        sql = f"""
-            SELECT fa.Id as id, fa.FirstName as first_name, fa.SecondName as last_name,
-                   fa.Id as employee_code, fa.LongFlightsTraining as long_flight_cert
-            FROM FlightAttendant fa
-            WHERE fa.Id NOT IN (
-                SELECT faf.FlightAttendant_Id
-                FROM FlightAttendant_has_Flights faf
-                JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
-                    AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
-                WHERE f.DepartureDate = %s
-                  AND f.Status != 'cancelled'
-                  {exclude_condition}
-            )
-            {cert_condition}
-            ORDER BY fa.SecondName, fa.FirstName
-        """
-        return execute_query(sql, (departure_date, exclude_flight_id, exclude_airplane_id))
-    else:
-        sql = f"""
-            SELECT fa.Id as id, fa.FirstName as first_name, fa.SecondName as last_name,
-                   fa.Id as employee_code, fa.LongFlightsTraining as long_flight_cert
-            FROM FlightAttendant fa
-            WHERE fa.Id NOT IN (
-                SELECT faf.FlightAttendant_Id
-                FROM FlightAttendant_has_Flights faf
-                JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
-                    AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
-                WHERE f.DepartureDate = %s
-                  AND f.Status != 'cancelled'
-            )
-            {cert_condition}
-            ORDER BY fa.SecondName, fa.FirstName
-        """
-        return execute_query(sql, (departure_date,))
+        params.extend([exclude_flight_id, exclude_airplane_id])
+    
+    # Use time overlap check instead of date check
+    # A flight overlaps if: existing_departure < new_arrival AND existing_arrival > new_departure
+    sql = f"""
+        SELECT fa.Id as id, fa.FirstName as first_name, fa.SecondName as last_name,
+               fa.Id as employee_code, fa.LongFlightsTraining as long_flight_cert
+        FROM FlightAttendant fa
+        WHERE fa.Id NOT IN (
+            SELECT faf.FlightAttendant_Id
+            FROM FlightAttendant_has_Flights faf
+            JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
+                AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+            WHERE f.Status != 'cancelled'
+              AND TIMESTAMP(f.DepartureDate, f.DepartureHour) < %s
+              AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) > %s
+              {exclude_condition}
+        )
+        {cert_condition}
+        ORDER BY fa.SecondName, fa.FirstName
+    """
+    
+    attendants = execute_query(sql, tuple(params))
+    
+    if not attendants:
+        return []
+    
+    # Filter by location if origin_airport specified
+    if origin_airport:
+        available_attendants = []
+        for attendant in attendants:
+            attendant_dict = dict(attendant)
+            attendant_location = get_attendant_location_at_time(attendant_dict['id'], departure_datetime)
+            if attendant_location == origin_airport:
+                attendant_dict['current_location'] = attendant_location
+                available_attendants.append(attendant_dict)
+        return available_attendants
+    
+    return [dict(a) for a in attendants]
 
 
 def get_attendants_for_flight(flight_id, airplane_id):
