@@ -66,11 +66,10 @@
         
         <form method="POST" action="{{ url_for('cancel_flight', flight_id=flight.id) }}" class="cancel-form">
             <div class="form-group">
-                <label for="reason">Cancellation Reason</label>
+                <label for="reason">Cancellation Reason (optional)</label>
                 <textarea id="reason" 
                           name="reason" 
                           rows="3" 
-                          required
                           placeholder="Provide a reason for the cancellation...">{{ request.form.get('reason', '') }}</textarea>
             </div>
             

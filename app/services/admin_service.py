@@ -97,8 +97,7 @@ def update_expired_flight_statuses():
             # If current time has passed landing time, update status to 'done'
             if now > landing_time:
                 flight_id = f.get('FlightId')
-                airplane_id = f.get('Airplanes_AirplaneId')
-                flight_repository.update_flight_status(flight_id, airplane_id, 'done')
+                flight_repository.update_flight_status(flight_id, 'done')
                 
         except (ValueError, TypeError):
             # Skip flights with invalid date/time data
@@ -422,10 +421,10 @@ def log_manager_edit(manager_id, flight_id, airplane_id, action):
     from app.db import execute_query
     sql = """
         INSERT IGNORE INTO Managers_edits_Flights 
-        (Managers_ManagerId, Flights_FlightId, Flights_Airplanes_AirplaneId)
-        VALUES (%s, %s, %s)
+        (Managers_ManagerId, Flights_FlightId)
+        VALUES (%s, %s)
     """
-    execute_query(sql, (manager_id, flight_id, airplane_id), commit=True)
+    execute_query(sql, (manager_id, flight_id), commit=True)
 
 
 def can_cancel_flight(flight):
@@ -476,25 +475,111 @@ def can_cancel_flight(flight):
     return (True, "")
 
 
-def get_affected_orders_count(flight_id, airplane_id):
+def get_affected_orders_count(flight_id):
     """Get count of active orders that would be affected by flight cancellation."""
-    return order_repository.count_active_orders_for_flight(flight_id, airplane_id)
+    return order_repository.count_active_orders_for_flight(flight_id)
 
 
-def cancel_flight(flight_id, airplane_id, manager_id=None):
+def get_flight_cancellation_info(flight_id, airplane_id):
+    """
+    Get detailed information needed for flight cancellation page.
+    
+    Args:
+        flight_id: Flight ID
+        airplane_id: Airplane ID
+    
+    Returns:
+        Dict with flight info, affected orders count, affected tickets count, and total refund
+    """
+    from app.services import flight_service
+    
+    flight = flight_repository.get_flight_by_id(flight_id, airplane_id)
+    if not flight:
+        return None
+    
+    flight = dict(flight)
+    
+    # Parse departure datetime
+    departure_date = flight.get('DepartureDate')
+    departure_hour = flight.get('DepartureHour')
+    
+    departure_datetime = None
+    if departure_date:
+        if isinstance(departure_date, str):
+            departure_date = datetime.strptime(departure_date, '%Y-%m-%d').date()
+        
+        if departure_hour:
+            if hasattr(departure_hour, 'total_seconds'):
+                total_seconds = int(departure_hour.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                departure_datetime = datetime.combine(
+                    departure_date,
+                    datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
+                )
+            elif isinstance(departure_hour, str):
+                try:
+                    time_str = departure_hour[:5] if len(departure_hour) > 5 else departure_hour
+                    departure_datetime = datetime.combine(
+                        departure_date,
+                        datetime.strptime(time_str, '%H:%M').time()
+                    )
+                except ValueError:
+                    departure_datetime = datetime.combine(departure_date, datetime.min.time())
+            else:
+                departure_datetime = datetime.combine(departure_date, datetime.min.time())
+        else:
+            departure_datetime = datetime.combine(departure_date, datetime.min.time())
+    
+    # Calculate arrival time
+    duration_minutes = flight.get('Duration', 0) or 0
+    arrival_datetime = None
+    if departure_datetime and duration_minutes:
+        arrival_datetime = departure_datetime + timedelta(minutes=int(duration_minutes))
+    
+    # Get active orders and calculate impact
+    active_orders = order_repository.get_active_orders_for_flight(flight_id)
+    affected_orders_count = len(active_orders) if active_orders else 0
+    
+    # Count tickets and total refund
+    affected_tickets = 0
+    total_refund = 0.0
+    if active_orders:
+        for order in active_orders:
+            affected_tickets += order.get('TicketCount', 0)
+            total_refund += float(order.get('TotalCost', 0) or 0)
+    
+    return {
+        'id': flight_id,
+        'flight_number': flight_id,
+        'airplane_id': airplane_id,
+        'origin': flight.get('OriginPort'),
+        'destination': flight.get('DestPort'),
+        'departure_time': departure_datetime,
+        'arrival_time': arrival_datetime,
+        'duration_minutes': duration_minutes,
+        'status': flight.get('Status', 'active'),
+        'economy_price': flight.get('EconomyPrice'),
+        'business_price': flight.get('BusinessPrice'),
+        'affected_orders': affected_orders_count,
+        'affected_tickets': affected_tickets,
+        'total_refund': total_refund
+    }
+
+
+def cancel_flight(flight_id, manager_id=None):
     """
     Cancel a flight and credit all active orders.
     
     Args:
         flight_id: Flight ID
-        airplane_id: Airplane ID
         manager_id: Manager performing cancellation (for audit)
     """
     # Update flight status
-    flight_repository.update_flight_status(flight_id, airplane_id, 'canceled')
+    flight_repository.update_flight_status(flight_id, 'canceled')
     
     # Get all active orders for this flight
-    orders = order_repository.get_active_orders_for_flight(flight_id, airplane_id)
+    orders = order_repository.get_active_orders_for_flight(flight_id)
     
     # Credit each order (set TotalCost to 0, status to system_canceled)
     for order in orders:

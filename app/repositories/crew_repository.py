@@ -5,8 +5,8 @@ Database access for crew assignments (Pilots and Flight Attendants)
 Schema:
 - Pilot: Id (PK), FirstName, SecondName, LongFlightsTraining, etc.
 - FlightAttendant: Id (PK), FirstName, SecondName, LongFlightsTraining, etc.
-- Pilot_has_Flights: Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId (junction)
-- FlightAttendant_has_Flights: FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId (junction)
+- Pilot_has_Flights: Pilot_Id, Flights_FlightId (junction)
+- FlightAttendant_has_Flights: FlightAttendant_Id, Flights_FlightId (junction)
 """
 from app.db import execute_query
 
@@ -52,8 +52,7 @@ def get_pilot_location_at_time(pilot_id, at_datetime):
     sql = """
         SELECT f.DestPort
         FROM Pilot_has_Flights pf
-        JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
-                      AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON pf.Flights_FlightId = f.FlightId
         WHERE pf.Pilot_Id = %s
           AND f.Status IN ('active', 'full', 'done')
           AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) <= %s
@@ -86,8 +85,7 @@ def get_attendant_location_at_time(attendant_id, at_datetime):
     sql = """
         SELECT f.DestPort
         FROM FlightAttendant_has_Flights faf
-        JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
-                      AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON faf.Flights_FlightId = f.FlightId
         WHERE faf.FlightAttendant_Id = %s
           AND f.Status IN ('active', 'full', 'done')
           AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) <= %s
@@ -104,7 +102,7 @@ def get_attendant_location_at_time(attendant_id, at_datetime):
 # ============ PILOT CREW OPERATIONS ============
 
 def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=None, 
-                         require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
+                         require_long_flight_cert=False, exclude_flight_id=None):
     """
     Get pilots available for a flight during the given time range.
     
@@ -118,7 +116,6 @@ def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=No
         origin_airport: Origin airport code - only return pilots at this location
         require_long_flight_cert: If True, only return pilots with LongFlightsTraining=1
         exclude_flight_id: Flight ID to exclude from conflict check (for editing)
-        exclude_airplane_id: Airplane ID to exclude from conflict check (for editing)
     """
     cert_condition = "AND p.LongFlightsTraining = 1" if require_long_flight_cert else ""
     
@@ -126,9 +123,9 @@ def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=No
     exclude_condition = ""
     params = [arrival_datetime, departure_datetime]
     
-    if exclude_flight_id and exclude_airplane_id:
-        exclude_condition = "AND NOT (f.FlightId = %s AND f.Airplanes_AirplaneId = %s)"
-        params.extend([exclude_flight_id, exclude_airplane_id])
+    if exclude_flight_id:
+        exclude_condition = "AND NOT (f.FlightId = %s)"
+        params.append(exclude_flight_id)
     
     # Use time overlap check instead of date check
     # A flight overlaps if: existing_departure < new_arrival AND existing_arrival > new_departure
@@ -139,8 +136,7 @@ def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=No
         WHERE p.Id NOT IN (
             SELECT pf.Pilot_Id
             FROM Pilot_has_Flights pf
-            JOIN Flights f ON pf.Flights_FlightId = f.FlightId 
-                AND pf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+            JOIN Flights f ON pf.Flights_FlightId = f.FlightId
             WHERE f.Status != 'cancelled'
               AND TIMESTAMP(f.DepartureDate, f.DepartureHour) < %s
               AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) > %s
@@ -169,52 +165,50 @@ def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=No
     return [dict(p) for p in pilots]
 
 
-def get_pilots_for_flight(flight_id, airplane_id):
+def get_pilots_for_flight(flight_id, airplane_id=None):
     """Get all pilots assigned to a specific flight."""
     sql = """
         SELECT p.Id, p.FirstName, p.SecondName, p.LongFlightsTraining, p.PhoneNum
         FROM Pilot p
         JOIN Pilot_has_Flights pf ON p.Id = pf.Pilot_Id
-        WHERE pf.Flights_FlightId = %s 
-          AND pf.Flights_Airplanes_AirplaneId = %s
+        WHERE pf.Flights_FlightId = %s
         ORDER BY p.SecondName, p.FirstName
     """
-    return execute_query(sql, (flight_id, airplane_id))
+    return execute_query(sql, (flight_id,))
 
 
-def assign_pilot_to_flight(pilot_id, flight_id, airplane_id):
+def assign_pilot_to_flight(pilot_id, flight_id, airplane_id=None):
     """Assign a pilot to a flight."""
     sql = """
-        INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId)
-        VALUES (%s, %s, %s)
+        INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId)
+        VALUES (%s, %s)
     """
-    return execute_query(sql, (pilot_id, flight_id, airplane_id), commit=True)
+    return execute_query(sql, (pilot_id, flight_id), commit=True)
 
 
-def remove_pilot_from_flight(pilot_id, flight_id, airplane_id):
+def remove_pilot_from_flight(pilot_id, flight_id, airplane_id=None):
     """Remove a pilot assignment from a flight."""
     sql = """
         DELETE FROM Pilot_has_Flights 
         WHERE Pilot_Id = %s 
-          AND Flights_FlightId = %s 
-          AND Flights_Airplanes_AirplaneId = %s
+          AND Flights_FlightId = %s
     """
-    return execute_query(sql, (pilot_id, flight_id, airplane_id), commit=True)
+    return execute_query(sql, (pilot_id, flight_id), commit=True)
 
 
-def delete_all_pilots_from_flight(flight_id, airplane_id):
+def delete_all_pilots_from_flight(flight_id, airplane_id=None):
     """Remove all pilot assignments from a flight."""
     sql = """
         DELETE FROM Pilot_has_Flights 
-        WHERE Flights_FlightId = %s AND Flights_Airplanes_AirplaneId = %s
+        WHERE Flights_FlightId = %s
     """
-    return execute_query(sql, (flight_id, airplane_id), commit=True)
+    return execute_query(sql, (flight_id,), commit=True)
 
 
 # ============ FLIGHT ATTENDANT CREW OPERATIONS ============
 
 def get_available_flight_attendants(departure_datetime, arrival_datetime, origin_airport=None,
-                                    require_long_flight_cert=False, exclude_flight_id=None, exclude_airplane_id=None):
+                                    require_long_flight_cert=False, exclude_flight_id=None):
     """
     Get flight attendants available for a flight during the given time range.
     
@@ -228,7 +222,6 @@ def get_available_flight_attendants(departure_datetime, arrival_datetime, origin
         origin_airport: Origin airport code - only return attendants at this location
         require_long_flight_cert: If True, only return attendants with LongFlightsTraining=1
         exclude_flight_id: Flight ID to exclude from conflict check (for editing)
-        exclude_airplane_id: Airplane ID to exclude from conflict check (for editing)
     """
     cert_condition = "AND fa.LongFlightsTraining = 1" if require_long_flight_cert else ""
     
@@ -236,9 +229,9 @@ def get_available_flight_attendants(departure_datetime, arrival_datetime, origin
     exclude_condition = ""
     params = [arrival_datetime, departure_datetime]
     
-    if exclude_flight_id and exclude_airplane_id:
-        exclude_condition = "AND NOT (f.FlightId = %s AND f.Airplanes_AirplaneId = %s)"
-        params.extend([exclude_flight_id, exclude_airplane_id])
+    if exclude_flight_id:
+        exclude_condition = "AND NOT (f.FlightId = %s)"
+        params.append(exclude_flight_id)
     
     # Use time overlap check instead of date check
     # A flight overlaps if: existing_departure < new_arrival AND existing_arrival > new_departure
@@ -249,8 +242,7 @@ def get_available_flight_attendants(departure_datetime, arrival_datetime, origin
         WHERE fa.Id NOT IN (
             SELECT faf.FlightAttendant_Id
             FROM FlightAttendant_has_Flights faf
-            JOIN Flights f ON faf.Flights_FlightId = f.FlightId 
-                AND faf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+            JOIN Flights f ON faf.Flights_FlightId = f.FlightId
             WHERE f.Status != 'cancelled'
               AND TIMESTAMP(f.DepartureDate, f.DepartureHour) < %s
               AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) > %s
@@ -279,46 +271,44 @@ def get_available_flight_attendants(departure_datetime, arrival_datetime, origin
     return [dict(a) for a in attendants]
 
 
-def get_attendants_for_flight(flight_id, airplane_id):
+def get_attendants_for_flight(flight_id, airplane_id=None):
     """Get all flight attendants assigned to a specific flight."""
     sql = """
         SELECT fa.Id, fa.FirstName, fa.SecondName, fa.LongFlightsTraining, fa.PhoneNum
         FROM FlightAttendant fa
         JOIN FlightAttendant_has_Flights faf ON fa.Id = faf.FlightAttendant_Id
-        WHERE faf.Flights_FlightId = %s 
-          AND faf.Flights_Airplanes_AirplaneId = %s
+        WHERE faf.Flights_FlightId = %s
         ORDER BY fa.SecondName, fa.FirstName
     """
-    return execute_query(sql, (flight_id, airplane_id))
+    return execute_query(sql, (flight_id,))
 
 
-def assign_attendant_to_flight(attendant_id, flight_id, airplane_id):
+def assign_attendant_to_flight(attendant_id, flight_id, airplane_id=None):
     """Assign a flight attendant to a flight."""
     sql = """
-        INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId)
-        VALUES (%s, %s, %s)
+        INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId)
+        VALUES (%s, %s)
     """
-    return execute_query(sql, (attendant_id, flight_id, airplane_id), commit=True)
+    return execute_query(sql, (attendant_id, flight_id), commit=True)
 
 
-def remove_attendant_from_flight(attendant_id, flight_id, airplane_id):
+def remove_attendant_from_flight(attendant_id, flight_id, airplane_id=None):
     """Remove a flight attendant assignment from a flight."""
     sql = """
         DELETE FROM FlightAttendant_has_Flights 
         WHERE FlightAttendant_Id = %s 
-          AND Flights_FlightId = %s 
-          AND Flights_Airplanes_AirplaneId = %s
+          AND Flights_FlightId = %s
     """
-    return execute_query(sql, (attendant_id, flight_id, airplane_id), commit=True)
+    return execute_query(sql, (attendant_id, flight_id), commit=True)
 
 
-def delete_all_attendants_from_flight(flight_id, airplane_id):
+def delete_all_attendants_from_flight(flight_id, airplane_id=None):
     """Remove all flight attendant assignments from a flight."""
     sql = """
         DELETE FROM FlightAttendant_has_Flights 
-        WHERE Flights_FlightId = %s AND Flights_Airplanes_AirplaneId = %s
+        WHERE Flights_FlightId = %s
     """
-    return execute_query(sql, (flight_id, airplane_id), commit=True)
+    return execute_query(sql, (flight_id,), commit=True)
 
 
 # ============ COMBINED CREW OPERATIONS ============

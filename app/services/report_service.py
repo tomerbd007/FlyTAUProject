@@ -76,9 +76,8 @@ def get_average_occupancy():
             ) AS occupancy_pct
         FROM Flights f
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
-        LEFT JOIN Tickets t ON f.FlightId = t.Flights_FlightId 
-            AND f.Airplanes_AirplaneId = t.Flights_Airplanes_AirplaneId
-        LEFT JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
+        LEFT JOIN orders o ON f.FlightId = o.Flights_FlightId
+        LEFT JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
         WHERE f.Status = 'occurred' AND (o.Status IS NULL OR o.Status != 'cancelled')
         GROUP BY f.FlightId, f.Airplanes_AirplaneId, f.DepartureDate, f.OriginPort, f.DestPort, a.Manufacturer
         ORDER BY f.DepartureDate DESC
@@ -89,6 +88,7 @@ def get_average_occupancy():
 def get_revenue_by_aircraft():
     """
     Get revenue breakdown by aircraft manufacturer and seat class.
+    Revenue is calculated from order TotalCost (which reflects actual payments).
     
     Returns:
         List of dicts with revenue data
@@ -97,12 +97,11 @@ def get_revenue_by_aircraft():
         SELECT 
             a.Manufacturer,
             t.Class,
-            SUM(t.Price) AS total_revenue,
+            SUM(CASE WHEN t.Class = 'business' THEN f.BusinessPrice ELSE f.EconomyPrice END) AS total_revenue,
             COUNT(t.TicketId) AS tickets_sold
         FROM Tickets t
         JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
-        JOIN Flights f ON t.Flights_FlightId = f.FlightId 
-            AND t.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
         WHERE o.Status = 'confirmed'
         GROUP BY a.Manufacturer, t.Class
@@ -184,8 +183,7 @@ def get_monthly_cancellation_rate():
                 1
             ) AS cancellation_rate_pct
         FROM orders o
-        JOIN Flights f ON o.Flights_FlightId = f.FlightId 
-            AND o.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         GROUP BY DATE_FORMAT(f.DepartureDate, '%Y-%m')
         ORDER BY month DESC
     """

@@ -166,62 +166,62 @@ INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, Depar
 -- =============================================================================
 -- PILOT ASSIGNMENTS
 -- =============================================================================
-INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
-('P001', 'FT101', 'A001'),
-('P002', 'FT101', 'A001'),
-('P003', 'FT101', 'A001'),
-('P004', 'FT102', 'A003'),
-('P005', 'FT102', 'A003'),
-('P007', 'FT103', 'A005'),
-('P008', 'FT103', 'A005'),
-('P009', 'FT104', 'A002'),
-('P010', 'FT104', 'A002');
+INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId) VALUES
+('P001', 'FT101'),
+('P002', 'FT101'),
+('P003', 'FT101'),
+('P004', 'FT102'),
+('P005', 'FT102'),
+('P007', 'FT103'),
+('P008', 'FT103'),
+('P009', 'FT104'),
+('P010', 'FT104');
 
 -- =============================================================================
 -- FLIGHT ATTENDANT ASSIGNMENTS
 -- =============================================================================
-INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
-('A001', 'FT101', 'A001'),
-('A002', 'FT101', 'A001'),
-('A003', 'FT101', 'A001'),
-('A004', 'FT101', 'A001'),
-('A005', 'FT101', 'A001'),
-('A006', 'FT101', 'A001'),
-('A007', 'FT102', 'A003'),
-('A008', 'FT102', 'A003'),
-('A009', 'FT102', 'A003'),
-('A010', 'FT102', 'A003'),
-('A013', 'FT103', 'A005'),
-('A014', 'FT103', 'A005'),
-('A015', 'FT103', 'A005'),
-('A016', 'FT104', 'A002'),
-('A017', 'FT104', 'A002'),
-('A018', 'FT104', 'A002'),
-('A019', 'FT104', 'A002');
+INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId) VALUES
+('A001', 'FT101'),
+('A002', 'FT101'),
+('A003', 'FT101'),
+('A004', 'FT101'),
+('A005', 'FT101'),
+('A006', 'FT101'),
+('A007', 'FT102'),
+('A008', 'FT102'),
+('A009', 'FT102'),
+('A010', 'FT102'),
+('A013', 'FT103'),
+('A014', 'FT103'),
+('A015', 'FT103'),
+('A016', 'FT104'),
+('A017', 'FT104'),
+('A018', 'FT104'),
+('A019', 'FT104');
 
 -- =============================================================================
 -- ORDERS (2 confirmed)
 -- =============================================================================
-INSERT INTO orders (UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail, Class) VALUES
-('FLY-ABC123', 'FT101', 'A001', 1000.00, 'confirmed', NULL, 'customer1@example.com', 'economy'),
-('FLY-DEF456', 'FT102', 'A003', 900.00, 'confirmed', NULL, 'customer2@example.com', 'business');
+INSERT INTO orders (UniqueOrderCode, Flights_FlightId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail) VALUES
+('FLY-ABC123', 'FT101', 1000.00, 'confirmed', NULL, 'customer1@example.com'),
+('FLY-DEF456', 'FT102', 900.00, 'confirmed', NULL, 'customer2@example.com');
 
 -- =============================================================================
 -- TICKETS
 -- =============================================================================
-INSERT INTO Tickets (orders_UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, RowNum, Seat, Class, Price) VALUES
-('FLY-ABC123', 'FT101', 'A001', 6, 'A', 'economy', 500.00),
-('FLY-ABC123', 'FT101', 'A001', 6, 'B', 'economy', 500.00),
-('FLY-DEF456', 'FT102', 'A003', 1, 'A', 'business', 900.00);
+INSERT INTO Tickets (orders_UniqueOrderCode, RowNum, Seat, Class) VALUES
+('FLY-ABC123', 6, 'A', 'economy'),
+('FLY-ABC123', 6, 'B', 'economy'),
+('FLY-DEF456', 1, 'A', 'business');
 
 -- =============================================================================
 -- MANAGER EDITS (audit trail)
 -- =============================================================================
-INSERT INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
-('M001', 'FT101', 'A001'),
-('M001', 'FT102', 'A003'),
-('M002', 'FT103', 'A005'),
-('M002', 'FT104', 'A002');
+INSERT INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId) VALUES
+('M001', 'FT101'),
+('M001', 'FT102'),
+('M002', 'FT103'),
+('M002', 'FT104');
 
 -- =============================================================================
 -- ROUTES - All airport combinations with calculated durations

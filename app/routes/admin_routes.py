@@ -393,31 +393,35 @@ def register_admin_routes(app):
     def cancel_flight(flight_id):
         """Cancel a flight (72h rule applies)."""
         airplane_id = request.args.get('airplane_id')
-        flight = flight_service.get_flight_details(flight_id, airplane_id)
         
-        if not flight:
+        # Get flight details for cancellation check
+        flight_raw = flight_service.get_flight_details(flight_id, airplane_id)
+        
+        if not flight_raw:
             flash('Flight not found.', 'error')
             return redirect(url_for('admin_flights'))
         
         # Check if cancellation is allowed
-        can_cancel, message = admin_service.can_cancel_flight(flight)
+        can_cancel, message = admin_service.can_cancel_flight(flight_raw)
         
         if not can_cancel:
             flash(message, 'error')
             return redirect(url_for('admin_flights'))
         
-        # Get affected orders count
-        affected_orders = admin_service.get_affected_orders_count(flight_id)
-        
         if request.method == 'POST':
             try:
                 admin_service.cancel_flight(flight_id)
                 flash('Flight canceled. All active orders have been credited.', 'success')
-                return redirect(url_for('admin_flights'))
+                return redirect(url_for('admin_dashboard'))
             except Exception as e:
                 flash(f'Error canceling flight: {str(e)}', 'error')
-                return redirect(url_for('admin_flights'))
+                return redirect(url_for('admin_dashboard'))
+        
+        # Get transformed flight info for template
+        flight_info = admin_service.get_flight_cancellation_info(flight_id, airplane_id)
         
         return render_template('admin/cancel_flight.html',
-                               flight=flight,
-                               affected_orders=affected_orders)
+                               flight=flight_info,
+                               affected_orders=flight_info['affected_orders'],
+                               affected_tickets=flight_info['affected_tickets'],
+                               total_refund=flight_info['total_refund'])
