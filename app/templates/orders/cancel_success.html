@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Order Canceled - FLYTAU{% endblock %}
+
+{% block content %}
+<style>
+    .order-shell { display: flex; min-height: calc(100vh - 150px); position: relative; }
+    .order-shell::before { content: ''; position: absolute; left: 0; top: 0; width: 45%; height: 100%; background: linear-gradient(135deg, #1a3a52 0%, #2d5a7b 100%); z-index: 0; }
+    .order-card { display: flex; width: 100%; position: relative; z-index: 1; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14); border-radius: 18px; overflow: hidden; background: transparent; }
+    .order-sidebar { width: 45%; padding: 60px 40px; color: #f8fbff; display: flex; flex-direction: column; gap: 18px; justify-content: center; }
+    .order-sidebar .logo { font-size: 2.4rem; font-weight: 700; letter-spacing: -1px; }
+    .order-sidebar h1 { margin: 0; font-size: 1.8rem; font-weight: 600; }
+    .order-sidebar p { margin: 0; opacity: 0.9; line-height: 1.6; }
+    .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.12); font-weight: 700; text-transform: capitalize; color: #ffd6d6; }
+    .order-sidebar .meta { display: grid; gap: 10px; margin-top: 10px; font-size: 0.95rem; }
+
+    .order-main { width: 55%; background: #ffffff; padding: 50px 48px; display: flex; flex-direction: column; gap: 22px; }
+    .order-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .order-header .title { margin: 0; color: #1a3a52; font-size: 1.6rem; }
+    .order-header .back-link { color: #1a3a52; text-decoration: none; font-weight: 600; }
+
+    .card { border: 1px solid #e7edf5; border-radius: 14px; padding: 18px; background: #fbfdff; box-shadow: 0 10px 24px rgba(0,0,0,0.04); }
+    .card h2 { margin: 0 0 12px; color: #1a3a52; }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .info-item { display: grid; gap: 4px; }
+    .info-item .label { color: #6b7b8c; font-weight: 600; font-size: 0.9rem; }
+    .info-item .value { color: #1a3a52; font-weight: 700; }
+
+    .payment-breakdown { display: grid; gap: 10px; }
+    .payment-row { display: flex; justify-content: space-between; color: #1a3a52; }
+    .payment-row.total { font-weight: 700; font-size: 1.05rem; }
+    .payment-row.refund { color: #c0392b; }
+
+    .actions { display: grid; gap: 10px; margin-top: 6px; }
+    .btn-block { display: block; width: 100%; text-align: center; padding: 12px 14px; border-radius: 10px; text-decoration: none; font-weight: 700; }
+    .btn-primary { background: #1a3a52; color: #fff; }
+    .btn-secondary { background: #f2f4f8; color: #1a3a52; }
+
+    @media (max-width: 1024px) {
+        .order-shell::before { width: 100%; height: 240px; }
+        .order-card { flex-direction: column; border-radius: 0; box-shadow: none; }
+        .order-sidebar { width: 100%; padding: 40px 28px; text-align: center; }
+        .order-main { width: 100%; padding: 32px 24px; margin-top: -20px; border-radius: 20px 20px 0 0; }
+    }
+    @media (max-width: 640px) { .info-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="order-shell">
+    <div class="order-card">
+        <div class="order-sidebar">
+            <div class="logo">FLYTAU</div>
+            <h1>Order {{ order.booking_code }}</h1>
+            <div class="status-pill">Cancelled</div>
+            <div class="meta">
+                <div><strong>Email:</strong> {{ order.email }}</div>
+                <div><strong>Flight:</strong> {{ order.flight_number }}</div>
+                <div><strong>Cancelled:</strong> {{ canceled_at if canceled_at else "Just now" }}</div>
+            </div>
+            <p>Your order has been canceled. If a refund applies, we have recorded it below.</p>
+        </div>
+
+        <div class="order-main">
+            <div class="order-header">
+                <h2 class="title">Cancellation Receipt</h2>
+                <a href="{{ url_for('my_orders') }}" class="back-link">← Back to My Orders</a>
+            </div>
+
+            <div class="card">
+                <h2>Summary</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Booking Code</span>
+                        <span class="value">{{ order.booking_code }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Status</span>
+                        <span class="value">Cancelled</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Contact Email</span>
+                        <span class="value">{{ order.email }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Refund Details</h2>
+                <div class="payment-breakdown">
+                    <div class="payment-row">
+                        <span>Original Charge</span>
+                        <span>${{ "%.2f"|format(order.total_amount if order.total_amount is not none else 0) }}</span>
+                    </div>
+                    <div class="payment-row refund">
+                        <span>Cancellation Fee (5%)</span>
+                        <span>-${{ "%.2f"|format(order.cancellation_fee if order.cancellation_fee is not none else 0) }}</span>
+                    </div>
+                    <div class="payment-row total">
+                        <span>Refund Amount</span>
+                        <span>${{ "%.2f"|format(order.refund_amount if order.refund_amount is not none else 0) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Next Steps</h2>
+                <div class="actions">
+                    <a href="{{ url_for('my_orders') }}" class="btn-block btn-primary">Back to My Orders</a>
+                    <a href="{{ url_for('flights') }}" class="btn-block btn-secondary">Book Another Flight</a>
+                </div>
+                <p style="margin-top:10px; color:#6b7b8c;">Refunds typically post within 5-7 business days, depending on your payment provider.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
