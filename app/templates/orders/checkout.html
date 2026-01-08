@@ -302,6 +302,7 @@
         border-bottom: 1px solid #e5e5e5;
         text-align: left;
         font-size: 0.95rem;
+        color: #333;
     }
 
     .order-table th {
@@ -591,30 +592,6 @@
                         </ul>
                     </div>
                 </div>
-            </div>
-            {% else %}
-            <div class="logged-in-info">
-                <h2>Booking As</h2>
-                <p><strong>{{ session.get('user_name') }}</strong></p>
-                <p>{{ session.get('user_email') }}</p>
-            </div>
-            {% endif %}
-            
-            <div class="terms-section">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="terms" required>
-                    <span>I agree to the <a href="#">Terms and Conditions</a> and understand the <a href="#">Cancellation Policy</a></span>
-                </label>
-            </div>
-            
-            <div class="checkout-actions">
-                <a href="{{ url_for('seat_selection', flight_id=flight.FlightId) }}?airplane_id={{ flight.Airplanes_AirplaneId }}&passengers={{ seats|length }}" 
-                   class="btn btn-secondary">
-                    ← Change Seats
-                </a>
-                <button type="submit" class="btn btn-primary btn-lg">
-                    Complete Booking
-                </button>
             </div>
         </form>
     </div>
