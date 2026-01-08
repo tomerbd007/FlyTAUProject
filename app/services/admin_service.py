@@ -241,13 +241,14 @@ def get_airplane_by_id(airplane_id):
     return aircraft_repository.get_airplane_by_id(airplane_id)
 
 
-def get_available_airplanes(departure_datetime, arrival_datetime, for_long_flight=False):
+def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport=None, for_long_flight=False):
     """
     Get airplanes available for a flight.
     
     Args:
         departure_datetime: Flight departure time
         arrival_datetime: Flight arrival time
+        origin_airport: Origin airport code - only return aircraft at this location
         for_long_flight: Whether this is a long flight (> 6 hours)
     
     Returns:
@@ -259,14 +260,15 @@ def get_available_airplanes(departure_datetime, arrival_datetime, for_long_fligh
         - An airplane is considered 'big' if it has Business config (not null)
         - An airplane is unavailable if it has any flight that overlaps with the
           requested time period (from departure to landing)
+        - An airplane must be located at origin_airport at departure time
     """
     if isinstance(departure_datetime, str):
         departure_datetime = datetime.fromisoformat(departure_datetime)
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    # Repository now checks for time overlap, not just date
-    airplanes = aircraft_repository.get_available_airplanes(departure_datetime, arrival_datetime)
+    # Repository now checks for time overlap AND location
+    airplanes = aircraft_repository.get_available_airplanes(departure_datetime, arrival_datetime, origin_airport)
     
     # For long flights, only big airplanes are allowed
     # A big airplane has Business class seats (business_seats > 0)
@@ -286,19 +288,21 @@ def get_available_airplanes(departure_datetime, arrival_datetime, for_long_fligh
             'economy_seats': airplane['economy_seats'],
             'business_seats': airplane['business_seats'],
             'size': airplane['size'],
-            'is_available': True  # All returned aircraft are available
+            'is_available': True,  # All returned aircraft are available
+            'current_location': airplane.get('current_location', origin_airport)
         })
     
     return result
 
 
-def get_available_pilots(departure_datetime, arrival_datetime, for_long_flight=False):
+def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=None, for_long_flight=False):
     """
     Get pilots available for a flight.
     
     Args:
         departure_datetime: Flight departure time
         arrival_datetime: Flight arrival time
+        origin_airport: Origin airport code - only return pilots at this location
         for_long_flight: Whether this is a long flight
     
     Returns:
@@ -309,24 +313,25 @@ def get_available_pilots(departure_datetime, arrival_datetime, for_long_flight=F
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    # Repository expects just the departure date
-    departure_date = departure_datetime.date()
-    
+    # Repository now uses datetime for time overlap check and location filter
     pilots = crew_repository.get_available_pilots(
-        departure_date,
+        departure_datetime,
+        arrival_datetime,
+        origin_airport,
         require_long_flight_cert=for_long_flight
     )
     
     return pilots if pilots else []
 
 
-def get_available_attendants(departure_datetime, arrival_datetime, for_long_flight=False):
+def get_available_attendants(departure_datetime, arrival_datetime, origin_airport=None, for_long_flight=False):
     """
     Get attendants available for a flight.
     
     Args:
         departure_datetime: Flight departure time
         arrival_datetime: Flight arrival time
+        origin_airport: Origin airport code - only return attendants at this location
         for_long_flight: Whether this is a long flight
     
     Returns:
@@ -337,11 +342,11 @@ def get_available_attendants(departure_datetime, arrival_datetime, for_long_flig
     if isinstance(arrival_datetime, str):
         arrival_datetime = datetime.fromisoformat(arrival_datetime)
     
-    # Repository expects just the departure date
-    departure_date = departure_datetime.date()
-    
+    # Repository now uses datetime for time overlap check and location filter
     attendants = crew_repository.get_available_flight_attendants(
-        departure_date,
+        departure_datetime,
+        arrival_datetime,
+        origin_airport,
         require_long_flight_cert=for_long_flight
     )
     

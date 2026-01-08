@@ -118,11 +118,11 @@
     <p>Your journey in the Middle East begins here — search flights, choose seats, and manage bookings easily.</p>
 
     <div class="hero-search" aria-hidden="false">
-        <form action="{{ url_for('flight_search') }}" method="GET" class="search-form" role="search" aria-label="Flight search">
+        <form action="{{ url_for('flight_search_results') }}" method="GET" class="search-form" role="search" aria-label="Flight search">
             <div class="wide-search">
                 <div class="form-group">
-                    <label for="departure_date">Departure Date</label>
-                    <input type="date" id="departure_date" name="departure_date" required>
+                    <label for="date">Departure Date</label>
+                    <input type="date" id="date" name="date" required min="{{ today }}">
                 </div>
 
                 <div class="form-group">

@@ -236,21 +236,26 @@ def register_admin_routes(app):
             return redirect(url_for('add_flight_step3'))
         
         # Get available aircraft (big planes only for long flights, all for short)
+        # Also filter by location - aircraft must be at origin airport
+        origin_airport = flight_data.get('origin')
         aircraft_list = admin_service.get_available_airplanes(
             flight_data['departure_datetime'],
             flight_data['arrival_datetime'],
+            origin_airport,
             is_long_flight
         )
         
-        # Get available crew
+        # Get available crew (also filter by location - must be at origin airport)
         available_pilots = admin_service.get_available_pilots(
             flight_data['departure_datetime'],
             flight_data['arrival_datetime'],
+            origin_airport,
             is_long_flight
         )
         available_attendants = admin_service.get_available_attendants(
             flight_data['departure_datetime'],
             flight_data['arrival_datetime'],
+            origin_airport,
             is_long_flight
         )
         
