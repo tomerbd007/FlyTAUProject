@@ -17,5 +17,6 @@ if __name__ == '__main__':
     app.run(
         host='127.0.0.1',
         port=5001,  # Changed from 5000 - macOS uses 5000 for AirPlay
-        debug=True
+        debug=False,  # Disabled to avoid conda/venv ctypes conflict
+        use_reloader=False
     )

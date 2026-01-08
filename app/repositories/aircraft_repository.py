@@ -14,10 +14,10 @@ from app.db import execute_query
 
 def parse_seat_config(config_str):
     """
-    Parse seat configuration string "rows,cols" into tuple (rows, cols).
+    Parse seat configuration string "rows,cols" or "rows cols" into tuple (rows, cols).
     
     Args:
-        config_str: String like "20,6" or "(20,6)" or "20, 6"
+        config_str: String like "20,6" or "(20,6)" or "20, 6" or "20 6"
     
     Returns:
         Tuple of (rows, cols) as integers, or (0, 0) if parsing fails
@@ -25,11 +25,15 @@ def parse_seat_config(config_str):
     if not config_str:
         return (0, 0)
     try:
-        # Remove parentheses and spaces
-        cleaned = config_str.replace('(', '').replace(')', '').replace(' ', '')
-        parts = cleaned.split(',')
+        # Remove parentheses and extra spaces
+        cleaned = config_str.replace('(', '').replace(')', '').strip()
+        # Split by comma or space
+        if ',' in cleaned:
+            parts = cleaned.split(',')
+        else:
+            parts = cleaned.split()
         if len(parts) >= 2:
-            return (int(parts[0]), int(parts[1]))
+            return (int(parts[0].strip()), int(parts[1].strip()))
     except (ValueError, IndexError):
         pass
     return (0, 0)
@@ -67,8 +71,8 @@ def get_airplane_by_id(airplane_id):
         result['business_seats'] = business_rows * business_cols
         result['total_seats'] = result['economy_seats'] + result['business_seats']
         
-        # Determine size based on total seats (large >= 100 seats)
-        result['size'] = 'large' if result['total_seats'] >= 100 else 'small'
+        # Determine size: Big = has Business class, Small = no Business class
+        result['size'] = 'large' if result['business_seats'] > 0 else 'small'
     return result
 
 
@@ -98,39 +102,98 @@ def get_all_airplanes():
         airplane['economy_seats'] = economy_rows * economy_cols
         airplane['business_seats'] = business_rows * business_cols
         airplane['total_seats'] = airplane['economy_seats'] + airplane['business_seats']
-        airplane['size'] = 'large' if airplane['total_seats'] >= 100 else 'small'
+        # Determine size: Big = has Business class, Small = no Business class
+        airplane['size'] = 'large' if airplane['business_seats'] > 0 else 'small'
         parsed_results.append(airplane)
     
     return parsed_results
 
 
-def get_available_airplanes(departure_date):
+# Default home base airport (where aircraft start if no flight history)
+HOME_BASE_AIRPORT = 'TLV'
+
+
+def get_aircraft_location_at_time(airplane_id, at_datetime):
     """
-    Get airplanes not assigned to flights on the given date.
+    Determine where an aircraft will be at a given datetime.
+    
+    Logic:
+    - Find the most recent flight (by landing time) that lands before at_datetime
+    - If found, aircraft is at that flight's destination (DestPort)
+    - If no prior flight, assume aircraft starts at HOME_BASE_AIRPORT
     
     Args:
-        departure_date: Date to check availability (DATE or string 'YYYY-MM-DD')
+        airplane_id: The airplane ID to check
+        at_datetime: The datetime to check location at
+    
+    Returns:
+        Airport code string (e.g., 'TLV', 'JFK')
     """
     sql = """
+        SELECT f.DestPort
+        FROM Flights f
+        WHERE f.Airplanes_AirplaneId = %s
+          AND f.Status IN ('active', 'full', 'done')
+          AND DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) <= %s
+        ORDER BY DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) DESC
+        LIMIT 1
+    """
+    result = execute_query(sql, (airplane_id, at_datetime), fetch_one=True)
+    
+    if result:
+        return result['DestPort']
+    return HOME_BASE_AIRPORT
+
+
+def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport=None):
+    """
+    Get airplanes not assigned to flights during the given time range.
+    
+    An airplane is available if:
+    1. Not assigned to any overlapping flight (departure to landing)
+    2. Located at origin_airport at departure time (if origin_airport specified)
+    
+    Args:
+        departure_datetime: Departure datetime of the new flight
+        arrival_datetime: Arrival/landing datetime of the new flight
+        origin_airport: Origin airport code - only return aircraft at this location
+    """
+    # Get all airplanes
+    sql_all = """
         SELECT a.AirplaneId, a.PurchaseDate, a.Manufacturer, 
                a.`Couch (Rows, Cols)` as EconomyConfig,
                a.`Business (Rows, Cols)` as BusinessConfig
         FROM Airplanes a
-        WHERE a.AirplaneId NOT IN (
-            SELECT f.Airplanes_AirplaneId
-            FROM Flights f
-            WHERE f.Status IN ('scheduled', 'active')
-              AND f.DepartureDate = %s
-        )
         ORDER BY a.Manufacturer, a.AirplaneId
     """
-    results = execute_query(sql, (departure_date,))
-    if not results:
+    all_airplanes = execute_query(sql_all)
+    if not all_airplanes:
         return []
     
+    # Get busy airplane IDs (those with overlapping flights)
+    # A flight overlaps if: existing_departure < new_arrival AND existing_arrival > new_departure
+    sql_busy = """
+        SELECT DISTINCT f.Airplanes_AirplaneId
+        FROM Flights f
+        WHERE f.Status IN ('active', 'full')
+          AND (
+              -- Calculate existing flight's departure datetime
+              TIMESTAMP(f.DepartureDate, f.DepartureHour) < %s
+              AND 
+              -- Calculate existing flight's arrival datetime (departure + duration minutes)
+              DATE_ADD(TIMESTAMP(f.DepartureDate, f.DepartureHour), INTERVAL f.Duration MINUTE) > %s
+          )
+    """
+    busy_results = execute_query(sql_busy, (arrival_datetime, departure_datetime))
+    busy_ids = set(row['Airplanes_AirplaneId'] for row in busy_results) if busy_results else set()
+    
     parsed_results = []
-    for row in results:
+    for row in all_airplanes:
         airplane = dict(row)
+        # Skip if airplane is busy
+        if airplane['AirplaneId'] in busy_ids:
+            continue
+            
         economy_rows, economy_cols = parse_seat_config(airplane.get('EconomyConfig'))
         business_rows, business_cols = parse_seat_config(airplane.get('BusinessConfig'))
         
@@ -141,7 +204,16 @@ def get_available_airplanes(departure_date):
         airplane['economy_seats'] = economy_rows * economy_cols
         airplane['business_seats'] = business_rows * business_cols
         airplane['total_seats'] = airplane['economy_seats'] + airplane['business_seats']
-        airplane['size'] = 'large' if airplane['total_seats'] >= 100 else 'small'
+        # Determine size: Big = has Business class, Small = no Business class
+        airplane['size'] = 'large' if airplane['business_seats'] > 0 else 'small'
+        
+        # Check location if origin_airport specified
+        if origin_airport:
+            aircraft_location = get_aircraft_location_at_time(airplane['AirplaneId'], departure_datetime)
+            if aircraft_location != origin_airport:
+                continue  # Skip aircraft not at origin
+            airplane['current_location'] = aircraft_location
+        
         parsed_results.append(airplane)
     
     return parsed_results

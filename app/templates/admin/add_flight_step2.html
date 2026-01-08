@@ -242,14 +242,17 @@
 
     .aircraft-option {
         display: block;
+        cursor: pointer;
     }
 
     .aircraft-option input {
-        display: none;
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
     }
 
     .aircraft-card {
-        border: 1px solid #dce6ef;
+        border: 2px solid #dce6ef;
         border-radius: 8px;
         padding: 14px;
         background: white;
@@ -257,16 +260,39 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        cursor: pointer;
+    }
+
+    .aircraft-card:hover {
+        border-color: #4b6a82;
+        box-shadow: 0 2px 8px rgba(26, 58, 82, 0.1);
     }
 
     .aircraft-option input:checked + .aircraft-card {
         border-color: #1a3a52;
-        box-shadow: 0 4px 16px rgba(26, 58, 82, 0.08);
+        background: #f0f7fc;
+        box-shadow: 0 4px 16px rgba(26, 58, 82, 0.15);
     }
 
-    .aircraft-option.disabled .aircraft-card {
-        opacity: 0.55;
-        pointer-events: none;
+    .aircraft-option input:checked + .aircraft-card::before {
+        content: '✓';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #1a3a52;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .aircraft-card {
+        position: relative;
     }
 
     .aircraft-header {
@@ -326,10 +352,36 @@
         font-weight: 600;
     }
 
+    .crew-section {
+        margin-top: 20px;
+    }
+
+    .crew-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
     .crew-section h4 {
-        margin: 0 0 6px 0;
+        margin: 0;
         font-size: 1rem;
         color: #1a3a52;
+    }
+
+    .selection-counter {
+        background: #e8f4fc;
+        color: #1a3a52;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        border: 1px solid #c5dff0;
+    }
+
+    .selection-counter strong {
+        color: #0d6efd;
     }
 
     .selection-hint {
@@ -344,24 +396,56 @@
         gap: 12px;
     }
 
+    .crew-option {
+        display: block;
+        cursor: pointer;
+    }
+
     .crew-option input {
-        margin-right: 10px;
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
     }
 
     .crew-card {
-        border: 1px solid #dce6ef;
+        border: 2px solid #dce6ef;
         border-radius: 8px;
         padding: 12px;
         background: white;
         display: flex;
         flex-direction: column;
         gap: 6px;
-        transition: border 0.2s ease, box-shadow 0.2s ease;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .crew-card:hover {
+        border-color: #4b6a82;
+        box-shadow: 0 2px 8px rgba(26, 58, 82, 0.1);
     }
 
     .crew-option input:checked + .crew-card {
         border-color: #1a3a52;
-        box-shadow: 0 4px 14px rgba(26, 58, 82, 0.07);
+        background: #f0f7fc;
+        box-shadow: 0 4px 14px rgba(26, 58, 82, 0.12);
+    }
+
+    .crew-option input:checked + .crew-card::before {
+        content: '✓';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #1a3a52;
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
     }
 
     .crew-name {
@@ -519,6 +603,17 @@
             <h1>Add New Flight</h1>
             <p>Select aircraft and assign crew for this flight</p>
         </div>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" style="background: {% if category == 'error' %}#f8d7da{% else %}#d4edda{% endif %}; color: {% if category == 'error' %}#721c24{% else %}#155724{% endif %}; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         <div class="wizard-steps">
             <div class="step completed">
@@ -563,11 +658,10 @@
                     {% if aircraft_list %}
                     <div class="aircraft-selection">
                         {% for aircraft in aircraft_list %}
-                        <label class="aircraft-option {% if not aircraft.is_available %}disabled{% endif %}">
+                        <label class="aircraft-option">
                             <input type="radio" 
                                    name="aircraft_id" 
                                    value="{{ aircraft.id }}"
-                                   {% if not aircraft.is_available %}disabled{% endif %}
                                    {% if request.form.get('aircraft_id')|int == aircraft.id %}checked{% endif %}
                                    required>
                             <div class="aircraft-card">
@@ -585,11 +679,6 @@
                                         <span class="value">{{ aircraft.size|capitalize }}</span>
                                     </span>
                                 </div>
-                                {% if not aircraft.is_available %}
-                                <div class="unavailable-reason">
-                                    {{ aircraft.unavailable_reason }}
-                                </div>
-                                {% endif %}
                             </div>
                         </label>
                         {% endfor %}
@@ -616,8 +705,10 @@
                     </div>
                     
                     <div class="crew-section">
-                        <h4>Pilots</h4>
-                        <p class="selection-hint">Select pilots for this flight</p>
+                        <div class="crew-section-header">
+                            <h4>Pilots</h4>
+                            <span class="selection-counter">Select <strong>2</strong> (small) or <strong>3</strong> (large aircraft)</span>
+                        </div>
                         
                         <div class="crew-grid">
                             {% for pilot in available_pilots %}
@@ -639,8 +730,10 @@
                     </div>
                     
                     <div class="crew-section">
-                        <h4>Flight Attendants</h4>
-                        <p class="selection-hint">Select flight attendants for this flight</p>
+                        <div class="crew-section-header">
+                            <h4>Flight Attendants</h4>
+                            <span class="selection-counter">Select <strong>3</strong> (small) or <strong>6</strong> (large aircraft)</span>
+                        </div>
                         
                         <div class="crew-grid">
                             {% for attendant in available_attendants %}

@@ -203,11 +203,11 @@ def get_monthly_aircraft_activity():
         SELECT 
             f.month,
             a.Manufacturer AS aircraft,
-            SUM(CASE WHEN f.Status = 'occurred' THEN 1 ELSE 0 END) AS flights_completed,
-            SUM(CASE WHEN f.Status = 'canceled' THEN 1 ELSE 0 END) AS flights_canceled,
+            SUM(CASE WHEN f.Status = 'done' THEN 1 ELSE 0 END) AS flights_completed,
+            SUM(CASE WHEN f.Status = 'cancelled' THEN 1 ELSE 0 END) AS flights_canceled,
             COUNT(*) AS total_flights,
             ROUND(
-                SUM(CASE WHEN f.Status = 'occurred' THEN 1 ELSE 0 END) * 100.0 / 
+                SUM(CASE WHEN f.Status = 'done' THEN 1 ELSE 0 END) * 100.0 / 
                 NULLIF(COUNT(*), 0),
                 1
             ) AS utilization_pct,

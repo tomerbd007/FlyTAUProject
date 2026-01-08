@@ -26,35 +26,47 @@ def register_order_routes(app):
             return redirect(url_for('flights'))
         
         flight_id = checkout_data['flight_id']
+        airplane_id = checkout_data.get('airplane_id')
         selected_seats = checkout_data['seats']
         
         # Get flight details
-        flight = flight_service.get_flight_details(flight_id)
+        flight = flight_service.get_flight_details(flight_id, airplane_id)
         if not flight:
             flash('Flight not found.', 'error')
             session.pop('checkout', None)
             return redirect(url_for('flights'))
         
         # Get seat details with prices
-        seats_info = flight_service.get_seats_by_codes(flight_id, selected_seats)
+        seats_info = flight_service.get_seats_by_codes(flight_id, airplane_id, selected_seats)
         
         if request.method == 'POST':
-            # Collect passenger names for each seat
-            passengers = {}
-            for seat_code in selected_seats:
-                passenger_name = request.form.get(f'passenger_{seat_code}', '').strip()
-                if not passenger_name:
-                    flash(f'Please enter passenger name for seat {seat_code}.', 'error')
+            # Guest info if not logged in as customer
+            guest_email = None
+            guest_first_name = None
+            guest_last_name = None
+            registered_email = None
+            
+            if session.get('user_id') and session.get('role') == 'customer':
+                # Logged in customer - use their email
+                registered_email = session.get('user_email')
+            else:
+                # Guest checkout - collect their info
+                guest_first_name = request.form.get('first_name', '').strip()
+                guest_last_name = request.form.get('last_name', '').strip()
+                guest_email = request.form.get('email', '').strip()
+                
+                if not guest_first_name:
+                    flash('Please enter your first name.', 'error')
                     return render_template('orders/checkout.html',
                                            flight=flight,
                                            seats=seats_info,
                                            total=sum(s['price'] for s in seats_info))
-                passengers[seat_code] = passenger_name
-            
-            # Guest email if not logged in
-            guest_email = None
-            if not session.get('user_id') or session.get('role') != 'customer':
-                guest_email = request.form.get('guest_email', '').strip()
+                if not guest_last_name:
+                    flash('Please enter your last name.', 'error')
+                    return render_template('orders/checkout.html',
+                                           flight=flight,
+                                           seats=seats_info,
+                                           total=sum(s['price'] for s in seats_info))
                 if not guest_email:
                     flash('Please enter your email address.', 'error')
                     return render_template('orders/checkout.html',
@@ -62,15 +74,27 @@ def register_order_routes(app):
                                            seats=seats_info,
                                            total=sum(s['price'] for s in seats_info))
             
+            # Prepare seats for order service (needs row, seat, class format)
+            order_seats = []
+            for seat in seats_info:
+                order_seats.append({
+                    'row': seat['row'],
+                    'seat': seat['col'],
+                    'class': seat['seat_class']
+                })
+            
             # Create order
             try:
-                customer_id = session.get('user_id') if session.get('role') == 'customer' else None
                 booking_code = order_service.create_order(
                     flight_id=flight_id,
-                    seats_info=seats_info,
-                    passengers=passengers,
-                    customer_id=customer_id,
-                    guest_email=guest_email
+                    airplane_id=airplane_id,
+                    selected_seats=order_seats,
+                    economy_price=flight.get('EconomyPrice', 0),
+                    business_price=flight.get('BusinessPrice', 0),
+                    registered_email=registered_email,
+                    guest_email=guest_email,
+                    guest_first_name=guest_first_name,
+                    guest_last_name=guest_last_name
                 )
                 
                 # Clear checkout session
