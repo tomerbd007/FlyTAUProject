@@ -614,16 +614,15 @@ def build_seat_map(flight_id, airplane_id, exclude_seats=None):
     return seat_map
 
 
-def update_flight_status(flight_id, airplane_id, new_status):
+def update_flight_status(flight_id, new_status):
     """
     Update a flight's status.
     
     Args:
         flight_id: Flight ID
-        airplane_id: Airplane ID
         new_status: New status value
     """
-    flight_repository.update_flight_status(flight_id, airplane_id, new_status)
+    flight_repository.update_flight_status(flight_id, new_status)
 
 
 def check_flight_full(flight_id, airplane_id):
@@ -632,17 +631,12 @@ def check_flight_full(flight_id, airplane_id):
     
     Args:
         flight_id: Flight ID
-        airplane_id: Airplane ID
+        airplane_id: Airplane ID (used for seat availability check)
     """
     availability = get_seat_availability(flight_id, airplane_id)
     
     total_available = 0
     for seat_class in availability.values():
-        if seat_class:
-            total_available += seat_class.get('available', 0)
-    
-    if total_available == 0:
-        update_flight_status(flight_id, airplane_id, 'full')
         if seat_class:
             total_available += seat_class.get('available', 0)
     

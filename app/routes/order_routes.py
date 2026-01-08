@@ -48,7 +48,7 @@ def register_order_routes(app):
             
             if session.get('user_id') and session.get('role') == 'customer':
                 # Logged in customer - use their email
-                registered_email = session.get('user_email')
+                registered_email = session.get('email')
             else:
                 # Guest checkout - collect their info
                 guest_first_name = request.form.get('first_name', '').strip()
