@@ -3,56 +3,6 @@
 {% block title %}Checkout - FLYTAU{% endblock %}
 
 {% block content %}
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<div class="page-header">
-    <h1>Checkout</h1>
-    <p>Complete your booking for Flight {{ flight.flight_number }}</p>
-</div>
-
-<div class="checkout-container">
-    <div class="checkout-main">
-        <div class="order-summary-card">
-            <h2>Order Summary</h2>
-            
-            <div class="flight-summary">
-                <div class="flight-route-mini">
-                    <span class="origin">{{ flight.origin }}</span>
-                    <span class="arrow">→</span>
-                    <span class="destination">{{ flight.destination }}</span>
-                </div>
-                <div class="flight-datetime">
-                    {{ flight.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}
-                </div>
-            </div>
-            
-            <div class="selected-seats-summary">
-                <h3>Selected Seats</h3>
-                <table class="seats-table">
-                    <thead>
-                        <tr>
-                            <th>Seat</th>
-                            <th>Class</th>
-                            <th>Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for seat in selected_seats %}
-                        <tr>
-                            <td>{{ seat.seat_number }}</td>
-                            <td>{{ seat.seat_class|capitalize }}</td>
-                            <td>${{ "%.2f"|format(seat.price) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot>
-                        <tr class="total-row">
-                            <td colspan="2"><strong>Total</strong></td>
-                            <td><strong>${{ "%.2f"|format(total_price) }}</strong></td>
-                        </tr>
-                    </tfoot>
-                </table>
-=======
 <style>
     * {
         margin: 0;
@@ -60,15 +10,6 @@
         box-sizing: border-box;
     }
 
-=======
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
->>>>>>> Stashed changes
     body {
         background: #f5f5f5;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -468,10 +409,6 @@
             <div class="sidebar-welcome">
                 <h2>Checkout</h2>
                 <p>Review your seats and finish your booking.</p>
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             </div>
         </div>
 
@@ -654,44 +591,6 @@
                         </ul>
                     </div>
                 </div>
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                
-                <div class="form-group">
-                    <label for="phone">Phone Number (optional)</label>
-                    <input type="tel" 
-                           id="phone" 
-                           name="phone"
-                           value="{{ request.form.get('phone', '') }}">
-                </div>
-            </div>
-            {% else %}
-            <div class="logged-in-info">
-                <h2>Booking As</h2>
-                <p><strong>{{ session.get('user_name') }}</strong></p>
-                <p>{{ session.get('user_email') }}</p>
-            </div>
-            {% endif %}
-            
-            <div class="terms-section">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="terms" required>
-                    <span>I agree to the <a href="#">Terms and Conditions</a> and understand the <a href="#">Cancellation Policy</a></span>
-                </label>
-            </div>
-            
-            <div class="checkout-actions">
-                <a href="{{ url_for('seat_selection', flight_id=flight.id) }}?passengers={{ selected_seats|length }}" 
-                   class="btn btn-secondary">
-                    ← Change Seats
-                </a>
-                <button type="submit" class="btn btn-primary btn-lg">
-                    Complete Booking
-                </button>
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             </div>
         </form>
     </div>
