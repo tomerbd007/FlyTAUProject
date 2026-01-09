@@ -130,11 +130,14 @@ def generate_routes_sql():
     return "\n".join(sql_lines)
 
 if __name__ == "__main__":
+    import os
     sql = generate_routes_sql()
     
-    # Write to file
-    with open("/Users/tomerosama/Documents/University/FlyTAUProject/sql/routes_seed.sql", "w") as f:
+    # Write to file in the same directory as this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_path = os.path.join(script_dir, "routes_seed.sql")
+    with open(output_path, "w") as f:
         f.write(sql)
     
     print(f"Generated {len(AIRPORT_COORDS) * (len(AIRPORT_COORDS) - 1)} routes")
-    print("SQL saved to sql/routes_seed.sql")
+    print(f"SQL saved to {output_path}")
