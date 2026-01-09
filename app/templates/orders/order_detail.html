@@ -149,7 +149,8 @@
         <div class="order-sidebar">
             <div class="logo">FLYTAU</div>
             <h1>Order {{ order.booking_code }}</h1>
-            <div class="status-pill status-{{ order.status }}">{{ order.status|capitalize }}</div>
+            {% set display_status = 'cancelled' if order.status in ['customer_canceled', 'system_canceled'] else order.status %}
+            <div class="status-pill status-{{ display_status }}">{{ display_status|capitalize }}</div>
             <div class="meta">
                 <div><strong>Email:</strong> {{ order.email }}</div>
                 <div><strong>Date:</strong> {{ order.created_at.strftime('%b %d, %Y %H:%M') }}</div>
@@ -161,8 +162,23 @@
         <div class="order-main">
             <div class="order-header">
                 <h2 class="title">Order Details</h2>
+                {% if is_guest %}
+                <a href="{{ url_for('guest_lookup') }}" class="back-link">← Back to Guest Lookup</a>
+                {% else %}
                 <a href="{{ url_for('my_orders') }}" class="back-link">← Back to My Orders</a>
+                {% endif %}
             </div>
+            
+            {% if order.status in ['customer_canceled', 'system_canceled'] %}
+            <div class="card" style="background: #fdeeee; border-color: #f5c6cb;">
+                <h2 style="color: #c0392b;">Booking Cancelled</h2>
+                {% if order.status == 'system_canceled' %}
+                <p>This booking was cancelled by the airline. You have received a <strong>full refund</strong>.</p>
+                {% else %}
+                <p>You cancelled this booking. A 5% cancellation fee was applied.</p>
+                {% endif %}
+            </div>
+            {% endif %}
 
             <div class="card">
                 <h2>Booking Information</h2>
@@ -236,20 +252,49 @@
             <div class="card">
                 <h2>Payment Summary</h2>
                 <div class="payment-breakdown">
+                    {% if order.status == 'system_canceled' %}
+                    {# System cancellation - full refund, TotalCost is 0 #}
                     <div class="payment-row">
-                        <span>Tickets ({{ tickets|length }})</span>
+                        <span>Original Amount</span>
+                        <span>Refunded</span>
+                    </div>
+                    <div class="payment-row total" style="color: #27ae60;">
+                        <span>Full Refund Issued</span>
+                        <span>$0.00 due</span>
+                    </div>
+                    {% elif order.status == 'customer_canceled' %}
+                    {# Customer cancellation - TotalCost is the 5% fee (final paid amount) #}
+                    {# Calculate original amount from fee: original = fee / 0.05 #}
+                    {% set cancellation_fee = order.total_amount %}
+                    {% set original_amount = cancellation_fee / 0.05 %}
+                    {% set refund_amount = original_amount - cancellation_fee %}
+                    <div class="payment-row">
+                        <span>Original Amount</span>
+                        <span>${{ "%.2f"|format(original_amount) }}</span>
+                    </div>
+                    <div class="payment-row" style="color: #c0392b;">
+                        <span>Cancellation Fee (5%)</span>
+                        <span>${{ "%.2f"|format(cancellation_fee) }}</span>
+                    </div>
+                    <div class="payment-row" style="color: #27ae60;">
+                        <span>Refund Amount (95%)</span>
+                        <span>${{ "%.2f"|format(refund_amount) }}</span>
+                    </div>
+                    <div class="payment-row total">
+                        <span>Final Cost Paid</span>
+                        <span>${{ "%.2f"|format(cancellation_fee) }}</span>
+                    </div>
+                    {% else %}
+                    {# Active/confirmed order #}
+                    <div class="payment-row">
+                        <span>Tickets ({{ tickets|length if tickets else 0 }})</span>
                         <span>${{ "%.2f"|format(order.total_amount) }}</span>
                     </div>
-                    {% if order.status == 'cancelled' and order.refund_amount %}
-                    <div class="payment-row refund">
-                        <span>Refund (minus 5% fee)</span>
-                        <span>-${{ "%.2f"|format(order.refund_amount) }}</span>
+                    <div class="payment-row total">
+                        <span>Total Paid</span>
+                        <span>${{ "%.2f"|format(order.total_amount) }}</span>
                     </div>
                     {% endif %}
-                    <div class="payment-row total">
-                        <span>Total</span>
-                        <span>${{ "%.2f"|format(order.total_amount) }}</span>
-                    </div>
                 </div>
             </div>
 
@@ -259,17 +304,13 @@
                 <div class="actions">
                     {% if order.can_cancel %}
                         {% if is_guest %}
-                        <form method="POST" action="{{ url_for('guest_cancel_order') }}">
-                            <input type="hidden" name="booking_code" value="{{ order.booking_code }}">
-                            <input type="hidden" name="email" value="{{ order.email }}">
-                            <button type="submit" class="btn-block btn-danger">Cancel Order</button>
-                        </form>
-                        {% elif order.id %}
-                        <a href="{{ url_for('cancel_order', order_id=order.id) }}" class="btn-block btn-danger">Cancel Order</a>
+                        <a href="{{ url_for('guest_cancel_order', booking_code=order.booking_code) }}?email={{ order.email }}" class="btn-block btn-danger">Cancel Order</a>
                         {% else %}
-                        <div class="btn-block btn-muted">Cancellation unavailable (missing order id)</div>
+                        <a href="{{ url_for('customer_cancel_order', booking_code=order.booking_code) }}" class="btn-block btn-danger">Cancel Order</a>
                         {% endif %}
+                        {% if order.cancel_deadline %}
                         <p class="action-note">You can cancel until {{ order.cancel_deadline.strftime('%b %d at %H:%M') }}</p>
+                        {% endif %}
                     {% else %}
                     <div class="btn-block btn-muted">Cancellation unavailable</div>
                     <p class="action-note" style="color:#6b7b8c;">Less than 36 hours to departure.</p>
@@ -277,7 +318,6 @@
                 </div>
             </div>
             {% endif %}
-
             <div class="card">
                 <h2>Need Help?</h2>
                 <p>Contact our support team:</p>

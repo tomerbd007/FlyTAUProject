@@ -323,13 +323,14 @@
             {% if orders %}
             <div class="orders-list">
                 {% for order in orders %}
+                {% set display_status = 'cancelled' if order.status in ['customer_canceled', 'system_canceled'] else order.status %}
                 <div class="order-card">
                     <div class="order-header">
                         <div class="booking-info">
                             <span class="booking-code">{{ order.booking_code }}</span>
                             <span class="order-date">Departs {{ order.departure_time.strftime('%b %d, %Y') if order.departure_time else '' }}</span>
                         </div>
-                        <span class="order-status status-{{ order.status }}">{{ order.status|capitalize }}</span>
+                        <span class="order-status status-{{ display_status }}">{{ display_status|capitalize }}</span>
                     </div>
 
                     <div class="order-flight">
@@ -346,7 +347,14 @@
 
                     <div class="order-summary">
                         <span class="ticket-count">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
+                        {% if order.status == 'system_canceled' %}
+                        <span class="order-total" style="color: #27ae60;">Full Refund</span>
+                        {% elif order.status == 'customer_canceled' %}
+                        {# TotalCost is now the fee (5%), so refund = fee * 19 (95% of original) #}
+                        <span class="order-total" style="color: #27ae60;">${{ "%.2f"|format(order.total_amount * 19) }} refund</span>
+                        {% else %}
                         <span class="order-total">${{ "%.2f"|format(order.total_amount) }}</span>
+                        {% endif %}
                     </div>
 
                     <div class="order-actions">
@@ -355,10 +363,7 @@
                         <a href="{{ url_for('edit_order_seats', booking_code=order.booking_code) }}" class="btn btn-primary">Edit Seats</a>
                         {% endif %}
                         {% if order.status == 'confirmed' and order.can_cancel %}
-                        <form method="POST" action="{{ url_for('customer_cancel_order') }}" style="display:inline;">
-                            <input type="hidden" name="booking_code" value="{{ order.booking_code }}">
-                            <button type="submit" class="btn btn-danger">Cancel Order</button>
-                        </form>
+                        <a href="{{ url_for('customer_cancel_order', booking_code=order.booking_code) }}" class="btn btn-danger">Cancel Order</a>
                         {% else %}
                         <span class="btn btn-secondary" style="opacity:0.7; cursor:not-allowed;">Cancel Locked</span>
                         {% endif %}

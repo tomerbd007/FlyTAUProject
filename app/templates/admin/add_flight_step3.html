@@ -413,7 +413,7 @@
             
             <div class="flight-summary-bar">
                 <span class="summary-item">
-                    <strong>{{ flight_data.origin }}</strong> → <strong>{{ flight_data.destination }}</strong>
+                    <strong>{{ flight_data.origin_name|default(flight_data.origin) }}</strong> → <strong>{{ flight_data.destination_name|default(flight_data.destination) }}</strong>
                 </span>
                 <span class="summary-item">
                     {{ flight_data.departure_date }} at {{ flight_data.departure_time }}
@@ -493,7 +493,7 @@
                             <tbody>
                                 <tr>
                                     <th>Route</th>
-                                    <td>{{ flight_data.origin }} → {{ flight_data.destination }}</td>
+                                    <td>{{ flight_data.origin_name|default(flight_data.origin) }} → {{ flight_data.destination_name|default(flight_data.destination) }}</td>
                                 </tr>
                                 <tr>
                                     <th>Flight Number</th>

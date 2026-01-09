@@ -287,10 +287,7 @@
                     <div class="order-actions">
                         <a href="{{ url_for('order_confirmation', booking_code=order.booking_code) }}" class="btn-small btn-primary">View</a>
                         {% if order.can_cancel %}
-                        <form method="POST" action="{{ url_for('customer_cancel_order') }}">
-                            <input type="hidden" name="booking_code" value="{{ order.booking_code }}">
-                            <button type="submit" class="btn-small btn-secondary">Cancel</button>
-                        </form>
+                        <a href="{{ url_for('customer_cancel_order', booking_code=order.booking_code) }}" class="btn-small btn-secondary">Cancel</a>
                         {% else %}
                         <span class="btn-small btn-muted">Cancel (locked)</span>
                         {% endif %}

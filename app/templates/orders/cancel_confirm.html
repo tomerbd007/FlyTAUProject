@@ -4,7 +4,11 @@
 
 {% block content %}
 <div class="page-header">
-    <a href="{{ url_for('order_detail', order_id=order.id) }}" class="back-link">← Back to Order Details</a>
+    {% if is_guest %}
+    <a href="{{ url_for('guest_lookup') }}" class="back-link">← Back to Guest Lookup</a>
+    {% else %}
+    <a href="{{ url_for('my_orders') }}" class="back-link">← Back to My Orders</a>
+    {% endif %}
     <h1>Cancel Order</h1>
 </div>
 
@@ -25,10 +29,12 @@
                 <span class="label">Flight</span>
                 <span class="value">{{ order.flight_number }}: {{ order.origin }} → {{ order.destination }}</span>
             </div>
+            {% if order.departure_time %}
             <div class="summary-item">
                 <span class="label">Departure</span>
                 <span class="value">{{ order.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}</span>
             </div>
+            {% endif %}
             <div class="summary-item">
                 <span class="label">Tickets</span>
                 <span class="value">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
@@ -60,7 +66,12 @@
             </ul>
         </div>
         
-        <form method="POST" action="{{ url_for('cancel_order', order_id=order.id) }}" class="cancel-form">
+        {% if is_guest %}
+        <form method="POST" action="{{ url_for('guest_cancel_order', booking_code=order.booking_code) }}?email={{ guest_email }}" class="cancel-form">
+            <input type="hidden" name="email" value="{{ guest_email }}">
+        {% else %}
+        <form method="POST" action="{{ url_for('customer_cancel_order', booking_code=order.booking_code) }}" class="cancel-form">
+        {% endif %}
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="confirm" required>
@@ -69,9 +80,15 @@
             </div>
             
             <div class="cancel-actions">
-                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-secondary">
+                {% if is_guest %}
+                <a href="{{ url_for('guest_lookup') }}" class="btn btn-secondary">
                     Keep My Order
                 </a>
+                {% else %}
+                <a href="{{ url_for('my_orders') }}" class="btn btn-secondary">
+                    Keep My Order
+                </a>
+                {% endif %}
                 <button type="submit" class="btn btn-danger">
                     Cancel Order
                 </button>

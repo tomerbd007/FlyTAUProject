@@ -44,6 +44,7 @@ def register_order_routes(app):
             guest_email = None
             guest_first_name = None
             guest_last_name = None
+            guest_phone = None
             registered_email = None
             
             if session.get('user_id') and session.get('role') == 'customer':
@@ -54,6 +55,7 @@ def register_order_routes(app):
                 guest_first_name = request.form.get('first_name', '').strip()
                 guest_last_name = request.form.get('last_name', '').strip()
                 guest_email = request.form.get('email', '').strip()
+                guest_phone = request.form.get('phone', '').strip() or None
                 
                 if not guest_first_name:
                     flash('Please enter your first name.', 'error')
@@ -94,7 +96,8 @@ def register_order_routes(app):
                     registered_email=registered_email,
                     guest_email=guest_email,
                     guest_first_name=guest_first_name,
-                    guest_last_name=guest_last_name
+                    guest_last_name=guest_last_name,
+                    guest_phone=guest_phone
                 )
                 
                 # Clear checkout session
@@ -249,28 +252,90 @@ def register_order_routes(app):
                                orders=orders,
                                current_filter=status_filter)
     
-    @app.route('/orders/cancel', methods=['POST'])
+    @app.route('/orders/<booking_code>/cancel', methods=['GET', 'POST'])
     @login_required
-    def customer_cancel_order():
-        """Cancel an order for logged-in customers via booking code."""
+    def customer_cancel_order(booking_code):
+        """Cancel confirmation page and handler for logged-in customers."""
         if session.get('role') != 'customer':
             flash('Access denied.', 'error')
             return redirect(url_for('index'))
 
-        booking_code = request.form.get('booking_code', '').strip().upper()
+        booking_code = booking_code.strip().upper()
         email = session.get('email', '').strip().lower()
 
         if not booking_code:
             flash('Missing booking code.', 'error')
-            return redirect(url_for('my_account'))
+            return redirect(url_for('my_orders'))
 
-        try:
-            fee, refund = order_service.cancel_order(booking_code, email)
-            flash(f'Order canceled. Refund amount: ${refund:.2f} (5% fee: ${fee:.2f})', 'success')
-        except ValueError as e:
-            flash(str(e), 'error')
+        # Get order details for confirmation page
+        order = order_service.get_order_with_tickets(booking_code)
+        if not order:
+            flash('Order not found.', 'error')
+            return redirect(url_for('my_orders'))
+        
+        # Verify ownership
+        owner_email = order.get('RegisteredCustomer_UniqueMail') or order.get('GuestCustomer_UniqueMail')
+        if not owner_email or owner_email.lower() != email.lower():
+            flash('Access denied.', 'error')
+            return redirect(url_for('my_orders'))
+        
+        # Check if cancellation is allowed
+        if not order_service.can_cancel_order(order):
+            flash('This order cannot be canceled. Cancellations must be made at least 36 hours before departure.', 'error')
+            return redirect(url_for('my_orders'))
+        
+        # Calculate fee and refund for display
+        fee, refund = order_service.calculate_cancellation_fee(order['TotalCost'])
 
-        return redirect(url_for('my_account'))
+        if request.method == 'POST':
+            try:
+                original_cost, fee, refund = order_service.cancel_order(booking_code, email)
+                flash(f'Order canceled. Refund amount: ${refund:.2f} (5% fee: ${fee:.2f})', 'success')
+            except ValueError as e:
+                flash(str(e), 'error')
+            return redirect(url_for('my_orders'))
+        
+        # Build order view model for template
+        order_vm = {
+            'booking_code': booking_code,
+            'flight_number': order.get('Flights_FlightId'),
+            'origin': order.get('OriginPort'),
+            'destination': order.get('DestPort'),
+            'departure_time': None,
+            'ticket_count': len(order.get('tickets', [])),
+            'total_amount': float(order.get('TotalCost') or 0)
+        }
+        
+        # Parse departure datetime
+        departure_date = order.get('DepartureDate')
+        departure_hour = order.get('DepartureHour')
+        if departure_date:
+            if isinstance(departure_date, str):
+                departure_date = datetime.strptime(departure_date, '%Y-%m-%d').date()
+            if departure_hour:
+                if hasattr(departure_hour, 'total_seconds'):
+                    total_seconds = int(departure_hour.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    order_vm['departure_time'] = datetime.combine(
+                        departure_date,
+                        datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
+                    )
+                elif isinstance(departure_hour, str):
+                    try:
+                        time_str = departure_hour[:5] if len(departure_hour) > 5 else departure_hour
+                        order_vm['departure_time'] = datetime.combine(
+                            departure_date,
+                            datetime.strptime(time_str, '%H:%M').time()
+                        )
+                    except ValueError:
+                        order_vm['departure_time'] = datetime.combine(departure_date, datetime.min.time())
+        
+        return render_template('orders/cancel_confirm.html',
+                               order=order_vm,
+                               cancellation_fee=fee,
+                               refund_amount=refund,
+                               is_guest=False)
     
     @app.route('/orders/<int:order_id>/detail')
     @login_required
@@ -428,23 +493,87 @@ def register_order_routes(app):
         
         return render_template('orders/guest_lookup.html')
 
-    @app.route('/guest/orders/cancel', methods=['POST'])
-    def guest_cancel_order():
-        """Cancel order for guest users (by booking code and email)."""
-        booking_code = request.form.get('booking_code', '').strip().upper()
-        email = request.form.get('email', '').strip().lower()
+    @app.route('/guest/orders/<booking_code>/cancel', methods=['GET', 'POST'])
+    def guest_cancel_order(booking_code):
+        """Cancel confirmation page and handler for guest users."""
+        booking_code = booking_code.strip().upper()
+        email = request.args.get('email', '').strip().lower() or request.form.get('email', '').strip().lower()
 
         if not booking_code or not email:
             flash('Booking code and email are required.', 'error')
             return redirect(url_for('guest_lookup'))
 
-        try:
-            fee, refund = order_service.cancel_order(booking_code, email)
-            flash(f'Order canceled. Refund amount: ${refund:.2f} (5% fee: ${fee:.2f})', 'success')
-        except ValueError as e:
-            flash(str(e), 'error')
+        # Get order details for confirmation page
+        order = order_service.get_order_with_tickets(booking_code)
+        if not order:
+            flash('Order not found.', 'error')
+            return redirect(url_for('guest_lookup'))
         
-        return redirect(url_for('guest_lookup'))
+        # Verify ownership
+        owner_email = order.get('RegisteredCustomer_UniqueMail') or order.get('GuestCustomer_UniqueMail')
+        if not owner_email or owner_email.lower() != email.lower():
+            flash('Invalid booking code or email.', 'error')
+            return redirect(url_for('guest_lookup'))
+        
+        # Check if cancellation is allowed
+        if not order_service.can_cancel_order(order):
+            flash('This order cannot be canceled. Cancellations must be made at least 36 hours before departure.', 'error')
+            return redirect(url_for('guest_lookup'))
+        
+        # Calculate fee and refund for display
+        fee, refund = order_service.calculate_cancellation_fee(order['TotalCost'])
+
+        if request.method == 'POST':
+            try:
+                original_cost, fee, refund = order_service.cancel_order(booking_code, email)
+                flash(f'Order canceled. Refund amount: ${refund:.2f} (5% fee: ${fee:.2f})', 'success')
+            except ValueError as e:
+                flash(str(e), 'error')
+            return redirect(url_for('guest_lookup'))
+        
+        # Build order view model for template
+        order_vm = {
+            'booking_code': booking_code,
+            'flight_number': order.get('Flights_FlightId'),
+            'origin': order.get('OriginPort'),
+            'destination': order.get('DestPort'),
+            'departure_time': None,
+            'ticket_count': len(order.get('tickets', [])),
+            'total_amount': float(order.get('TotalCost') or 0),
+            'email': email
+        }
+        
+        # Parse departure datetime
+        departure_date = order.get('DepartureDate')
+        departure_hour = order.get('DepartureHour')
+        if departure_date:
+            if isinstance(departure_date, str):
+                departure_date = datetime.strptime(departure_date, '%Y-%m-%d').date()
+            if departure_hour:
+                if hasattr(departure_hour, 'total_seconds'):
+                    total_seconds = int(departure_hour.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    order_vm['departure_time'] = datetime.combine(
+                        departure_date,
+                        datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
+                    )
+                elif isinstance(departure_hour, str):
+                    try:
+                        time_str = departure_hour[:5] if len(departure_hour) > 5 else departure_hour
+                        order_vm['departure_time'] = datetime.combine(
+                            departure_date,
+                            datetime.strptime(time_str, '%H:%M').time()
+                        )
+                    except ValueError:
+                        order_vm['departure_time'] = datetime.combine(departure_date, datetime.min.time())
+        
+        return render_template('orders/cancel_confirm.html',
+                               order=order_vm,
+                               cancellation_fee=fee,
+                               refund_amount=refund,
+                               is_guest=True,
+                               guest_email=email)
 
     @app.route('/orders/<booking_code>/edit-seats', methods=['GET', 'POST'])
     @login_required
