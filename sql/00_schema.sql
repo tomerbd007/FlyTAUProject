@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS `flytau`.`Managers_edits_Flights` (
   `Flights_FlightId` VARCHAR(45) NOT NULL,
   `Flights_Airplanes_AirplaneId` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`Managers_ManagerId`, `Flights_FlightId`, `Flights_Airplanes_AirplaneId`),
-  INDEX `fk_Managers_has_Flights_Flights1_idx` (`Flights_FlightId` ASC, `Flights_Airplanes_AirplaneId` ASC) VISIBLE,
+  INDEX `fk_Managers_hasAirplanes_Flights_Flights1_idx` (`Flights_FlightId` ASC, `Flights_Airplanes_AirplaneId` ASC) VISIBLE,
   INDEX `fk_Managers_has_Flights_Managers1_idx` (`Managers_ManagerId` ASC) VISIBLE,
   CONSTRAINT `fk_Managers_has_Flights_Managers1`
     FOREIGN KEY (`Managers_ManagerId`)

@@ -39,7 +39,7 @@ FLYTAU/
 │   └── static/               # CSS, images
 ├── sql/
 │   ├── 00_schema.sql         # Database schema
-│   ├── 01_seed.sql           # Initial seed data
+│   ├── 01_seed_fixed.sql    # Initial seed data (idempotent, preferred)
 │   └── reports/              # Report SQL queries
 ├── tests/                    # Unit tests
 ├── .env.example              # Environment template
@@ -100,7 +100,7 @@ DB_NAME=flytau
 
 ```bash
 mysql -u root -p < sql/00_schema.sql
-mysql -u root -p flytau < sql/01_seed.sql
+mysql -u root -p flytau < sql/01_seed_fixed.sql
 ```
 
 #### Option B: Using MySQL Workbench
@@ -109,7 +109,7 @@ mysql -u root -p flytau < sql/01_seed.sql
 2. Connect to your MySQL server
 3. File → Open SQL Script → Select `sql/00_schema.sql`
 4. Execute the script (⚡ button)
-5. Open and execute `sql/01_seed.sql`
+5. Open and execute `sql/01_seed_fixed.sql` (idempotent, safe to re-run)
 
 ### 6. Run the Application
 

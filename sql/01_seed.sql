@@ -136,12 +136,9 @@ INSERT INTO Airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business
 ('PLANE-001', 'Boeing', '20 6', '5 4'),
 ('PLANE-002', 'Boeing', '20 6', '5 4'),
 ('PLANE-003', 'Airbus', '25 6', '6 4'),
-('PLANE-004', 'Airbus', '25 6', '5 4'),
+('PLANE-004', 'Airbus', '22 6', '5 4'),
 ('PLANE-005', 'Dassault', '10 4', NULL),
-('PLANE-006', 'Dassault', '10 4', NULL),
-('PLANE-007', 'Dassault', '8 2', NULL),
-('PLANE-008', 'Dassault', '12 6', '6 4')
-
+('PLANE-006', 'Dassault', '8 4', NULL)
 AS new_airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`)
 ON DUPLICATE KEY UPDATE
   Manufacturer = new_airplanes.Manufacturer,
@@ -157,17 +154,7 @@ INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, Depar
 ('FT103', 'PLANE-005', 'Tel Aviv', 'Paris', '2025-02-17', '14:00:00', 270, 'active', 250.00, NULL),
 ('FT104', 'PLANE-002', 'Tel Aviv', 'Athens', '2025-02-18', '06:00:00', 120, 'active', 150.00, 450.00),
 ('FT105', 'PLANE-004', 'Tel Aviv', 'Africa', '2025-02-19', '06:00:00', 700, 'cancelled', 450.00, 1200.00),
-('FT106', 'PLANE-001', 'Tel Aviv', 'New York', '2025-02-22', '06:00:00', 660, 'cancelled', 500.00, 1500.00),
-('FT107', 'PLANE-007', 'Tel Aviv', 'Barcelona', '2025-02-23', '08:00:00', 300, 'active', 250.00, NULL),
-('FT108', 'PLANE-008', 'Tel Aviv', 'Thailand', '2025-02-28', '06:00:00', 700, 'cancelled', 450.00, 1500.00),
-('FT109', 'PLANE-003', 'Tel Aviv', 'London', '2025-02-24', '10:00:00', 300, 'cancelled', 300.00, 900.00),
-('FT110', 'PLANE-002', 'Tel Aviv', 'Athens', '2025-02-21', '06:00:00', 120, 'active', 150.00, 450.00),
-('FT111', 'PLANE-005', 'Tel Aviv', 'Paris', '2025-02-10', '14:00:00', 270, 'cancelled', 250.00, NULL),
-('FT112', 'PLANE-007', 'Tel Aviv', 'Barcelona', '2025-03-01', '09:00:00', 300, 'cancelled', 250.00, NULL)
-
-
-
-
+('FT106', 'PLANE-001', 'Tel Aviv', 'New York', '2025-02-22', '06:00:00', 660, 'cancelled', 500.00, 1500.00)
 
 AS new_flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice)
 ON DUPLICATE KEY UPDATE
@@ -190,26 +177,10 @@ INSERT IGNORE INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId, Flights_Airpla
 ('P003', 'FT101', 'PLANE-001'),
 ('P004', 'FT102', 'PLANE-003'),
 ('P005', 'FT102', 'PLANE-003'),
-('P006', 'FT102', 'PLANE-003'),
 ('P007', 'FT103', 'PLANE-005'),
 ('P008', 'FT103', 'PLANE-005'),
 ('P009', 'FT104', 'PLANE-002'),
-('P010', 'FT104', 'PLANE-002'),
-('P011', 'FT105', 'PLANE-004'),
-('P012', 'FT105', 'PLANE-004'),
-('P013', 'FT105', 'PLANE-004'),
-('P014', 'FT106', 'PLANE-001'),
-('P015', 'FT106', 'PLANE-001'),
-('P016', 'FT106', 'PLANE-001'),
-('P017', 'FT107', 'PLANE-007'),
-('P018', 'FT107', 'PLANE-007'),
-('P019', 'FT108', 'PLANE-008'),
-('P020', 'FT108', 'PLANE-008'),
-('P021', 'FT108', 'PLANE-008'),
-('P022', 'FT109', 'PLANE-003'),
-('P023', 'FT109', 'PLANE-003'),
-('P024', 'FT109', 'PLANE-003');
-
+('P010', 'FT104', 'PLANE-002');
 
 INSERT IGNORE INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId, Flights_Airplanes_AirplaneId) VALUES
 ('A001', 'FT101', 'PLANE-001'),
@@ -234,7 +205,7 @@ INSERT IGNORE INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_Flig
 -- ORDERS (idempotent)
 -- -----------------------------------------------------------------------------
 INSERT INTO orders (UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail, Class, CreatedAt) VALUES
-('FLY-ABC123', 'FT101', 'PLANE-001', 500.00, 'confirmed', NULL, 'customer1@gmail.com', 'economy', '2026-01-06 15:06:01'),
+('FLY-ABC123', 'FT101', 'PLANE-001', 900.00, 'confirmed', NULL, 'customer1@gmail.com', 'economy', '2026-01-06 15:06:01'),
 ('FLY-DEF456', 'FT102', 'PLANE-003', 900.00, 'confirmed', NULL, 'customer2@gmail.com', 'business', '2026-01-06 15:06:01')
 
 AS new_orders (UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail, Class, CreatedAt)
