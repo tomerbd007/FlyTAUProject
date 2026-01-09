@@ -27,7 +27,8 @@ CANCELLATION_CUTOFF_HOURS = 36
 
 
 def create_order(flight_id, airplane_id, selected_seats, economy_price, business_price,
-                 registered_email=None, guest_email=None, guest_first_name=None, guest_last_name=None):
+                 registered_email=None, guest_email=None, guest_first_name=None, guest_last_name=None,
+                 guest_phone=None):
     """
     Create a new order with selected seats.
     
@@ -41,6 +42,7 @@ def create_order(flight_id, airplane_id, selected_seats, economy_price, business
         guest_email: Guest email (if not logged in)
         guest_first_name: Guest first name (required if guest)
         guest_last_name: Guest last name (required if guest)
+        guest_phone: Guest phone number (optional)
     
     Returns:
         Booking code for the new order
@@ -77,7 +79,8 @@ def create_order(flight_id, airplane_id, selected_seats, economy_price, business
         auth_service.get_or_create_guest_customer(
             guest_email.lower(),
             guest_first_name or 'Guest',
-            guest_last_name or 'User'
+            guest_last_name or 'User',
+            guest_phone
         )
         actual_guest_email = guest_email.lower()
     
@@ -233,12 +236,15 @@ def cancel_order(booking_code, email):
     """
     Cancel an order (customer cancellation).
     
+    Customer cancellation: TotalCost is updated to the 5% cancellation fee,
+    which represents the final amount paid (revenue) to the system.
+    
     Args:
         booking_code: Order booking code
         email: Email of user requesting cancellation (for ownership verification)
     
     Returns:
-        Tuple of (fee, refund)
+        Tuple of (original_cost, fee, refund)
     
     Raises:
         ValueError: If order cannot be canceled
@@ -257,20 +263,21 @@ def cancel_order(booking_code, email):
     if not can_cancel_order(order):
         raise ValueError("This order cannot be canceled. Cancellations must be made at least 36 hours before departure.")
     
-    # Calculate refund
-    fee, refund = calculate_cancellation_fee(order['TotalCost'])
+    # Calculate fee and refund from original amount
+    original_cost = order['TotalCost']
+    fee, refund = calculate_cancellation_fee(original_cost)
     
-    # Update order status
+    # Update order status and TotalCost to the fee (final paid amount / revenue)
     order_repository.update_order_status(
         booking_code, 
         status='customer_canceled',
-        total_cost=refund
+        total_cost=float(fee)  # Store fee as the final paid amount (revenue)
     )
     
     # Delete tickets (seats become available again)
     order_repository.delete_tickets_for_order(booking_code)
     
-    return (fee, refund)
+    return (original_cost, fee, refund)
 
 
 def update_order_seats(booking_code, new_seats, flight):

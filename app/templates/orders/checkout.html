@@ -525,6 +525,16 @@
                             <label for="email">Email Address</label>
                             <input type="email" id="email" name="email" required placeholder="We'll send your confirmation here" value="{{ request.form.get('email', '') }}">
                         </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="passport">Passport Number</label>
+                                <input type="text" id="passport" name="passport" required placeholder="e.g., AB1234567" value="{{ request.form.get('passport', '') }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="birth_date">Date of Birth</label>
+                                <input type="date" id="birth_date" name="birth_date" required value="{{ request.form.get('birth_date', '') }}">
+                            </div>
+                        </div>
                         <div class="form-group">
                             <label for="phone">Phone Number (optional)</label>
                             <input type="tel" id="phone" name="phone" value="{{ request.form.get('phone', '') }}">
@@ -536,6 +546,18 @@
                         <p class="info-text">Signed in as:</p>
                         <div class="pill">{{ session.get('name') }}</div>
                         <div class="pill" style="background:#eef2f5; color:#1a3a52;">{{ session.get('email') }}</div>
+                        {% if session.get('passport') %}
+                        <div style="margin-top: 12px;">
+                            <span class="info-text">Passport:</span>
+                            <div class="pill">{{ session.get('passport') }}</div>
+                        </div>
+                        {% endif %}
+                        {% if session.get('birth_date') %}
+                        <div style="margin-top: 8px;">
+                            <span class="info-text">Date of Birth:</span>
+                            <div class="pill">{{ session.get('birth_date') }}</div>
+                        </div>
+                        {% endif %}
                     </div>
                     {% endif %}
 

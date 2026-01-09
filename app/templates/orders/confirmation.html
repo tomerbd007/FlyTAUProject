@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Booking Confirmed - FLYTAU{% endblock %}
+{% block title %}{% if order.status in ['customer_canceled', 'system_canceled'] %}Booking Cancelled{% else %}Booking Confirmed{% endif %} - FLYTAU{% endblock %}
 
 {% block content %}
 <style>
@@ -98,10 +98,10 @@
 </style>
 
 <div class="confirm-shell">
-    <div class="confirm-hero">
-        <div class="success-icon">✓</div>
-        <h1>Booking Confirmed!</h1>
-        <p>Thank you for booking with FLYTAU. Your trip is all set.</p>
+    <div class="confirm-hero" {% if order.status in ['customer_canceled', 'system_canceled'] %}style="background: linear-gradient(135deg, #8B0000 0%, #c0392b 100%);"{% endif %}>
+        <div class="success-icon">{% if order.status in ['customer_canceled', 'system_canceled'] %}✕{% else %}✓{% endif %}</div>
+        <h1>{% if order.status in ['customer_canceled', 'system_canceled'] %}Booking Cancelled!{% else %}Booking Confirmed!{% endif %}</h1>
+        <p>{% if order.status in ['customer_canceled', 'system_canceled'] %}This booking has been cancelled.{% else %}Thank you for booking with FLYTAU. Your trip is all set.{% endif %}</p>
         <div class="code-tile">
             <span class="code-label">Booking Code</span>
             <span>{{ order.booking_code }}</span>
@@ -140,6 +140,37 @@
 
             <h2 style="margin-top:18px;">Payment Summary</h2>
             <div class="payment-summary">
+                {% if order.status == 'system_canceled' %}
+                <div class="summary-row">
+                    <span>Original Amount</span>
+                    <span>Refunded</span>
+                </div>
+                <div class="summary-row total" style="color: #27ae60;">
+                    <span>Full Refund Issued</span>
+                    <span>$0.00 due</span>
+                </div>
+                {% elif order.status == 'customer_canceled' %}
+                {# TotalCost is now the fee (5%), calculate original = fee / 0.05 #}
+                {% set cancellation_fee = order.total_amount %}
+                {% set original_amount = cancellation_fee / 0.05 %}
+                {% set refund_amount = original_amount - cancellation_fee %}
+                <div class="summary-row">
+                    <span>Original Amount</span>
+                    <span>${{ "%.2f"|format(original_amount) }}</span>
+                </div>
+                <div class="summary-row" style="color: #c0392b;">
+                    <span>Cancellation Fee (5%)</span>
+                    <span>${{ "%.2f"|format(cancellation_fee) }}</span>
+                </div>
+                <div class="summary-row" style="color: #27ae60;">
+                    <span>Refunded Amount (95%)</span>
+                    <span>${{ "%.2f"|format(refund_amount) }}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total Paid</span>
+                    <span>${{ "%.2f"|format(cancellation_fee) }}</span>
+                </div>
+                {% else %}
                 <div class="summary-row">
                     <span>Subtotal ({{ tickets|length }} seat{{ 's' if tickets|length > 1 else '' }})</span>
                     <span>${{ "%.2f"|format(order.total_amount) }}</span>
@@ -148,6 +179,7 @@
                     <span>Total Paid</span>
                     <span>${{ "%.2f"|format(order.total_amount) }}</span>
                 </div>
+                {% endif %}
             </div>
         </div>
 

@@ -159,11 +159,19 @@ def register_admin_routes(app):
                 departure_date, departure_time, route['duration_minutes']
             )
             
+            # Get airport names for display
+            origin_airport = flight_service.get_airport_by_code(origin)
+            destination_airport = flight_service.get_airport_by_code(destination)
+            origin_name = origin_airport.get('name', origin) if origin_airport else origin
+            destination_name = destination_airport.get('name', destination) if destination_airport else destination
+            
             # Store in session for next step
             session['add_flight'] = {
                 'route_id': route['id'],
                 'origin': origin,
                 'destination': destination,
+                'origin_name': origin_name,
+                'destination_name': destination_name,
                 'departure_date': departure_date,
                 'departure_time': departure_time,
                 'duration_minutes': route['duration_minutes'],

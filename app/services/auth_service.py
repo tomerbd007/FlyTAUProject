@@ -120,26 +120,26 @@ def get_guest_customer_by_email(email):
     return user_repository.find_guest_customer_by_email(email.lower())
 
 
-def get_or_create_guest_customer(email, first_name, last_name):
+def get_or_create_guest_customer(email, first_name, last_name, phone=None):
     """
     Get existing guest customer or create a new one.
+    If guest exists and phone is provided, it will be appended to their phone list.
     
     Args:
         email: Guest email address
         first_name: First name
         last_name: Last name
+        phone: Phone number (optional, will be appended to list)
     
     Returns:
         Guest customer email (UniqueMail)
     """
-    existing = user_repository.find_guest_customer_by_email(email.lower())
-    if existing:
-        return existing['UniqueMail']
-    
+    # Always call create_guest_customer which handles both create and update
     user_repository.create_guest_customer(
         email=email.lower(),
         first_name=first_name,
-        last_name=last_name
+        last_name=last_name,
+        phone=phone
     )
     return email.lower()
 

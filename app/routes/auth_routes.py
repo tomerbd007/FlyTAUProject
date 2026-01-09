@@ -69,6 +69,8 @@ def register_auth_routes(app):
                 session['role'] = 'customer'
                 session['email'] = user['email']
                 session['name'] = f"{user['first_name']} {user['last_name']}"
+                session['passport'] = user.get('passport')
+                session['birth_date'] = str(user['birth_date']) if user.get('birth_date') else None
                 flash(f"Welcome back, {user['first_name']}!", 'success')
                 return redirect(url_for('my_account'))
             else:

@@ -171,8 +171,12 @@ def get_orders_by_registered_customer(email, status_filter=None):
     params = [email]
     
     if status_filter:
-        sql += " AND o.Status = %s"
-        params.append(status_filter)
+        # Map 'cancelled' to both customer_canceled and system_canceled
+        if status_filter.lower() == 'cancelled':
+            sql += " AND o.Status IN ('customer_canceled', 'system_canceled')"
+        else:
+            sql += " AND o.Status = %s"
+            params.append(status_filter)
     
     sql += " GROUP BY o.UniqueOrderCode ORDER BY f.DepartureDate DESC"
     
@@ -199,8 +203,12 @@ def get_orders_by_guest_email(email, status_filter=None):
     params = [email]
     
     if status_filter:
-        sql += " AND o.Status = %s"
-        params.append(status_filter)
+        if status_filter == 'cancelled':
+            # Map 'cancelled' to both customer_canceled and system_canceled
+            sql += " AND o.Status IN ('customer_canceled', 'system_canceled')"
+        else:
+            sql += " AND o.Status = %s"
+            params.append(status_filter)
     
     sql += " GROUP BY o.UniqueOrderCode ORDER BY f.DepartureDate DESC"
     
