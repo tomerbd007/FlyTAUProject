@@ -68,6 +68,11 @@ def register_flight_routes(app):
     @app.route('/flights/<flight_id>')
     def flight_detail(flight_id):
         """Flight detail page."""
+        # Managers cannot select flights
+        if session.get('role') == 'manager':
+            flash('Managers cannot select flights or purchase tickets.', 'error')
+            return redirect(url_for('admin_dashboard'))
+        
         airplane_id = request.args.get('airplane_id')
         passengers = request.args.get('passengers', '1')
         
