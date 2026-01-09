@@ -76,9 +76,8 @@ def get_average_occupancy():
             ) AS occupancy_pct
         FROM Flights f
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
-        LEFT JOIN Tickets t ON f.FlightId = t.Flights_FlightId 
-            AND f.Airplanes_AirplaneId = t.Flights_Airplanes_AirplaneId
-        LEFT JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
+        LEFT JOIN orders o ON f.FlightId = o.Flights_FlightId
+        LEFT JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
         WHERE f.Status = 'occurred' AND (o.Status IS NULL OR o.Status != 'cancelled')
         GROUP BY f.FlightId, f.Airplanes_AirplaneId, f.DepartureDate, f.OriginPort, f.DestPort, a.Manufacturer
         ORDER BY f.DepartureDate DESC
@@ -89,6 +88,7 @@ def get_average_occupancy():
 def get_revenue_by_aircraft():
     """
     Get revenue breakdown by aircraft manufacturer and seat class.
+    Revenue is calculated from order TotalCost (which reflects actual payments).
     
     Returns:
         List of dicts with revenue data
@@ -97,12 +97,11 @@ def get_revenue_by_aircraft():
         SELECT 
             a.Manufacturer,
             t.Class,
-            SUM(t.Price) AS total_revenue,
+            SUM(CASE WHEN t.Class = 'business' THEN f.BusinessPrice ELSE f.EconomyPrice END) AS total_revenue,
             COUNT(t.TicketId) AS tickets_sold
         FROM Tickets t
         JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
-        JOIN Flights f ON t.Flights_FlightId = f.FlightId 
-            AND t.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
         WHERE o.Status = 'confirmed'
         GROUP BY a.Manufacturer, t.Class
@@ -139,11 +138,11 @@ def get_flight_hours_per_employee():
             ROUND(SUM(Duration / 60.0), 1) AS total_hours
         FROM (
             SELECT 
-                CONCAT(p.FirstName, ' ', p.LastName) AS crew_member,
+                CONCAT(p.FirstName, ' ', p.SecondName) AS crew_member,
                 'Pilot' AS role,
                 f.Duration
             FROM Pilot p
-            JOIN Pilot_has_Flights phf ON p.PilotId = phf.Pilot_PilotId
+            JOIN Pilot_has_Flights phf ON p.Id = phf.Pilot_Id
             JOIN Flights f ON phf.Flights_FlightId = f.FlightId 
                 AND phf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
             WHERE f.Status IN ('occurred', 'active')
@@ -151,11 +150,11 @@ def get_flight_hours_per_employee():
             UNION ALL
             
             SELECT 
-                CONCAT(fa.FirstName, ' ', fa.LastName) AS crew_member,
+                CONCAT(fa.FirstName, ' ', fa.SecondName) AS crew_member,
                 'Flight Attendant' AS role,
                 f.Duration
             FROM FlightAttendant fa
-            JOIN FlightAttendant_has_Flights fahf ON fa.FlightAttendantId = fahf.FlightAttendant_FlightAttendantId
+            JOIN FlightAttendant_has_Flights fahf ON fa.Id = fahf.FlightAttendant_Id
             JOIN Flights f ON fahf.Flights_FlightId = f.FlightId 
                 AND fahf.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
             WHERE f.Status IN ('occurred', 'active')
@@ -184,8 +183,7 @@ def get_monthly_cancellation_rate():
                 1
             ) AS cancellation_rate_pct
         FROM orders o
-        JOIN Flights f ON o.Flights_FlightId = f.FlightId 
-            AND o.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         GROUP BY DATE_FORMAT(f.DepartureDate, '%Y-%m')
         ORDER BY month DESC
     """
@@ -201,13 +199,13 @@ def get_monthly_aircraft_activity():
     """
     sql = """
         SELECT 
-            DATE_FORMAT(f.DepartureDate, '%Y-%m') AS month,
+            f.month,
             a.Manufacturer AS aircraft,
-            SUM(CASE WHEN f.Status = 'occurred' THEN 1 ELSE 0 END) AS flights_completed,
-            SUM(CASE WHEN f.Status = 'canceled' THEN 1 ELSE 0 END) AS flights_canceled,
+            SUM(CASE WHEN f.Status = 'done' THEN 1 ELSE 0 END) AS flights_completed,
+            SUM(CASE WHEN f.Status = 'cancelled' THEN 1 ELSE 0 END) AS flights_canceled,
             COUNT(*) AS total_flights,
             ROUND(
-                SUM(CASE WHEN f.Status = 'occurred' THEN 1 ELSE 0 END) * 100.0 / 
+                SUM(CASE WHEN f.Status = 'done' THEN 1 ELSE 0 END) * 100.0 / 
                 NULLIF(COUNT(*), 0),
                 1
             ) AS utilization_pct,
@@ -215,14 +213,20 @@ def get_monthly_aircraft_activity():
                 SELECT CONCAT(f2.OriginPort, ' → ', f2.DestPort)
                 FROM Flights f2
                 WHERE f2.Airplanes_AirplaneId = a.AirplaneId
-                  AND DATE_FORMAT(f2.DepartureDate, '%Y-%m') = DATE_FORMAT(f.DepartureDate, '%Y-%m')
+                  AND DATE_FORMAT(f2.DepartureDate, '%Y-%m') = f.month
                 GROUP BY f2.OriginPort, f2.DestPort
                 ORDER BY COUNT(*) DESC
                 LIMIT 1
             ) AS most_common_route
-        FROM Flights f
+        FROM (
+            SELECT 
+                DATE_FORMAT(DepartureDate, '%Y-%m') AS month,
+                Airplanes_AirplaneId,
+                Status
+            FROM Flights
+        ) AS f
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
-        GROUP BY DATE_FORMAT(f.DepartureDate, '%Y-%m'), a.AirplaneId, a.Manufacturer
-        ORDER BY month DESC, aircraft
+        GROUP BY f.month, a.AirplaneId, a.Manufacturer
+        ORDER BY f.month DESC, aircraft
     """
     return _execute_report_sql(sql)

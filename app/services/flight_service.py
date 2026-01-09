@@ -6,6 +6,7 @@ Schema:
 - Flights: FlightId + Airplanes_AirplaneId (composite PK), OriginPort, DestPort, 
            DepartureDate, DepartureHour, Duration, Status
 - Airplanes: AirplaneId (PK), Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`
+- Airports: Code (PK), Name, City, Country
 - Tickets: Used to track sold seats (RowNum, Seat per flight)
 """
 from datetime import datetime, timedelta
@@ -16,6 +17,29 @@ from app.repositories import flight_repository, aircraft_repository
 MIN_LAYOVER_MINUTES = 60
 # Maximum layover time in hours for connecting flights  
 MAX_LAYOVER_HOURS = 12
+
+
+def get_all_airports():
+    """
+    Get all airports from the database.
+    
+    Returns:
+        List of dicts with 'code', 'name', 'city', 'country' keys
+    """
+    return flight_repository.get_all_airports()
+
+
+def get_airport_by_code(code):
+    """
+    Get airport details by code.
+    
+    Args:
+        code: Airport code (e.g., 'TLV')
+    
+    Returns:
+        Dict with airport details or None
+    """
+    return flight_repository.get_airport_by_code(code)
 
 
 def get_all_cities():
@@ -355,6 +379,32 @@ def get_flight_details(flight_id, airplane_id):
     if flight:
         flight = dict(flight)
         flight['seat_availability'] = flight_repository.get_seat_availability(flight_id, airplane_id)
+        
+        # Calculate arrival time from departure + duration
+        departure_hour = flight.get('DepartureHour')
+        duration = flight.get('Duration', 0)
+        
+        if departure_hour and duration:
+            from datetime import datetime, timedelta
+            
+            # Handle timedelta or string departure hour
+            if hasattr(departure_hour, 'total_seconds'):
+                total_seconds = int(departure_hour.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                departure_hour = f"{hours:02d}:{minutes:02d}"
+            elif isinstance(departure_hour, str) and len(departure_hour) > 5:
+                departure_hour = departure_hour[:5]  # Normalize HH:MM:SS to HH:MM
+            
+            try:
+                dep_time = datetime.strptime(str(departure_hour), "%H:%M")
+                arrival_time = dep_time + timedelta(minutes=int(duration))
+                flight['ArrivalHour'] = arrival_time.strftime("%H:%M")
+            except (ValueError, TypeError):
+                flight['ArrivalHour'] = None
+        else:
+            flight['ArrivalHour'] = None
+            
     return flight
 
 
@@ -443,13 +493,70 @@ def get_available_seats_for_class(flight_id, airplane_id, seat_class):
     return available
 
 
-def build_seat_map(flight_id, airplane_id):
+def get_seats_by_codes(flight_id, airplane_id, seat_codes):
+    """
+    Get seat details with prices for given seat codes.
+    
+    Args:
+        flight_id: Flight ID
+        airplane_id: Airplane ID
+        seat_codes: List of seat codes like ['1A', '2B', '10C']
+    
+    Returns:
+        List of seat dicts with code, row, col, seat_class, and price
+    """
+    import re
+    
+    # Get flight for pricing info
+    flight = flight_repository.get_flight_by_id(flight_id, airplane_id)
+    if not flight:
+        return []
+    
+    # Get airplane to determine business class row boundaries
+    airplane = aircraft_repository.get_airplane_by_id(airplane_id)
+    if not airplane:
+        return []
+    
+    business_rows = airplane.get('business_rows', 0)
+    business_price = float(flight.get('BusinessPrice', 0))
+    economy_price = float(flight.get('EconomyPrice', 0))
+    
+    seats_info = []
+    for seat_code in seat_codes:
+        # Parse seat code like "1A" into row number and column letter
+        match = re.match(r'^(\d+)([A-Z])$', seat_code.upper())
+        if match:
+            row = int(match.group(1))
+            col = match.group(2)
+            
+            # Determine class based on row number
+            if row <= business_rows:
+                seat_class = 'business'
+                price = business_price
+            else:
+                seat_class = 'economy'
+                price = economy_price
+            
+            seats_info.append({
+                'code': seat_code.upper(),
+                'row': row,
+                'col': col,
+                'seat_class': seat_class,
+                'price': price
+            })
+    
+    return seats_info
+
+
+def build_seat_map(flight_id, airplane_id, exclude_seats=None):
     """
     Build a seat map for display showing all seats and their status.
     
     Args:
         flight_id: Flight ID
         airplane_id: Airplane ID
+        exclude_seats: Optional list of seat codes (e.g., ['1A', '2B']) to NOT mark as taken
+                       Used when editing an order to show user's current seats as available
     
     Returns:
         Dict with seat map organized by class and row
@@ -459,7 +566,18 @@ def build_seat_map(flight_id, airplane_id):
         return None
     
     taken_seats = flight_repository.get_taken_seats(flight_id, airplane_id)
-    taken_set = {(t['RowNum'], t['Seat']) for t in taken_seats}
+    
+    # Build exclusion set from exclude_seats parameter
+    exclude_set = set()
+    if exclude_seats:
+        for seat_code in exclude_seats:
+            # Parse seat code like "1A" into (1, 'A')
+            import re
+            match = re.match(r'^(\d+)([A-Z])$', seat_code.upper())
+            if match:
+                exclude_set.add((int(match.group(1)), match.group(2)))
+    
+    taken_set = {(t['RowNum'], t['Seat']) for t in taken_seats if (t['RowNum'], t['Seat']) not in exclude_set}
     
     seat_map = {
         'business': None,
@@ -496,16 +614,15 @@ def build_seat_map(flight_id, airplane_id):
     return seat_map
 
 
-def update_flight_status(flight_id, airplane_id, new_status):
+def update_flight_status(flight_id, new_status):
     """
     Update a flight's status.
     
     Args:
         flight_id: Flight ID
-        airplane_id: Airplane ID
         new_status: New status value
     """
-    flight_repository.update_flight_status(flight_id, airplane_id, new_status)
+    flight_repository.update_flight_status(flight_id, new_status)
 
 
 def check_flight_full(flight_id, airplane_id):
@@ -514,17 +631,12 @@ def check_flight_full(flight_id, airplane_id):
     
     Args:
         flight_id: Flight ID
-        airplane_id: Airplane ID
+        airplane_id: Airplane ID (used for seat availability check)
     """
     availability = get_seat_availability(flight_id, airplane_id)
     
     total_available = 0
     for seat_class in availability.values():
-        if seat_class:
-            total_available += seat_class.get('available', 0)
-    
-    if total_available == 0:
-        update_flight_status(flight_id, airplane_id, 'full')
         if seat_class:
             total_available += seat_class.get('available', 0)
     

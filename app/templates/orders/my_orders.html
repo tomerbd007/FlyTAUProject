@@ -3,81 +3,388 @@
 {% block title %}My Orders - FLYTAU{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>My Orders</h1>
-    <p>View and manage your flight bookings</p>
-</div>
+<style>
+    .orders-shell {
+        display: flex;
+        min-height: calc(100vh - 160px);
+        position: relative;
+    }
 
-<div class="orders-container">
-    <div class="orders-filter">
-        <form method="GET" action="{{ url_for('my_orders') }}" class="filter-form">
-            <label for="status">Filter by status:</label>
-            <select name="status" id="status" onchange="this.form.submit()">
-                <option value="">All Orders</option>
-                <option value="confirmed" {% if request.args.get('status') == 'confirmed' %}selected{% endif %}>Confirmed</option>
-                <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
-            </select>
-            <noscript>
-                <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
-            </noscript>
-        </form>
-    </div>
-    
-    {% if orders %}
-    <div class="orders-list">
-        {% for order in orders %}
-        <div class="order-card">
-            <div class="order-header">
-                <div class="booking-info">
-                    <span class="booking-code">{{ order.booking_code }}</span>
-                    <span class="order-date">Booked on {{ order.created_at.strftime('%b %d, %Y') }}</span>
+    .orders-shell::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 42%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a3a52 0%, #2d5a7b 100%);
+        z-index: 0;
+    }
+
+    .orders-card {
+        display: flex;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+        border-radius: 18px;
+        overflow: hidden;
+        background: transparent;
+    }
+
+    .orders-sidebar {
+        width: 42%;
+        padding: 60px 48px;
+        color: #f7fbff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+    }
+
+    .orders-sidebar .logo {
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: -1px;
+    }
+
+    .orders-sidebar h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .orders-sidebar p {
+        font-size: 1rem;
+        line-height: 1.6;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .orders-sidebar ul {
+        list-style: none;
+        padding: 0;
+        margin: 16px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .orders-sidebar li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0.9;
+    }
+
+    .orders-sidebar li:before {
+        content: '✓';
+        font-weight: bold;
+    }
+
+    .orders-content {
+        width: 58%;
+        background: #ffffff;
+        padding: 50px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .orders-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .orders-header .title {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .orders-header h2 {
+        margin: 0;
+        font-size: 1.6rem;
+        color: #1a3a52;
+    }
+
+    .orders-header .subtitle {
+        margin: 0;
+        color: #6b7b8c;
+        font-size: 0.95rem;
+    }
+
+    .filter-form {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f6f8fb;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid #e3e9f0;
+    }
+
+    .filter-form label {
+        font-weight: 600;
+        color: #1a3a52;
+    }
+
+    .filter-form select {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #d6dde6;
+        background: #fff;
+        font-size: 0.95rem;
+        min-width: 170px;
+    }
+
+    .orders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .order-card {
+        border: 1px solid #e7edf5;
+        border-radius: 12px;
+        padding: 16px 18px;
+        background: #fbfdff;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .booking-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .booking-code {
+        font-weight: 700;
+        color: #1a3a52;
+        letter-spacing: 0.2px;
+    }
+
+    .order-date {
+        color: #75879b;
+        font-size: 0.9rem;
+    }
+
+    .order-status {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: capitalize;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .status-confirmed { background: #e8f7ef; color: #1f7a4d; }
+    .status-cancelled { background: #fdeeee; color: #c0392b; }
+    .status-completed { background: #eef3ff; color: #2c4fa1; }
+
+    .order-flight {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        align-items: center;
+        color: #1a3a52;
+    }
+
+    .flight-route-mini {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+    }
+
+    .flight-route-mini .arrow { color: #8296aa; }
+
+    .flight-datetime { color: #5b6d81; font-size: 0.95rem; }
+    .flight-number { color: #8296aa; font-size: 0.9rem; }
+
+    .order-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #1a3a52;
+        font-weight: 600;
+    }
+
+    .order-summary .order-total { font-size: 1.05rem; }
+
+    .order-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 10px 14px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.92rem;
+        border: none;
+        display: inline-block;
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-secondary {
+        background: #1a3a52;
+        color: #ffffff;
+    }
+
+    .btn-danger {
+        background: #c0392b;
+        color: #ffffff;
+    }
+
+    .btn-primary {
+        background: #2d5a7b;
+        color: #ffffff;
+    }
+
+    .no-orders {
+        background: #fbfdff;
+        border: 1px solid #e7edf5;
+        border-radius: 14px;
+        padding: 28px;
+        text-align: center;
+        color: #1a3a52;
+        display: grid;
+        gap: 12px;
+    }
+
+    .no-orders-icon { font-size: 2rem; }
+
+    @media (max-width: 1024px) {
+        .orders-shell::before { width: 100%; height: 240px; }
+        .orders-card { flex-direction: column; border-radius: 0; box-shadow: none; }
+        .orders-sidebar { width: 100%; padding: 36px 28px; text-align: center; }
+        .orders-content { width: 100%; padding: 32px 24px; margin-top: -20px; border-radius: 20px 20px 0 0; }
+        .order-flight { grid-template-columns: 1fr; }
+        .orders-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 640px) {
+        .filter-form { flex-direction: column; align-items: flex-start; width: 100%; }
+        .filter-form select { width: 100%; }
+    }
+</style>
+
+<div class="orders-shell">
+    <div class="orders-card">
+        <div class="orders-sidebar">
+            <div class="logo">FLYTAU</div>
+            <h1>My Orders</h1>
+            <p>Track, manage, and review every booking in one place with quick access to details and cancellations.</p>
+            <ul>
+                <li>Filter by status instantly</li>
+                <li>View itinerary and totals</li>
+                <li>Manage cancellations when allowed</li>
+                <li>Stay on top of upcoming flights</li>
+            </ul>
+        </div>
+
+        <div class="orders-content">
+            <div class="orders-header">
+                <div class="title">
+                    <h2>Your bookings</h2>
+                    <p class="subtitle">All your reservations, organized and easy to manage</p>
                 </div>
-                <span class="order-status status-{{ order.status }}">{{ order.status|capitalize }}</span>
+                <form method="GET" action="{{ url_for('my_orders') }}" class="filter-form">
+                    <label for="status">Status</label>
+                    <select name="status" id="status" onchange="this.form.submit()">
+                        <option value="">All Orders</option>
+                        <option value="confirmed" {% if request.args.get('status') == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                        <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+                    </select>
+                    <noscript>
+                        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+                    </noscript>
+                </form>
             </div>
-            
-            <div class="order-flight">
-                <div class="flight-route-mini">
-                    <span class="origin">{{ order.origin }}</span>
-                    <span class="arrow">→</span>
-                    <span class="destination">{{ order.destination }}</span>
+
+            {% if orders %}
+            <div class="orders-list">
+                {% for order in orders %}
+                {% set display_status = 'cancelled' if order.status in ['customer_canceled', 'system_canceled'] else order.status %}
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="booking-info">
+                            <span class="booking-code">{{ order.booking_code }}</span>
+                            <span class="order-date">Departs {{ order.departure_time.strftime('%b %d, %Y') if order.departure_time else '' }}</span>
+                        </div>
+                        <span class="order-status status-{{ display_status }}">{{ display_status|capitalize }}</span>
+                    </div>
+
+                    <div class="order-flight">
+                        <div class="flight-route-mini">
+                            <span class="origin">{{ order.origin }}</span>
+                            <span class="arrow">→</span>
+                            <span class="destination">{{ order.destination }}</span>
+                        </div>
+                        <div class="flight-datetime">
+                            {{ order.departure_time.strftime('%a, %b %d, %Y at %H:%M') if order.departure_time else 'Departure TBD' }}
+                        </div>
+                        <div class="flight-number">Flight {{ order.flight_number }}</div>
+                    </div>
+
+                    <div class="order-summary">
+                        <span class="ticket-count">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
+                        {% if order.status == 'system_canceled' %}
+                        <span class="order-total" style="color: #27ae60;">Full Refund</span>
+                        {% elif order.status == 'customer_canceled' %}
+                        {# TotalCost is now the fee (5%), so refund = fee * 19 (95% of original) #}
+                        <span class="order-total" style="color: #27ae60;">${{ "%.2f"|format(order.total_amount * 19) }} refund</span>
+                        {% else %}
+                        <span class="order-total">${{ "%.2f"|format(order.total_amount) }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="order-actions">
+                        <a href="{{ url_for('order_confirmation', booking_code=order.booking_code) }}" class="btn btn-secondary">View Details</a>
+                        {% if order.status == 'confirmed' and order.can_cancel %}
+                        <a href="{{ url_for('edit_order_seats', booking_code=order.booking_code) }}" class="btn btn-primary">Edit Seats</a>
+                        {% endif %}
+                        {% if order.status == 'confirmed' and order.can_cancel %}
+                        <a href="{{ url_for('customer_cancel_order', booking_code=order.booking_code) }}" class="btn btn-danger">Cancel Order</a>
+                        {% else %}
+                        <span class="btn btn-secondary" style="opacity:0.7; cursor:not-allowed;">Cancel Locked</span>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="flight-datetime">
-                    {{ order.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}
-                </div>
-                <div class="flight-number">Flight {{ order.flight_number }}</div>
+                {% endfor %}
             </div>
-            
-            <div class="order-summary">
-                <span class="ticket-count">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
-                <span class="order-total">${{ "%.2f"|format(order.total_amount) }}</span>
-            </div>
-            
-            <div class="order-actions">
-                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-secondary btn-sm">
-                    View Details
-                </a>
-                {% if order.status == 'confirmed' and order.can_cancel %}
-                <a href="{{ url_for('cancel_order', order_id=order.id) }}" class="btn btn-danger btn-sm">
-                    Cancel Order
-                </a>
+            {% else %}
+            <div class="no-orders">
+                <div class="no-orders-icon">📋</div>
+                <h2>No orders found</h2>
+                {% if request.args.get('status') %}
+                <p>No {{ request.args.get('status') }} orders found.</p>
+                <a href="{{ url_for('my_orders') }}" class="btn btn-secondary">View All Orders</a>
+                {% else %}
+                <p>You haven't made any bookings yet.</p>
+                <a href="{{ url_for('flight_search') }}" class="btn btn-primary">Search Flights</a>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="no-orders">
-        <div class="no-orders-icon">📋</div>
-        <h2>No orders found</h2>
-        {% if request.args.get('status') %}
-        <p>No {{ request.args.get('status') }} orders found.</p>
-        <a href="{{ url_for('my_orders') }}" class="btn btn-secondary">View All Orders</a>
-        {% else %}
-        <p>You haven't made any bookings yet.</p>
-        <a href="{{ url_for('flight_search') }}" class="btn btn-primary">Search Flights</a>
-        {% endif %}
-    </div>
-    {% endif %}
 </div>
 {% endblock %}

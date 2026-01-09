@@ -14,12 +14,12 @@ def register_flight_routes(app):
     @app.route('/flights')
     def flights():
         """Flight search page with form."""
-        # Get available cities for dropdowns
-        cities = flight_service.get_all_cities()
+        # Get available airports for dropdowns
+        airports = flight_service.get_all_airports()
         today = date.today().strftime('%Y-%m-%d')
         
         return render_template('flights/search.html', 
-                               cities=cities,
+                               airports=airports,
                                today=today)
     
     @app.route('/flights/search')
@@ -52,8 +52,8 @@ def register_flight_routes(app):
             include_indirect=True
         )
         
-        # Get cities for the search form
-        cities = flight_service.get_all_cities()
+        # Get airports for the search form
+        airports = flight_service.get_all_airports()
         today = date.today().strftime('%Y-%m-%d')
         
         return render_template('flights/results.html',
@@ -62,7 +62,7 @@ def register_flight_routes(app):
                                destination=destination,
                                date=departure_date,
                                passengers=passengers,
-                               cities=cities,
+                               airports=airports,
                                today=today)
     
     @app.route('/flights/<flight_id>')

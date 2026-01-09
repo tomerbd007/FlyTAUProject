@@ -3,21 +3,539 @@
 {% block title %}Cancel Flight - FLYTAU Admin{% endblock %}
 
 {% block content %}
-<div class="admin-header">
-    <a href="{{ url_for('admin_flights') }}" class="back-link">← Back to Flights</a>
-    <h1>Cancel Flight</h1>
-</div>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-<div class="cancel-container">
-    <div class="cancel-card admin-cancel">
-        <div class="warning-banner severe">
-            <span class="warning-icon">⚠</span>
-            <span>You are about to cancel this flight</span>
+    body {
+        background: #f5f5f5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #333;
+    }
+
+    .dashboard-wrapper {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .dashboard-wrapper::before {
+        content: '';
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 25%;
+        height: 100vh;
+        background: linear-gradient(135deg, #8b2942 0%, #a33a55 100%);
+        z-index: 0;
+    }
+
+    .dashboard-sidebar {
+        width: 25%;
+        padding: 40px 30px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1;
+        gap: 24px;
+    }
+
+    .dashboard-sidebar .logo {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+        letter-spacing: -1px;
+    }
+
+    .sidebar-welcome h2 {
+        font-size: 1.5rem;
+        font-weight: 300;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+
+    .sidebar-welcome p {
+        font-size: 0.95rem;
+        opacity: 0.85;
+        line-height: 1.6;
+    }
+
+    .sidebar-card {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .sidebar-card.warning {
+        background: rgba(255,200,100,0.15);
+        border-color: rgba(255,200,100,0.3);
+    }
+
+    .sidebar-flight {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .sidebar-flight .route {
+        font-size: 1.2rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .sidebar-flight .datetime {
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+
+    .sidebar-meta {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .sidebar-meta .chip {
+        background: rgba(255,255,255,0.12);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .sidebar-card h3 {
+        font-size: 1rem;
+        margin-bottom: 10px;
+        opacity: 0.95;
+    }
+
+    .impact-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .impact-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .impact-row:last-child {
+        border-bottom: none;
+    }
+
+    .impact-row .label {
+        font-size: 0.9rem;
+        opacity: 0.85;
+    }
+
+    .impact-row .value {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .sidebar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: auto;
+    }
+
+    .sidebar-actions .btn {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 4px;
+        background: transparent;
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .sidebar-actions .btn:hover {
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(255,255,255,0.5);
+    }
+
+    .dashboard-content {
+        width: 75%;
+        margin-left: 25%;
+        padding: 40px;
+        background: white;
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+    }
+
+    .admin-header {
+        margin-bottom: 30px;
+    }
+
+    .admin-header .back-link {
+        color: #8b2942;
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 10px;
+        transition: color 0.3s ease;
+    }
+
+    .admin-header .back-link:hover {
+        color: #a33a55;
+    }
+
+    .admin-header h1 {
+        font-size: 2.1rem;
+        font-weight: 600;
+        color: #8b2942;
+        margin-bottom: 8px;
+    }
+
+    .admin-header p {
+        font-size: 0.95rem;
+        color: #666;
+    }
+
+    .warning-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 0.95rem;
+        color: #856404;
+    }
+
+    .warning-banner .warning-icon {
+        font-size: 1.4rem;
+    }
+
+    .card {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    }
+
+    .card h2 {
+        font-size: 1.2rem;
+        color: #1a3a52;
+        margin-bottom: 16px;
+    }
+
+    .flight-detail-display {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        border: 1px solid #e5e5e5;
+    }
+
+    .flight-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .flight-number {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1a3a52;
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-scheduled, .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .flight-route-detailed {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .route-point {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .route-point .time {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1a3a52;
+    }
+
+    .route-point .city {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .route-point .date {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .route-line {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .route-line::before {
+        content: '';
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, #8b2942 0%, #a33a55 100%);
+        border-radius: 2px;
+    }
+
+    .route-line .duration {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .impact-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .impact-stat {
+        background: white;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .impact-stat .number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #8b2942;
+        display: block;
+    }
+
+    .impact-stat .label {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 4px;
+    }
+
+    .impact-note {
+        background: #e8f4fc;
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        color: #1a3a52;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 6px;
+    }
+
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        background: white;
+        resize: vertical;
+    }
+
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #8b2942;
+        box-shadow: 0 0 0 3px rgba(139, 41, 66, 0.12);
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 0.95rem;
+        color: #333;
+        cursor: pointer;
+    }
+
+    .checkbox-label input {
+        margin-top: 3px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .cancel-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .btn-danger {
+        background: #8b2942;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #6d1f33;
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-wrapper::before { width: 30%; }
+        .dashboard-sidebar { width: 30%; }
+        .dashboard-content { width: 70%; margin-left: 30%; padding: 30px; }
+        .impact-stats-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-wrapper { flex-direction: column; }
+        .dashboard-wrapper::before { width: 100%; height: 220px; }
+        .dashboard-sidebar { width: 100%; height: auto; position: relative; }
+        .dashboard-content { width: 100%; margin-left: 0; padding: 20px; }
+        .cancel-actions { flex-direction: column; }
+        .flight-route-detailed { flex-direction: column; text-align: center; }
+    }
+</style>
+
+<div class="dashboard-wrapper">
+    <div class="dashboard-sidebar">
+        <div>
+            <div class="logo">FLYTAU</div>
+            <div class="sidebar-welcome">
+                <h2>Cancel Flight</h2>
+                <p>Review the impact before proceeding with cancellation.</p>
+            </div>
         </div>
-        
-        <div class="flight-summary-section">
+
+        <div class="sidebar-card">
+            <div class="sidebar-flight">
+                <div class="route">{{ flight.origin }} → {{ flight.destination }}</div>
+                <div class="datetime">{{ flight.departure_time.strftime('%a, %b %d, %Y') }} at {{ flight.departure_time.strftime('%H:%M') }}</div>
+            </div>
+            <div class="sidebar-meta">
+                <div class="chip">{{ flight.flight_number }}</div>
+                <div class="chip">{{ flight.status|capitalize }}</div>
+            </div>
+        </div>
+
+        <div class="sidebar-card warning">
+            <h3>Cancellation Impact</h3>
+            <div class="impact-grid">
+                <div class="impact-row">
+                    <span class="label">Orders affected</span>
+                    <span class="value">{{ affected_orders }}</span>
+                </div>
+                <div class="impact-row">
+                    <span class="label">Tickets to refund</span>
+                    <span class="value">{{ affected_tickets }}</span>
+                </div>
+                <div class="impact-row">
+                    <span class="label">Total refund</span>
+                    <span class="value">${{ "%.2f"|format(total_refund) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>Important</h3>
+            <p style="opacity:0.85; font-size:0.9rem; line-height:1.5;">All affected customers will receive a full refund. No cancellation fee applies when the airline cancels.</p>
+        </div>
+
+        <div class="sidebar-actions">
+            <a href="{{ url_for('admin_flights') }}" class="btn">← Back to Flights</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="admin-header">
+            <a href="{{ url_for('admin_flights') }}" class="back-link">← Back to Flights</a>
+            <h1>Cancel Flight {{ flight.flight_number }}</h1>
+            <p>This action cannot be undone. Please review the details carefully.</p>
+        </div>
+
+        <div class="warning-banner">
+            <span class="warning-icon">⚠</span>
+            <span><strong>Warning:</strong> You are about to cancel this flight. All associated orders will be refunded.</span>
+        </div>
+
+        <div class="card">
             <h2>Flight Information</h2>
-            
             <div class="flight-detail-display">
                 <div class="flight-header">
                     <span class="flight-number">{{ flight.flight_number }}</span>
@@ -40,54 +558,55 @@
                 </div>
             </div>
         </div>
-        
-        <div class="impact-section">
+
+        <div class="card">
             <h2>Cancellation Impact</h2>
-            
-            <div class="impact-stats">
-                <div class="impact-item">
-                    <span class="impact-number">{{ affected_orders }}</span>
-                    <span class="impact-label">Orders will be cancelled</span>
+            <div class="impact-stats-grid">
+                <div class="impact-stat">
+                    <span class="number">{{ affected_orders }}</span>
+                    <span class="label">Orders will be cancelled</span>
                 </div>
-                <div class="impact-item">
-                    <span class="impact-number">{{ affected_tickets }}</span>
-                    <span class="impact-label">Tickets will be refunded</span>
+                <div class="impact-stat">
+                    <span class="number">{{ affected_tickets }}</span>
+                    <span class="label">Tickets will be refunded</span>
                 </div>
-                <div class="impact-item">
-                    <span class="impact-number">${{ "%.2f"|format(total_refund) }}</span>
-                    <span class="impact-label">Total refund amount</span>
+                <div class="impact-stat">
+                    <span class="number">${{ "%.2f"|format(total_refund) }}</span>
+                    <span class="label">Total refund amount</span>
                 </div>
             </div>
-            
             <div class="impact-note">
-                <p><strong>Note:</strong> All affected customers will receive a full refund (no cancellation fee applies when the airline cancels a flight).</p>
+                <strong>Note:</strong> All affected customers will receive a full refund (no cancellation fee applies when the airline cancels a flight).
             </div>
         </div>
-        
-        <form method="POST" action="{{ url_for('admin_cancel_flight', flight_id=flight.id) }}" class="cancel-form">
-            <div class="form-group">
-                <label for="reason">Cancellation Reason</label>
-                <textarea id="reason" 
-                          name="reason" 
-                          rows="3" 
-                          required
-                          placeholder="Provide a reason for the cancellation...">{{ request.form.get('reason', '') }}</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="confirm" required>
-                    <span>I understand this will cancel all {{ affected_orders }} order{{ 's' if affected_orders != 1 else '' }} and issue refunds totaling ${{ "%.2f"|format(total_refund) }}</span>
-                </label>
-            </div>
-            
-            <div class="cancel-actions">
-                <a href="{{ url_for('admin_flights') }}" class="btn btn-secondary">
-                    Keep Flight Active
-                </a>
-                <button type="submit" class="btn btn-danger">
-                    Cancel Flight
-                </button>
+
+        <form method="POST" action="{{ url_for('cancel_flight', flight_id=flight.id) }}">
+            <div class="card">
+                <h2>Confirm Cancellation</h2>
+                
+                <div class="form-group">
+                    <label for="reason">Cancellation Reason (optional)</label>
+                    <textarea id="reason" 
+                              name="reason" 
+                              rows="3" 
+                              placeholder="Provide a reason for the cancellation...">{{ request.form.get('reason', '') }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="confirm" required>
+                        <span>I understand this will cancel all {{ affected_orders }} order{{ 's' if affected_orders != 1 else '' }} and issue refunds totaling ${{ "%.2f"|format(total_refund) }}</span>
+                    </label>
+                </div>
+                
+                <div class="cancel-actions">
+                    <a href="{{ url_for('admin_flights') }}" class="btn btn-secondary">
+                        Keep Flight Active
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        Cancel Flight
+                    </button>
+                </div>
             </div>
         </form>
     </div>

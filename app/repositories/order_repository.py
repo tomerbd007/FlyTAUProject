@@ -2,19 +2,66 @@
 FLYTAU Order Repository
 Database access for orders and tickets
 
-Schema:
-- orders: UniqueOrderCode (PK), TotalCost, Class, Status, 
+Schema (normalized):
+- orders: UniqueOrderCode (PK), TotalCost, Status, 
           GuestCustomer_UniqueMail (nullable), RegisteredCustomer_UniqueMail (nullable),
-          Flights_FlightId, Flights_Airplanes_AirplaneId
-- Tickets: TicketId (PK), Class, RowNum, Seat, Price, orders_UniqueOrderCode,
-           Flights_FlightId, Flights_Airplanes_AirplaneId
+          Flights_FlightId
+- Tickets: TicketId (PK), Class, RowNum, Seat, orders_UniqueOrderCode
 
-Note: Either GuestCustomer_UniqueMail OR RegisteredCustomer_UniqueMail should be set, not both.
+Note: 
+- Either GuestCustomer_UniqueMail OR RegisteredCustomer_UniqueMail should be set, not both.
+- Flight's AirplaneId is derived via Flights table using Flights_FlightId.
+- Ticket price is calculated dynamically from Flight's EconomyPrice/BusinessPrice based on Ticket.Class.
+- Order's class can be derived from its associated tickets.
+- Seat uniqueness per flight is enforced in the backend (see is_seat_taken_for_flight).
 """
 from app.db import execute_query
 import random
 import string
 
+
+# ============ SEAT UNIQUENESS VALIDATION ============
+
+def is_seat_taken_for_flight(flight_id, row_num, seat, exclude_order_code=None):
+    """
+    Check if a seat is already taken for a specific flight.
+    
+    Args:
+        flight_id: The flight ID to check
+        row_num: Row number
+        seat: Seat letter (e.g., 'A', 'B')
+        exclude_order_code: Optional order code to exclude (for seat updates)
+    
+    Returns:
+        True if seat is taken, False if available
+    """
+    sql = """
+        SELECT 1
+        FROM Tickets t
+        JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
+        WHERE o.Flights_FlightId = %s
+          AND t.RowNum = %s
+          AND t.Seat = %s
+          AND o.Status != 'cancelled'
+    """
+    params = [flight_id, row_num, seat]
+    
+    if exclude_order_code:
+        sql += " AND o.UniqueOrderCode != %s"
+        params.append(exclude_order_code)
+    
+    result = execute_query(sql, tuple(params), fetch_one=True)
+    return result is not None
+
+
+def get_flight_id_for_order(order_code):
+    """Get the flight ID associated with an order."""
+    sql = "SELECT Flights_FlightId FROM orders WHERE UniqueOrderCode = %s"
+    result = execute_query(sql, (order_code,), fetch_one=True)
+    return result['Flights_FlightId'] if result else None
+
+
+# ============ BOOKING CODE GENERATION ============
 
 def generate_booking_code():
     """Generate a unique booking code in format FLY-XXXXXX."""
@@ -32,42 +79,47 @@ def booking_code_exists(booking_code):
 
 # ============ ORDER OPERATIONS ============
 
-def create_order(booking_code, flight_id, airplane_id, total_cost, status, 
-                 guest_email=None, registered_email=None, seat_class=None):
+def create_order(booking_code, flight_id, total_cost, status, 
+                 guest_email=None, registered_email=None):
     """
     Create a new order.
     
     Args:
         booking_code: UniqueOrderCode
         flight_id: Flights_FlightId
-        airplane_id: Flights_Airplanes_AirplaneId
         total_cost: TotalCost
         status: Order status (e.g., 'confirmed', 'cancelled')
         guest_email: GuestCustomer_UniqueMail (if guest booking)
         registered_email: RegisteredCustomer_UniqueMail (if registered user booking)
-        seat_class: Class (e.g., 'economy', 'business', 'mixed')
     """
     sql = """
-        INSERT INTO orders (UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId,
-                           TotalCost, Status, GuestCustomer_UniqueMail, 
-                           RegisteredCustomer_UniqueMail, Class)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO orders (UniqueOrderCode, Flights_FlightId, TotalCost, Status, 
+                           GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """
-    return execute_query(sql, (booking_code, flight_id, airplane_id, total_cost, status,
-                               guest_email, registered_email, seat_class), commit=True)
+    return execute_query(sql, (booking_code, flight_id, total_cost, status,
+                               guest_email, registered_email), commit=True)
 
 
 def get_order_by_booking_code(booking_code):
-    """Get an order by booking code (UniqueOrderCode)."""
+    """
+    Get an order by booking code (UniqueOrderCode).
+    Returns order with flight details and derived class from tickets.
+    """
     sql = """
-        SELECT o.UniqueOrderCode, o.TotalCost, o.Class, o.Status,
+        SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
                o.GuestCustomer_UniqueMail, o.RegisteredCustomer_UniqueMail,
-               o.Flights_FlightId, o.Flights_Airplanes_AirplaneId,
+               o.Flights_FlightId,
+               f.Airplanes_AirplaneId as Flights_Airplanes_AirplaneId,
                f.OriginPort, f.DestPort, f.DepartureDate, f.DepartureHour, f.Duration,
-               a.Manufacturer
+               f.EconomyPrice, f.BusinessPrice,
+               a.Manufacturer,
+               (SELECT CASE 
+                    WHEN COUNT(DISTINCT t.Class) > 1 THEN 'mixed'
+                    ELSE MAX(t.Class)
+                END FROM Tickets t WHERE t.orders_UniqueOrderCode = o.UniqueOrderCode) as Class
         FROM orders o
-        JOIN Flights f ON o.Flights_FlightId = f.FlightId 
-            AND o.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
         WHERE o.UniqueOrderCode = %s
     """
@@ -82,11 +134,14 @@ def get_order_with_tickets(booking_code):
     
     order = dict(order)
     
-    # Get tickets for this order
+    # Get tickets for this order with dynamically calculated price
     sql = """
-        SELECT t.TicketId, t.Class, t.RowNum, t.Seat, t.Price,
+        SELECT t.TicketId, t.Class, t.RowNum, t.Seat,
+               CASE WHEN t.Class = 'business' THEN f.BusinessPrice ELSE f.EconomyPrice END as Price,
                CONCAT(t.RowNum, t.Seat) as SeatCode
         FROM Tickets t
+        JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         WHERE t.orders_UniqueOrderCode = %s
         ORDER BY t.Class DESC, t.RowNum, t.Seat
     """
@@ -99,21 +154,29 @@ def get_order_with_tickets(booking_code):
 def get_orders_by_registered_customer(email, status_filter=None):
     """Get all orders for a registered customer."""
     sql = """
-        SELECT o.UniqueOrderCode, o.TotalCost, o.Class, o.Status,
-               o.Flights_FlightId, o.Flights_Airplanes_AirplaneId,
+        SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
+               o.Flights_FlightId,
+               f.Airplanes_AirplaneId as Flights_Airplanes_AirplaneId,
                f.OriginPort, f.DestPort, f.DepartureDate, f.DepartureHour,
-               COUNT(t.TicketId) as TicketCount
+               COUNT(t.TicketId) as TicketCount,
+               (SELECT CASE 
+                    WHEN COUNT(DISTINCT t2.Class) > 1 THEN 'mixed'
+                    ELSE MAX(t2.Class)
+                END FROM Tickets t2 WHERE t2.orders_UniqueOrderCode = o.UniqueOrderCode) as Class
         FROM orders o
-        JOIN Flights f ON o.Flights_FlightId = f.FlightId 
-            AND o.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         LEFT JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
         WHERE o.RegisteredCustomer_UniqueMail = %s
     """
     params = [email]
     
     if status_filter:
-        sql += " AND o.Status = %s"
-        params.append(status_filter)
+        # Map 'cancelled' to both customer_canceled and system_canceled
+        if status_filter.lower() == 'cancelled':
+            sql += " AND o.Status IN ('customer_canceled', 'system_canceled')"
+        else:
+            sql += " AND o.Status = %s"
+            params.append(status_filter)
     
     sql += " GROUP BY o.UniqueOrderCode ORDER BY f.DepartureDate DESC"
     
@@ -123,21 +186,29 @@ def get_orders_by_registered_customer(email, status_filter=None):
 def get_orders_by_guest_email(email, status_filter=None):
     """Get all orders for a guest customer by email."""
     sql = """
-        SELECT o.UniqueOrderCode, o.TotalCost, o.Class, o.Status,
-               o.Flights_FlightId, o.Flights_Airplanes_AirplaneId,
+        SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
+               o.Flights_FlightId,
+               f.Airplanes_AirplaneId as Flights_Airplanes_AirplaneId,
                f.OriginPort, f.DestPort, f.DepartureDate, f.DepartureHour,
-               COUNT(t.TicketId) as TicketCount
+               COUNT(t.TicketId) as TicketCount,
+               (SELECT CASE 
+                    WHEN COUNT(DISTINCT t2.Class) > 1 THEN 'mixed'
+                    ELSE MAX(t2.Class)
+                END FROM Tickets t2 WHERE t2.orders_UniqueOrderCode = o.UniqueOrderCode) as Class
         FROM orders o
-        JOIN Flights f ON o.Flights_FlightId = f.FlightId 
-            AND o.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         LEFT JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
         WHERE o.GuestCustomer_UniqueMail = %s
     """
     params = [email]
     
     if status_filter:
-        sql += " AND o.Status = %s"
-        params.append(status_filter)
+        if status_filter == 'cancelled':
+            # Map 'cancelled' to both customer_canceled and system_canceled
+            sql += " AND o.Status IN ('customer_canceled', 'system_canceled')"
+        else:
+            sql += " AND o.Status = %s"
+            params.append(status_filter)
     
     sql += " GROUP BY o.UniqueOrderCode ORDER BY f.DepartureDate DESC"
     
@@ -147,13 +218,17 @@ def get_orders_by_guest_email(email, status_filter=None):
 def get_order_by_code_and_email(booking_code, email):
     """Get order by booking code and email (for guest lookup)."""
     sql = """
-        SELECT o.UniqueOrderCode, o.TotalCost, o.Class, o.Status,
+        SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
                o.GuestCustomer_UniqueMail, o.RegisteredCustomer_UniqueMail,
-               o.Flights_FlightId, o.Flights_Airplanes_AirplaneId,
-               f.OriginPort, f.DestPort, f.DepartureDate, f.DepartureHour, f.Duration
+               o.Flights_FlightId,
+               f.Airplanes_AirplaneId as Flights_Airplanes_AirplaneId,
+               f.OriginPort, f.DestPort, f.DepartureDate, f.DepartureHour, f.Duration,
+               (SELECT CASE 
+                    WHEN COUNT(DISTINCT t.Class) > 1 THEN 'mixed'
+                    ELSE MAX(t.Class)
+                END FROM Tickets t WHERE t.orders_UniqueOrderCode = o.UniqueOrderCode) as Class
         FROM orders o
-        JOIN Flights f ON o.Flights_FlightId = f.FlightId 
-            AND o.Flights_Airplanes_AirplaneId = f.Airplanes_AirplaneId
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
         WHERE o.UniqueOrderCode = %s 
           AND (o.GuestCustomer_UniqueMail = %s OR o.RegisteredCustomer_UniqueMail = %s)
     """
@@ -184,32 +259,34 @@ def count_orders_by_status(status):
     return result['count'] if result else 0
 
 
-def get_active_orders_for_flight(flight_id, airplane_id):
+def get_active_orders_for_flight(flight_id):
     """Get all active (non-cancelled) orders for a specific flight."""
     sql = """
-        SELECT o.UniqueOrderCode, o.TotalCost, o.Class, o.Status,
+        SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
                o.GuestCustomer_UniqueMail, o.RegisteredCustomer_UniqueMail,
-               COUNT(t.TicketId) as TicketCount
+               COUNT(t.TicketId) as TicketCount,
+               (SELECT CASE 
+                    WHEN COUNT(DISTINCT t2.Class) > 1 THEN 'mixed'
+                    ELSE MAX(t2.Class)
+                END FROM Tickets t2 WHERE t2.orders_UniqueOrderCode = o.UniqueOrderCode) as Class
         FROM orders o
         LEFT JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
         WHERE o.Flights_FlightId = %s 
-          AND o.Flights_Airplanes_AirplaneId = %s
           AND o.Status != 'cancelled'
         GROUP BY o.UniqueOrderCode
     """
-    return execute_query(sql, (flight_id, airplane_id))
+    return execute_query(sql, (flight_id,))
 
 
-def count_active_orders_for_flight(flight_id, airplane_id):
+def count_active_orders_for_flight(flight_id):
     """Count active orders for a flight."""
     sql = """
         SELECT COUNT(*) AS count
         FROM orders
         WHERE Flights_FlightId = %s 
-          AND Flights_Airplanes_AirplaneId = %s
           AND Status != 'cancelled'
     """
-    result = execute_query(sql, (flight_id, airplane_id), fetch_one=True)
+    result = execute_query(sql, (flight_id,), fetch_one=True)
     return result['count'] if result else 0
 
 
@@ -226,47 +303,69 @@ def get_total_revenue():
 
 # ============ TICKET OPERATIONS ============
 
-def create_ticket(order_code, flight_id, airplane_id, row_num, seat, seat_class, price):
+class SeatAlreadyTakenError(Exception):
+    """Raised when attempting to book a seat that is already taken."""
+    pass
+
+
+def create_ticket(order_code, row_num, seat, seat_class, validate_seat=True):
     """
-    Create a new ticket.
+    Create a new ticket with optional seat validation.
     
     Args:
         order_code: orders_UniqueOrderCode
-        flight_id: Flights_FlightId
-        airplane_id: Flights_Airplanes_AirplaneId
         row_num: Row number
         seat: Seat letter (e.g., 'A', 'B', 'C')
         seat_class: 'business' or 'economy'
-        price: Ticket price
+        validate_seat: Whether to check seat availability before insert (default: True)
+    
+    Note: Price is calculated dynamically from the flight's pricing via the order.
+    
+    Raises:
+        SeatAlreadyTakenError: If seat is already taken for this flight
     """
+    if validate_seat:
+        # Get flight ID from order
+        flight_id = get_flight_id_for_order(order_code)
+        if flight_id and is_seat_taken_for_flight(flight_id, row_num, seat):
+            raise SeatAlreadyTakenError(f"Seat {row_num}{seat} is already taken for this flight.")
+    
     sql = """
-        INSERT INTO Tickets (orders_UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId,
-                            RowNum, Seat, Class, Price)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO Tickets (orders_UniqueOrderCode, RowNum, Seat, Class)
+        VALUES (%s, %s, %s, %s)
     """
-    return execute_query(sql, (order_code, flight_id, airplane_id, row_num, seat, seat_class, price), commit=True)
+    return execute_query(sql, (order_code, row_num, seat, seat_class), commit=True)
 
 
 def get_tickets_for_order(booking_code):
-    """Get all tickets for an order."""
+    """Get all tickets for an order with dynamically calculated price."""
     sql = """
-        SELECT TicketId, Class, RowNum, Seat, Price,
-               Flights_FlightId, Flights_Airplanes_AirplaneId,
-               CONCAT(RowNum, Seat) as SeatCode
-        FROM Tickets
-        WHERE orders_UniqueOrderCode = %s
-        ORDER BY Class DESC, RowNum, Seat
+        SELECT t.TicketId, t.Class, t.RowNum, t.Seat,
+               CASE WHEN t.Class = 'business' THEN f.BusinessPrice ELSE f.EconomyPrice END as Price,
+               o.Flights_FlightId,
+               f.Airplanes_AirplaneId as Flights_Airplanes_AirplaneId,
+               CONCAT(t.RowNum, t.Seat) as SeatCode
+        FROM Tickets t
+        JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
+        WHERE t.orders_UniqueOrderCode = %s
+        ORDER BY t.Class DESC, t.RowNum, t.Seat
     """
     return execute_query(sql, (booking_code,))
 
 
 def get_ticket_by_id(ticket_id):
-    """Get a ticket by its ID."""
+    """Get a ticket by its ID with flight info from order."""
     sql = """
-        SELECT TicketId, Class, RowNum, Seat, Price,
-               orders_UniqueOrderCode, Flights_FlightId, Flights_Airplanes_AirplaneId
-        FROM Tickets
-        WHERE TicketId = %s
+        SELECT t.TicketId, t.Class, t.RowNum, t.Seat,
+               CASE WHEN t.Class = 'business' THEN f.BusinessPrice ELSE f.EconomyPrice END as Price,
+               t.orders_UniqueOrderCode,
+               o.Flights_FlightId,
+               f.Airplanes_AirplaneId as Flights_Airplanes_AirplaneId
+        FROM Tickets t
+        JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
+        JOIN Flights f ON o.Flights_FlightId = f.FlightId
+        WHERE t.TicketId = %s
     """
     return execute_query(sql, (ticket_id,), fetch_one=True)
 
@@ -277,15 +376,14 @@ def delete_tickets_for_order(booking_code):
     return execute_query(sql, (booking_code,), commit=True)
 
 
-def count_tickets_for_flight(flight_id, airplane_id):
-    """Count total tickets sold for a flight."""
+def count_tickets_for_flight(flight_id):
+    """Count total tickets sold for a flight (non-cancelled orders only)."""
     sql = """
         SELECT COUNT(*) AS count
         FROM Tickets t
         JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
-        WHERE t.Flights_FlightId = %s 
-          AND t.Flights_Airplanes_AirplaneId = %s
+        WHERE o.Flights_FlightId = %s 
           AND o.Status != 'cancelled'
     """
-    result = execute_query(sql, (flight_id, airplane_id), fetch_one=True)
+    result = execute_query(sql, (flight_id,), fetch_one=True)
     return result['count'] if result else 0

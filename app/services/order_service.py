@@ -2,12 +2,16 @@
 FLYTAU Order Service
 Handles order creation, cancellation, and refund calculations
 
-Schema:
-- orders: UniqueOrderCode (PK), TotalCost, Class, Status,
+Schema (normalized):
+- orders: UniqueOrderCode (PK), TotalCost, Status,
           GuestCustomer_UniqueMail (nullable), RegisteredCustomer_UniqueMail (nullable),
-          Flights_FlightId, Flights_Airplanes_AirplaneId
-- Tickets: TicketId, Class, RowNum, Seat, Price, orders_UniqueOrderCode,
-           Flights_FlightId, Flights_Airplanes_AirplaneId
+          Flights_FlightId
+- Tickets: TicketId, Class, RowNum, Seat, orders_UniqueOrderCode
+
+Note:
+- Ticket price is calculated dynamically from Flight's EconomyPrice/BusinessPrice
+- Order's class is derived from its tickets
+- Airplane ID is derived from Flights table via Flights_FlightId
 """
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -23,13 +27,14 @@ CANCELLATION_CUTOFF_HOURS = 36
 
 
 def create_order(flight_id, airplane_id, selected_seats, economy_price, business_price,
-                 registered_email=None, guest_email=None, guest_first_name=None, guest_last_name=None):
+                 registered_email=None, guest_email=None, guest_first_name=None, guest_last_name=None,
+                 guest_phone=None):
     """
     Create a new order with selected seats.
     
     Args:
         flight_id: Flight ID
-        airplane_id: Airplane ID
+        airplane_id: Airplane ID (used for seat validation, derived from flight)
         selected_seats: List of dicts with row, seat, class info
         economy_price: Price per economy seat
         business_price: Price per business seat
@@ -37,6 +42,7 @@ def create_order(flight_id, airplane_id, selected_seats, economy_price, business
         guest_email: Guest email (if not logged in)
         guest_first_name: Guest first name (required if guest)
         guest_last_name: Guest last name (required if guest)
+        guest_phone: Guest phone number (optional)
     
     Returns:
         Booking code for the new order
@@ -52,20 +58,12 @@ def create_order(flight_id, airplane_id, selected_seats, economy_price, business
         if (seat['row'], seat['seat']) in taken_set:
             raise ValueError(f"Seat {seat['row']}{seat['seat']} is no longer available.")
     
-    # Calculate total and determine class
+    # Calculate total (price will be derived dynamically from flight)
     total = Decimal('0')
-    classes = set()
     for seat in selected_seats:
         seat_class = seat.get('class', 'economy')
-        classes.add(seat_class)
         price = business_price if seat_class == 'business' else economy_price
         total += Decimal(str(price))
-    
-    # Determine order class
-    if len(classes) > 1:
-        order_class = 'mixed'
-    else:
-        order_class = list(classes)[0] if classes else 'economy'
     
     # Generate unique booking code
     booking_code = order_repository.generate_booking_code()
@@ -81,36 +79,38 @@ def create_order(flight_id, airplane_id, selected_seats, economy_price, business
         auth_service.get_or_create_guest_customer(
             guest_email.lower(),
             guest_first_name or 'Guest',
-            guest_last_name or 'User'
+            guest_last_name or 'User',
+            guest_phone
         )
         actual_guest_email = guest_email.lower()
     
-    # Create order
+    # Create order (no Class or Airplane_Id columns - derived from tickets and flight)
     order_repository.create_order(
         booking_code=booking_code,
         flight_id=flight_id,
-        airplane_id=airplane_id,
         total_cost=total,
         status='confirmed',
         guest_email=actual_guest_email,
-        registered_email=actual_registered_email,
-        seat_class=order_class
+        registered_email=actual_registered_email
     )
     
-    # Create tickets for each seat
-    for seat in selected_seats:
-        seat_class = seat.get('class', 'economy')
-        price = business_price if seat_class == 'business' else economy_price
-        
-        order_repository.create_ticket(
-            order_code=booking_code,
-            flight_id=flight_id,
-            airplane_id=airplane_id,
-            row_num=seat['row'],
-            seat=seat['seat'],
-            seat_class=seat_class,
-            price=price
-        )
+    # Create tickets for each seat (no Price or Flight columns - derived dynamically)
+    # The repository will validate seat availability before each insert
+    try:
+        for seat in selected_seats:
+            seat_class = seat.get('class', 'economy')
+            
+            order_repository.create_ticket(
+                order_code=booking_code,
+                row_num=seat['row'],
+                seat=seat['seat'],
+                seat_class=seat_class
+            )
+    except order_repository.SeatAlreadyTakenError as e:
+        # If a seat was taken between validation and insert, cancel the order
+        order_repository.update_order_status(booking_code, 'cancelled')
+        order_repository.delete_tickets_for_order(booking_code)
+        raise ValueError(str(e))
     
     # Check if flight is now full
     from app.services import flight_service
@@ -236,12 +236,15 @@ def cancel_order(booking_code, email):
     """
     Cancel an order (customer cancellation).
     
+    Customer cancellation: TotalCost is updated to the 5% cancellation fee,
+    which represents the final amount paid (revenue) to the system.
+    
     Args:
         booking_code: Order booking code
         email: Email of user requesting cancellation (for ownership verification)
     
     Returns:
-        Tuple of (fee, refund)
+        Tuple of (original_cost, fee, refund)
     
     Raises:
         ValueError: If order cannot be canceled
@@ -260,17 +263,112 @@ def cancel_order(booking_code, email):
     if not can_cancel_order(order):
         raise ValueError("This order cannot be canceled. Cancellations must be made at least 36 hours before departure.")
     
-    # Calculate refund
-    fee, refund = calculate_cancellation_fee(order['TotalCost'])
+    # Calculate fee and refund from original amount
+    original_cost = order['TotalCost']
+    fee, refund = calculate_cancellation_fee(original_cost)
     
-    # Update order status
+    # Update order status and TotalCost to the fee (final paid amount / revenue)
     order_repository.update_order_status(
         booking_code, 
         status='customer_canceled',
-        total_cost=refund
+        total_cost=float(fee)  # Store fee as the final paid amount (revenue)
     )
     
     # Delete tickets (seats become available again)
     order_repository.delete_tickets_for_order(booking_code)
     
-    return (fee, refund)
+    return (original_cost, fee, refund)
+
+
+def update_order_seats(booking_code, new_seats, flight):
+    """
+    Update seats for an existing order.
+    
+    Args:
+        booking_code: Order booking code
+        new_seats: List of new seat codes (e.g., ['1A', '1B'])
+        flight: Flight dict with pricing info
+    
+    Raises:
+        ValueError: If seats are not available
+    """
+    from decimal import Decimal
+    
+    order = get_order_with_tickets(booking_code)
+    if not order:
+        raise ValueError("Order not found.")
+    
+    flight_id = order.get('Flights_FlightId')
+    airplane_id = order.get('Flights_Airplanes_AirplaneId')
+    
+    # Get current seats for this order
+    current_seat_codes = set(f"{t.get('RowNum')}{t.get('Seat')}" for t in order.get('tickets', []))
+    
+    # Get all taken seats for the flight (excluding this order's seats)
+    taken_seats = flight_repository.get_taken_seats(flight_id, airplane_id)
+    taken_set = set()
+    for t in taken_seats:
+        seat_code = f"{t['RowNum']}{t['Seat']}"
+        if seat_code not in current_seat_codes:
+            taken_set.add(seat_code)
+    
+    # Verify new seats are available
+    for seat_code in new_seats:
+        if seat_code in taken_set:
+            raise ValueError(f"Seat {seat_code} is no longer available.")
+    
+    # Parse seat codes and calculate new total
+    economy_price = Decimal(str(flight.get('EconomyPrice') or 0))
+    business_price = Decimal(str(flight.get('BusinessPrice') or 0))
+    
+    # Get business row count from flight config
+    business_config = flight.get('BusinessConfig', '')
+    business_rows = 0
+    if business_config:
+        parts = business_config.split()
+        if len(parts) >= 1:
+            try:
+                business_rows = int(parts[0])
+            except ValueError:
+                pass
+    
+    new_total = Decimal('0')
+    seat_details = []
+    for seat_code in new_seats:
+        # Parse row number and seat letter
+        row_num = int(''.join(c for c in seat_code if c.isdigit()))
+        seat_letter = ''.join(c for c in seat_code if c.isalpha())
+        
+        # Determine class based on row
+        if row_num <= business_rows:
+            seat_class = 'business'
+            price = business_price
+        else:
+            seat_class = 'economy'
+            price = economy_price
+        
+        new_total += price
+        seat_details.append({
+            'row': row_num,
+            'seat': seat_letter,
+            'class': seat_class
+        })
+    
+    # Delete old tickets
+    order_repository.delete_tickets_for_order(booking_code)
+    
+    # Create new tickets (price derived dynamically from flight)
+    # Seat validation will exclude the current order since old tickets are deleted
+    try:
+        for seat in seat_details:
+            order_repository.create_ticket(
+                order_code=booking_code,
+                row_num=seat['row'],
+                seat=seat['seat'],
+                seat_class=seat['class']
+            )
+    except order_repository.SeatAlreadyTakenError as e:
+        raise ValueError(str(e))
+    
+    # Update order total
+    order_repository.update_order_status(booking_code, status='confirmed', total_cost=new_total)

@@ -29,4 +29,8 @@ def register_routes(app):
     @app.route('/')
     def index():
         from flask import render_template
-        return render_template('index.html')
+        from datetime import date
+        from app.services import flight_service
+        airports = flight_service.get_all_airports()
+        today = date.today().strftime('%Y-%m-%d')
+        return render_template('index.html', airports=airports, today=today)

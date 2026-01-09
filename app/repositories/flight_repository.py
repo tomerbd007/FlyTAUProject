@@ -5,6 +5,7 @@ Database access for Flights
 Schema:
 - Flights: FlightId (PK), Airplanes_AirplaneId (PK), Status, EconomyPrice, BusinessPrice,
            Duration, DepartureDate, DepartureHour, OriginPort, DestPort
+- Airports: Code (PK), Name, City, Country
 
 Note: 
 - No separate routes table - origin/destination stored directly in Flights
@@ -15,6 +16,67 @@ from app.db import execute_query
 from app.repositories.aircraft_repository import get_airplane_by_id, generate_seat_map
 import random
 import string
+
+
+# ============ AIRPORT OPERATIONS ============
+
+def get_all_airports():
+    """Get all airports from the Airports table, ordered by city name."""
+    sql = """
+        SELECT Code as code, Name as name, City as city, Country as country
+        FROM Airports
+        ORDER BY City, Name
+    """
+    results = execute_query(sql)
+    return results if results else []
+
+
+def get_airport_by_code(code):
+    """Get a single airport by its code."""
+    sql = "SELECT Code as code, Name as name, City as city, Country as country FROM Airports WHERE Code = %s"
+    results = execute_query(sql, (code,))
+    return results[0] if results else None
+
+
+# ============ ROUTE OPERATIONS ============
+
+def get_route(origin, destination):
+    """
+    Get route information for a given origin-destination pair.
+    
+    Args:
+        origin: Origin airport code
+        destination: Destination airport code
+    
+    Returns:
+        Dict with id, origin, destination, duration_minutes, distance_km
+        or None if route not found
+    """
+    sql = """
+        SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
+               DurationMinutes as duration_minutes, DistanceKm as distance_km
+        FROM Routes
+        WHERE OriginPort = %s AND DestPort = %s
+    """
+    results = execute_query(sql, (origin, destination))
+    return results[0] if results else None
+
+
+def get_all_routes():
+    """
+    Get all routes from the Routes table.
+    
+    Returns:
+        List of route dicts with id, origin, destination, duration_minutes
+    """
+    sql = """
+        SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
+               DurationMinutes as duration_minutes, DistanceKm as distance_km
+        FROM Routes
+        ORDER BY OriginPort, DestPort
+    """
+    results = execute_query(sql)
+    return results if results else []
 
 
 # ============ FLIGHT OPERATIONS ============
@@ -31,22 +93,6 @@ def get_all_unique_cities():
     """
     results = execute_query(sql)
     return [row['city'] for row in results] if results else []
-
-
-def get_all_routes():
-    """
-    Get all unique origin-destination pairs from flights.
-    
-    Returns:
-        List of dicts with 'origin' and 'destination' keys
-    """
-    sql = """
-        SELECT DISTINCT OriginPort as origin, DestPort as destination
-        FROM Flights
-        ORDER BY OriginPort, DestPort
-    """
-    results = execute_query(sql)
-    return results if results else []
 
 
 def search_flights(departure_date=None, origin=None, destination=None, status=None):
@@ -175,10 +221,217 @@ def create_flight(flight_id, airplane_id, departure_date, departure_hour,
                                economy_price, business_price), commit=True)
 
 
-def update_flight_status(flight_id, airplane_id, new_status):
+def update_flight_status(flight_id, new_status):
     """Update a flight's status."""
-    sql = "UPDATE Flights SET Status = %s WHERE FlightId = %s AND Airplanes_AirplaneId = %s"
-    return execute_query(sql, (new_status, flight_id, airplane_id), commit=True)
+    sql = "UPDATE Flights SET Status = %s WHERE FlightId = %s"
+    return execute_query(sql, (new_status, flight_id), commit=True)
+
+
+def update_flight(flight_id, airplane_id, updates):
+    """
+    Update flight details.
+    
+    Args:
+        flight_id: Flight ID
+        airplane_id: Airplane ID
+        updates: Dict with fields to update (status, economy_price, business_price)
+    
+    Returns:
+        True if successful
+    """
+    allowed_fields = {
+        'status': 'Status',
+        'economy_price': 'EconomyPrice',
+        'business_price': 'BusinessPrice',
+        'departure_date': 'DepartureDate',
+        'departure_hour': 'DepartureHour'
+    }
+    
+    set_clauses = []
+    params = []
+    
+    for key, value in updates.items():
+        if key in allowed_fields:
+            set_clauses.append(f"{allowed_fields[key]} = %s")
+            params.append(value)
+    
+    if not set_clauses:
+        return False
+    
+    params.extend([flight_id, airplane_id])
+    sql = f"UPDATE Flights SET {', '.join(set_clauses)} WHERE FlightId = %s AND Airplanes_AirplaneId = %s"
+    return execute_query(sql, tuple(params), commit=True)
+
+
+def update_flight_comprehensive(flight_id, airplane_id, updates):
+    """
+    Comprehensive flight update supporting all editable fields.
+    
+    Args:
+        flight_id: Flight ID
+        airplane_id: Airplane ID
+        updates: Dict with any of these fields:
+            - status, economy_price, business_price
+            - departure_date, departure_hour
+            - origin_port, dest_port, duration
+    
+    Returns:
+        True if successful
+    """
+    allowed_fields = {
+        'status': 'Status',
+        'economy_price': 'EconomyPrice',
+        'business_price': 'BusinessPrice',
+        'departure_date': 'DepartureDate',
+        'departure_hour': 'DepartureHour',
+        'origin_port': 'OriginPort',
+        'dest_port': 'DestPort',
+        'duration': 'Duration'
+    }
+    
+    set_clauses = []
+    params = []
+    
+    for key, value in updates.items():
+        if key in allowed_fields:
+            set_clauses.append(f"{allowed_fields[key]} = %s")
+            params.append(value)
+    
+    if not set_clauses:
+        return False
+    
+    params.extend([flight_id, airplane_id])
+    sql = f"UPDATE Flights SET {', '.join(set_clauses)} WHERE FlightId = %s AND Airplanes_AirplaneId = %s"
+    return execute_query(sql, tuple(params), commit=True)
+
+
+def update_flight_with_new_ids(original_flight_id, original_airplane_id, 
+                               new_flight_id, new_airplane_id, updates):
+    """
+    Update a flight with potentially changed identifiers (flight number or airplane).
+    
+    Best practice approach:
+    1. If IDs aren't changing, just update in place
+    2. If IDs are changing, update all FK references first, then update the flight record
+    
+    Args:
+        original_flight_id: Original Flight ID
+        original_airplane_id: Original Airplane ID
+        new_flight_id: New Flight ID (may be same as original)
+        new_airplane_id: New Airplane ID (may be same as original)
+        updates: Dict with updated field values
+    
+    Returns:
+        True if successful
+    
+    Raises:
+        ValueError: If new flight ID already exists
+    """
+    ids_changing = (original_flight_id != new_flight_id or 
+                    original_airplane_id != new_airplane_id)
+    
+    # If IDs aren't changing, just update in place
+    if not ids_changing:
+        return update_flight_comprehensive(original_flight_id, original_airplane_id, updates)
+    
+    # Check if the new flight ID already exists
+    check_sql = """
+        SELECT FlightId FROM Flights 
+        WHERE FlightId = %s
+    """
+    existing = execute_query(check_sql, (new_flight_id,), fetch_one=True)
+    if existing:
+        raise ValueError(f"Flight {new_flight_id} already exists")
+    
+    # Get the original flight data
+    sql = """
+        SELECT FlightId, Airplanes_AirplaneId, DepartureDate, DepartureHour,
+               OriginPort, DestPort, Duration, Status, EconomyPrice, BusinessPrice
+        FROM Flights
+        WHERE FlightId = %s
+    """
+    original = execute_query(sql, (original_flight_id,), fetch_one=True)
+    
+    if not original:
+        return False
+    
+    # Step 1: Update all foreign key references FIRST (before changing the flight)
+    # This must be done before we can change the flight's primary key
+    
+    # Update orders (Tickets are linked via orders, so no direct Tickets update needed)
+    update_orders_sql = """
+        UPDATE orders 
+        SET Flights_FlightId = %s
+        WHERE Flights_FlightId = %s
+    """
+    execute_query(update_orders_sql, (
+        new_flight_id,
+        original_flight_id
+    ), commit=True)
+    
+    # Update pilot assignments
+    update_pilots_sql = """
+        UPDATE Pilot_has_Flights 
+        SET Flights_FlightId = %s
+        WHERE Flights_FlightId = %s
+    """
+    execute_query(update_pilots_sql, (
+        new_flight_id,
+        original_flight_id
+    ), commit=True)
+    
+    # Update flight attendant assignments
+    update_attendants_sql = """
+        UPDATE FlightAttendant_has_Flights 
+        SET Flights_FlightId = %s
+        WHERE Flights_FlightId = %s
+    """
+    execute_query(update_attendants_sql, (
+        new_flight_id,
+        original_flight_id
+    ), commit=True)
+    
+    # Update manager edits log
+    update_manager_edits_sql = """
+        UPDATE Managers_edits_Flights 
+        SET Flights_FlightId = %s
+        WHERE Flights_FlightId = %s
+    """
+    execute_query(update_manager_edits_sql, (
+        new_flight_id,
+        original_flight_id
+    ), commit=True)
+    
+    # Step 2: Now update the flight record itself (including the primary key)
+    # Prepare new values
+    new_departure_date = updates.get('departure_date', original['DepartureDate'])
+    new_departure_hour = updates.get('departure_hour', original['DepartureHour'])
+    new_origin = updates.get('origin_port', original['OriginPort'])
+    new_dest = updates.get('dest_port', original['DestPort'])
+    new_duration = updates.get('duration', original['Duration'])
+    new_status = updates.get('status', original['Status'])
+    new_economy = updates.get('economy_price', original['EconomyPrice'])
+    new_business = updates.get('business_price', original['BusinessPrice'])
+    
+    update_flight_sql = """
+        UPDATE Flights 
+        SET FlightId = %s, Airplanes_AirplaneId = %s,
+            DepartureDate = %s, DepartureHour = %s,
+            OriginPort = %s, DestPort = %s,
+            Duration = %s, Status = %s,
+            EconomyPrice = %s, BusinessPrice = %s
+        WHERE FlightId = %s
+    """
+    execute_query(update_flight_sql, (
+        new_flight_id, new_airplane_id,
+        new_departure_date, new_departure_hour,
+        new_origin, new_dest,
+        new_duration, new_status,
+        new_economy, new_business,
+        original_flight_id
+    ), commit=True)
+    
+    return True
 
 
 def count_flights():
@@ -196,9 +449,10 @@ def count_flights_by_status(status):
 
 
 def generate_flight_number():
-    """Generate a unique flight number in format TAU###."""
+    """Generate a unique 6-character alphanumeric flight number."""
     while True:
-        number = 'TAU' + ''.join(random.choices(string.digits, k=3))
+        # Generate 6 uppercase alphanumeric characters
+        number = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         sql = "SELECT FlightId FROM Flights WHERE FlightId = %s"
         if not execute_query(sql, (number,), fetch_one=True):
             return number
@@ -220,16 +474,15 @@ def get_flight_seats(flight_id, airplane_id):
     # Generate all possible seats
     all_seats = generate_seat_map(airplane_id)
     
-    # Get taken seats from Tickets table
+    # Get taken seats from Tickets table (via orders)
     sql = """
         SELECT t.RowNum, t.Seat, t.Class
         FROM Tickets t
         JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
-        WHERE t.Flights_FlightId = %s 
-          AND t.Flights_Airplanes_AirplaneId = %s
+        WHERE o.Flights_FlightId = %s 
           AND o.Status != 'cancelled'
     """
-    taken_tickets = execute_query(sql, (flight_id, airplane_id))
+    taken_tickets = execute_query(sql, (flight_id,))
     
     # Create a set of taken seat codes
     taken_seats = set()
@@ -259,17 +512,16 @@ def get_seat_counts(flight_id, airplane_id):
     if not airplane:
         return {}
     
-    # Get taken seat counts from Tickets
+    # Get taken seat counts from Tickets (via orders)
     sql = """
         SELECT t.Class, COUNT(*) as taken_count
         FROM Tickets t
         JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
-        WHERE t.Flights_FlightId = %s 
-          AND t.Flights_Airplanes_AirplaneId = %s
+        WHERE o.Flights_FlightId = %s 
           AND o.Status != 'cancelled'
         GROUP BY t.Class
     """
-    taken_results = execute_query(sql, (flight_id, airplane_id))
+    taken_results = execute_query(sql, (flight_id,))
     
     taken_by_class = {}
     if taken_results:
@@ -305,13 +557,13 @@ def get_seat_availability(flight_id, airplane_id):
     return get_seat_counts(flight_id, airplane_id)
 
 
-def get_taken_seats(flight_id, airplane_id):
+def get_taken_seats(flight_id, airplane_id=None):
     """
     Get list of taken seats for a flight.
     
     Args:
         flight_id: Flight ID
-        airplane_id: Airplane ID
+        airplane_id: Airplane ID (optional, kept for backward compatibility)
     
     Returns:
         List of dicts with RowNum, Seat, Class
@@ -320,11 +572,10 @@ def get_taken_seats(flight_id, airplane_id):
         SELECT t.RowNum, t.Seat, t.Class
         FROM Tickets t
         JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
-        WHERE t.Flights_FlightId = %s 
-          AND t.Flights_Airplanes_AirplaneId = %s
+        WHERE o.Flights_FlightId = %s 
           AND o.Status != 'cancelled'
     """
-    results = execute_query(sql, (flight_id, airplane_id))
+    results = execute_query(sql, (flight_id,))
     return results if results else []
 
 
@@ -352,11 +603,10 @@ def is_seat_available(flight_id, airplane_id, row_num, seat_letter):
         SELECT 1
         FROM Tickets t
         JOIN orders o ON t.orders_UniqueOrderCode = o.UniqueOrderCode
-        WHERE t.Flights_FlightId = %s 
-          AND t.Flights_Airplanes_AirplaneId = %s
+        WHERE o.Flights_FlightId = %s 
           AND t.RowNum = %s
           AND t.Seat = %s
           AND o.Status != 'cancelled'
     """
-    result = execute_query(sql, (flight_id, airplane_id, row_num, seat_letter), fetch_one=True)
+    result = execute_query(sql, (flight_id, row_num, seat_letter), fetch_one=True)
     return result is None  # Available if no ticket found

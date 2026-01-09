@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}My Account - FLYTAU{% endblock %}
+
+{% block content %}
+<style>
+    .account-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .account-header {
+        background: linear-gradient(135deg, #004b71 0%, #006a9e 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+    
+    .account-header h1 {
+        margin: 0 0 10px 0;
+        font-size: 2rem;
+    }
+    
+    .account-header p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    
+    .filters {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .filters select, .filters button {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #d6dde6;
+        background: #fff;
+        font-weight: 600;
+        color: #004b71;
+        cursor: pointer;
+    }
+
+    .account-sections {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .account-sections {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .account-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .account-card h2 {
+        color: #004b71;
+        margin: 0 0 20px 0;
+        font-size: 1.25rem;
+        border-bottom: 2px solid #e8f6ff;
+        padding-bottom: 10px;
+    }
+    
+    .profile-info {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .profile-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .profile-row:last-child {
+        border-bottom: none;
+    }
+    
+    .profile-label {
+        color: #666;
+        font-weight: 500;
+    }
+    
+    .profile-value {
+        color: #333;
+        font-weight: 600;
+    }
+    
+    .quick-links {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .quick-link {
+        display: flex;
+        align-items: center;
+        padding: 14px 16px;
+        background: #f8fbfd;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #004b71;
+        transition: background 0.2s, transform 0.2s;
+    }
+    
+    .quick-link:hover {
+        background: #e8f6ff;
+        transform: translateX(4px);
+    }
+    
+    .quick-link-icon {
+        margin-right: 12px;
+        font-size: 1.2rem;
+    }
+    
+    .quick-link-text {
+        font-weight: 600;
+    }
+    
+    .recent-orders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .recent-order-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        background: #f8fbfd;
+        border-radius: 8px;
+    }
+    
+    .recent-order-route {
+        font-weight: 600;
+        color: #004b71;
+    }
+    
+    .recent-order-date {
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .recent-order-status {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        width: fit-content;
+    }
+
+    .status-confirmed { background: #d4edda; color: #155724; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    .status-completed { background: #cce5ff; color: #004085; }
+
+    .order-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-small {
+        padding: 8px 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: none;
+        cursor: pointer;
+        display: inline-block;
+    }
+
+    .btn-primary { background: #004b71; color: #fff; }
+    .btn-secondary { background: #2d5a7b; color: #fff; }
+    .btn-muted { background: #e6ebf1; color: #6b7b8c; cursor: not-allowed; }
+    
+    .no-orders {
+        text-align: center;
+        padding: 30px;
+        color: #666;
+    }
+    
+    .btn-view-all {
+        display: inline-block;
+        margin-top: 16px;
+        padding: 10px 20px;
+        background: #004b71;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    .btn-view-all:hover {
+        background: #003a5a;
+    }
+    
+    .full-width {
+        grid-column: 1 / -1;
+    }
+</style>
+
+<div class="account-container">
+    <div class="account-header">
+        <h1>Welcome, {{ user_name }}!</h1>
+        <p>Manage your account and view your bookings</p>
+    </div>
+
+    <form class="filters" method="GET" action="{{ url_for('my_account') }}">
+        <select name="status">
+            <option value="" {% if not status_filter %}selected{% endif %}>All statuses</option>
+            <option value="confirmed" {% if status_filter=='confirmed' %}selected{% endif %}>Confirmed</option>
+            <option value="cancelled" {% if status_filter=='cancelled' %}selected{% endif %}>Cancelled</option>
+            <option value="completed" {% if status_filter=='completed' %}selected{% endif %}>Completed</option>
+        </select>
+        <select name="sort">
+            <option value="date" {% if sort_key!='status' %}selected{% endif %}>Sort by date</option>
+            <option value="status" {% if sort_key=='status' %}selected{% endif %}>Sort by status</option>
+        </select>
+        <button type="submit">Apply</button>
+    </form>
+    
+    <div class="account-sections">
+        <div class="account-card">
+            <h2>👤 Profile Information</h2>
+            <div class="profile-info">
+                <div class="profile-row">
+                    <span class="profile-label">Name</span>
+                    <span class="profile-value">{{ user_name }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="profile-label">Email</span>
+                    <span class="profile-value">{{ user_email }}</span>
+                </div>
+                <div class="profile-row">
+                    <span class="profile-label">Account Type</span>
+                    <span class="profile-value">Registered Customer</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="account-card">
+            <h2>🔗 Quick Links</h2>
+            <div class="quick-links">
+                <a href="{{ url_for('flights') }}" class="quick-link">
+                    <span class="quick-link-icon">✈️</span>
+                    <span class="quick-link-text">Search Flights</span>
+                </a>
+                <a href="{{ url_for('my_orders') }}" class="quick-link">
+                    <span class="quick-link-icon">📋</span>
+                    <span class="quick-link-text">View All Orders</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="quick-link">
+                    <span class="quick-link-icon">🚪</span>
+                    <span class="quick-link-text">Log Out</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="account-card full-width">
+            <h2>📦 Recent Orders</h2>
+            {% if recent_orders %}
+            <div class="recent-orders-list">
+                {% for order in recent_orders %}
+                <div class="recent-order-item">
+                    <div>
+                        <div class="recent-order-route">{{ order.origin }} → {{ order.destination }}</div>
+                        <div class="recent-order-date">{{ order.departure_time.strftime('%b %d, %Y') if order.departure_time else '' }} • {{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</div>
+                        <div class="recent-order-status status-{{ order.status }}">{{ order.status|capitalize }}</div>
+                    </div>
+                    <div class="order-actions">
+                        <a href="{{ url_for('order_confirmation', booking_code=order.booking_code) }}" class="btn-small btn-primary">View</a>
+                        {% if order.can_cancel %}
+                        <a href="{{ url_for('customer_cancel_order', booking_code=order.booking_code) }}" class="btn-small btn-secondary">Cancel</a>
+                        {% else %}
+                        <span class="btn-small btn-muted">Cancel (locked)</span>
+                        {% endif %}
+                        {% if order.status == 'confirmed' and order.can_cancel %}
+                        <a href="{{ url_for('edit_order_seats', booking_code=order.booking_code) }}" class="btn-small btn-primary">Edit Seats</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <a href="{{ url_for('my_orders') }}" class="btn-view-all">View All Orders →</a>
+            {% else %}
+            <div class="no-orders">
+                <p>You haven't made any bookings yet.</p>
+                <a href="{{ url_for('flights') }}" class="btn-view-all">Book Your First Flight →</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

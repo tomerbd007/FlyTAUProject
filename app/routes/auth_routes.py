@@ -69,8 +69,10 @@ def register_auth_routes(app):
                 session['role'] = 'customer'
                 session['email'] = user['email']
                 session['name'] = f"{user['first_name']} {user['last_name']}"
+                session['passport'] = user.get('passport')
+                session['birth_date'] = str(user['birth_date']) if user.get('birth_date') else None
                 flash(f"Welcome back, {user['first_name']}!", 'success')
-                return redirect(url_for('flights'))
+                return redirect(url_for('my_account'))
             else:
                 flash('Invalid email or password.', 'error')
                 return render_template('auth/login.html')
@@ -103,6 +105,81 @@ def register_auth_routes(app):
                 return render_template('auth/manager_login.html')
         
         return render_template('auth/manager_login.html')
+    
+    @app.route('/account')
+    def my_account():
+        """Customer account page with profile and recent orders."""
+        if session.get('role') != 'customer':
+            flash('Please log in to access your account.', 'warning')
+            return redirect(url_for('login'))
+        
+        from app.services import order_service
+        from datetime import datetime, timedelta
+
+        status_filter = request.args.get('status', '').strip().lower()
+        sort_key = request.args.get('sort', '').strip().lower()
+
+        email = session.get('email', '')
+        orders_raw = order_service.get_customer_orders(email, is_registered=True, status_filter=status_filter or None) or []
+
+        recent_orders = []
+        for o in orders_raw:
+            dep_date = o.get('DepartureDate')
+            dep_hour = o.get('DepartureHour')
+            if isinstance(dep_date, str):
+                dep_date_obj = datetime.strptime(dep_date, '%Y-%m-%d').date()
+            else:
+                dep_date_obj = dep_date
+            if dep_hour:
+                if isinstance(dep_hour, str):
+                    parts = dep_hour.split(':')
+                    dep_time_obj = datetime.strptime(f"{parts[0]}:{parts[1]}", '%H:%M').time()
+                elif hasattr(dep_hour, 'seconds'):
+                    total_seconds = int(dep_hour.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    dep_time_obj = datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
+                else:
+                    dep_time_obj = datetime.min.time()
+            else:
+                dep_time_obj = datetime.min.time()
+
+            dep_dt = datetime.combine(dep_date_obj, dep_time_obj) if dep_date_obj else None
+
+            can_cancel = False
+            try:
+                can_cancel = order_service.can_cancel_order(o)
+            except Exception:
+                can_cancel = False
+
+            recent_orders.append({
+                'booking_code': o.get('UniqueOrderCode'),
+                'status': (o.get('Status') or '').lower(),
+                'origin': o.get('OriginPort'),
+                'destination': o.get('DestPort'),
+                'departure_time': dep_dt,
+                'ticket_count': o.get('TicketCount', 0),
+                'flight_id': o.get('Flights_FlightId'),
+                'airplane_id': o.get('Flights_Airplanes_AirplaneId'),
+                'can_cancel': can_cancel,
+                'cancel_deadline': (dep_dt - timedelta(hours=36)) if dep_dt else None,
+                'total_cost': o.get('TotalCost', 0),
+            })
+
+        if sort_key == 'status':
+            recent_orders.sort(key=lambda x: x.get('status', ''))
+        else:
+            recent_orders.sort(key=lambda x: x.get('departure_time') or datetime.min, reverse=True)
+
+        # Limit to last 5 for display
+        recent_orders = recent_orders[:5]
+        
+        return render_template('auth/my_account.html', 
+                               recent_orders=recent_orders,
+                               user_name=session.get('name'),
+                               user_email=session.get('email'),
+                               status_filter=status_filter,
+                               sort_key=sort_key)
     
     @app.route('/logout')
     def logout():

@@ -3,78 +3,513 @@
 {% block title %}Cancel Order - FLYTAU{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <a href="{{ url_for('order_detail', order_id=order.id) }}" class="back-link">← Back to Order Details</a>
-    <h1>Cancel Order</h1>
-</div>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-<div class="cancel-container">
-    <div class="cancel-card">
+    body {
+        background: #f5f5f5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #333;
+    }
+
+    .dashboard-wrapper {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .dashboard-wrapper::before {
+        content: '';
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 25%;
+        height: 100vh;
+        background: linear-gradient(135deg, #8b2942 0%, #a33a55 100%);
+        z-index: 0;
+    }
+
+    .dashboard-sidebar {
+        width: 25%;
+        padding: 40px 30px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1;
+        gap: 24px;
+    }
+
+    .dashboard-sidebar .logo {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+        letter-spacing: -1px;
+    }
+
+    .sidebar-welcome h2 {
+        font-size: 1.5rem;
+        font-weight: 300;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+
+    .sidebar-welcome p {
+        font-size: 0.95rem;
+        opacity: 0.85;
+        line-height: 1.6;
+    }
+
+    .sidebar-card {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .sidebar-card h3 {
+        font-size: 1rem;
+        margin-bottom: 10px;
+        opacity: 0.95;
+    }
+
+    .sidebar-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .sidebar-summary .label {
+        font-size: 0.85rem;
+        opacity: 0.75;
+    }
+
+    .sidebar-summary .value {
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .sidebar-meta {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .chip {
+        background: rgba(255,255,255,0.12);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .refund-box {
+        background: rgba(255,255,255,0.12);
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .refund-box .label {
+        font-size: 0.9rem;
+        opacity: 0.85;
+    }
+
+    .refund-box .value {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    .sidebar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: auto;
+    }
+
+    .sidebar-actions .btn {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 4px;
+        background: transparent;
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .sidebar-actions .btn:hover {
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(255,255,255,0.5);
+    }
+
+    .dashboard-content {
+        width: 75%;
+        margin-left: 25%;
+        padding: 40px;
+        background: white;
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+    }
+
+    .admin-header {
+        margin-bottom: 30px;
+    }
+
+    .admin-header .back-link {
+        color: #8b2942;
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 10px;
+        transition: color 0.3s ease;
+    }
+
+    .admin-header .back-link:hover {
+        color: #a33a55;
+    }
+
+    .admin-header h1 {
+        font-size: 2.1rem;
+        font-weight: 600;
+        color: #8b2942;
+        margin-bottom: 8px;
+    }
+
+    .admin-header p {
+        font-size: 0.95rem;
+        color: #666;
+    }
+
+    .warning-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 0.95rem;
+        color: #856404;
+    }
+
+    .warning-banner .warning-icon {
+        font-size: 1.4rem;
+    }
+
+    .card {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    }
+
+    .card h2 {
+        font-size: 1.2rem;
+        color: #1a3a52;
+        margin-bottom: 16px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 20px;
+    }
+
+    .summary-item .label {
+        font-size: 0.85rem;
+        color: #666;
+        display: block;
+    }
+
+    .summary-item .value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a3a52;
+    }
+
+    .refund-calculation {
+        background: white;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .calculation-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 0.95rem;
+    }
+
+    .calculation-row:last-child {
+        border-bottom: none;
+    }
+
+    .calculation-row.fee {
+        color: #8b2942;
+        font-weight: 600;
+    }
+
+    .calculation-row.total {
+        font-weight: 700;
+        color: #1a3a52;
+    }
+
+    .policy-note {
+        background: #e8f4fc;
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        color: #1a3a52;
+        line-height: 1.6;
+    }
+
+    .form-group {
+        margin-top: 12px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 0.95rem;
+        color: #333;
+        cursor: pointer;
+    }
+
+    .checkbox-label input {
+        margin-top: 3px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .cancel-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .btn-danger {
+        background: #8b2942;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #6d1f33;
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-wrapper::before { width: 30%; }
+        .dashboard-sidebar { width: 30%; }
+        .dashboard-content { width: 70%; margin-left: 30%; padding: 30px; }
+        .summary-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-wrapper { flex-direction: column; }
+        .dashboard-wrapper::before { width: 100%; height: 220px; }
+        .dashboard-sidebar { width: 100%; height: auto; position: relative; }
+        .dashboard-content { width: 100%; margin-left: 0; padding: 20px; }
+        .cancel-actions { flex-direction: column; }
+    }
+</style>
+
+<div class="dashboard-wrapper">
+    <div class="dashboard-sidebar">
+        <div>
+            <div class="logo">FLYTAU</div>
+            <div class="sidebar-welcome">
+                <h2>Cancel Order</h2>
+                <p>Review refund details before confirming.</p>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>Order Summary</h3>
+            <div class="sidebar-summary">
+                <div>
+                    <span class="label">Booking Code</span>
+                    <span class="value">{{ order.booking_code }}</span>
+                </div>
+                <div>
+                    <span class="label">Flight</span>
+                    <span class="value">{{ order.flight_number }}: {{ order.origin }} → {{ order.destination }}</span>
+                </div>
+                {% if order.departure_time %}
+                <div>
+                    <span class="label">Departure</span>
+                    <span class="value">{{ order.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}</span>
+                </div>
+                {% endif %}
+                <div>
+                    <span class="label">Tickets</span>
+                    <span class="value">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
+                </div>
+            </div>
+            <div class="sidebar-meta">
+                <div class="chip">Total ${{ "%.2f"|format(order.total_amount) }}</div>
+                <div class="chip">Refund ${{ "%.2f"|format(refund_amount) }}</div>
+            </div>
+            <div class="refund-box">
+                <span class="label">Cancellation fee</span>
+                <span class="value">${{ "%.2f"|format(cancellation_fee) }}</span>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>Policy</h3>
+            <p style="opacity:0.85; font-size:0.9rem; line-height:1.5;">Orders can be cancelled up to 36 hours before departure. A 5% cancellation fee applies. Refunds process within 5-7 business days.</p>
+        </div>
+
+        <div class="sidebar-actions">
+            {% if is_guest %}
+            <a href="{{ url_for('guest_lookup') }}" class="btn">← Back to Lookup</a>
+            {% else %}
+            <a href="{{ url_for('my_orders') }}" class="btn">← Back to My Orders</a>
+            {% endif %}
+            <a href="{{ url_for('index') }}" class="btn">Home</a>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="admin-header">
+            {% if is_guest %}
+            <a href="{{ url_for('guest_lookup') }}" class="back-link">← Back to Guest Lookup</a>
+            {% else %}
+            <a href="{{ url_for('my_orders') }}" class="back-link">← Back to My Orders</a>
+            {% endif %}
+            <h1>Cancel Order</h1>
+            <p>This action cannot be undone. Please confirm you agree to the cancellation terms.</p>
+        </div>
+
         <div class="warning-banner">
             <span class="warning-icon">⚠</span>
-            <span>Are you sure you want to cancel this order?</span>
+            <span><strong>Are you sure?</strong> Cancelling will release your seats and issue a refund minus the fee.</span>
         </div>
-        
-        <div class="order-summary-section">
-            <h2>Order Summary</h2>
-            <div class="summary-item">
-                <span class="label">Booking Code</span>
-                <span class="value">{{ order.booking_code }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="label">Flight</span>
-                <span class="value">{{ order.flight_number }}: {{ order.origin }} → {{ order.destination }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="label">Departure</span>
-                <span class="value">{{ order.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}</span>
-            </div>
-            <div class="summary-item">
-                <span class="label">Tickets</span>
-                <span class="value">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
+
+        <div class="card">
+            <h2>Order Details</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="label">Booking Code</span>
+                    <span class="value">{{ order.booking_code }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Flight</span>
+                    <span class="value">{{ order.flight_number }}: {{ order.origin }} → {{ order.destination }}</span>
+                </div>
+                {% if order.departure_time %}
+                <div class="summary-item">
+                    <span class="label">Departure</span>
+                    <span class="value">{{ order.departure_time.strftime('%a, %b %d, %Y at %H:%M') }}</span>
+                </div>
+                {% endif %}
+                <div class="summary-item">
+                    <span class="label">Tickets</span>
+                    <span class="value">{{ order.ticket_count }} ticket{{ 's' if order.ticket_count > 1 else '' }}</span>
+                </div>
             </div>
         </div>
-        
-        <div class="refund-calculation">
+
+        <div class="card">
             <h2>Refund Calculation</h2>
-            <div class="calculation-row">
-                <span>Original Amount</span>
-                <span>${{ "%.2f"|format(order.total_amount) }}</span>
-            </div>
-            <div class="calculation-row fee">
-                <span>Cancellation Fee (5%)</span>
-                <span>-${{ "%.2f"|format(cancellation_fee) }}</span>
-            </div>
-            <div class="calculation-row total">
-                <span><strong>Refund Amount</strong></span>
-                <span><strong>${{ "%.2f"|format(refund_amount) }}</strong></span>
+            <div class="refund-calculation">
+                <div class="calculation-row">
+                    <span>Original Amount</span>
+                    <span>${{ "%.2f"|format(order.total_amount) }}</span>
+                </div>
+                <div class="calculation-row fee">
+                    <span>Cancellation Fee (5%)</span>
+                    <span>- ${{ "%.2f"|format(cancellation_fee) }}</span>
+                </div>
+                <div class="calculation-row total">
+                    <span>Refund Amount</span>
+                    <span>${{ "%.2f"|format(refund_amount) }}</span>
+                </div>
             </div>
         </div>
-        
-        <div class="policy-note">
-            <h3>Cancellation Policy</h3>
-            <ul>
-                <li>Orders can be cancelled up to 36 hours before departure</li>
-                <li>A 5% cancellation fee is applied</li>
-                <li>Refunds are processed within 5-7 business days</li>
-            </ul>
-        </div>
-        
-        <form method="POST" action="{{ url_for('cancel_order', order_id=order.id) }}" class="cancel-form">
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="confirm" required>
-                    <span>I understand that this action cannot be undone and agree to the cancellation terms</span>
-                </label>
+
+        <div class="card">
+            <h2>Cancellation Policy</h2>
+            <div class="policy-note">
+                <ul style="padding-left: 18px; margin: 0;">
+                    <li>Orders can be cancelled up to 36 hours before departure.</li>
+                    <li>A 5% cancellation fee is applied.</li>
+                    <li>Refunds are processed within 5-7 business days.</li>
+                </ul>
             </div>
-            
-            <div class="cancel-actions">
-                <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-secondary">
-                    Keep My Order
-                </a>
-                <button type="submit" class="btn btn-danger">
-                    Cancel Order
-                </button>
+        </div>
+
+        {% if is_guest %}
+        <form method="POST" action="{{ url_for('guest_cancel_order', booking_code=order.booking_code) }}?email={{ guest_email }}">
+            <input type="hidden" name="email" value="{{ guest_email }}">
+        {% else %}
+        <form method="POST" action="{{ url_for('customer_cancel_order', booking_code=order.booking_code) }}">
+        {% endif %}
+            <div class="card">
+                <h2>Confirm Cancellation</h2>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="confirm" required>
+                        <span>I understand that this action cannot be undone and agree to the cancellation terms.</span>
+                    </label>
+                </div>
+                <div class="cancel-actions">
+                    {% if is_guest %}
+                    <a href="{{ url_for('guest_lookup') }}" class="btn btn-secondary">Keep My Order</a>
+                    {% else %}
+                    <a href="{{ url_for('my_orders') }}" class="btn btn-secondary">Keep My Order</a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-danger">Cancel Order</button>
+                </div>
             </div>
         </form>
     </div>

@@ -90,24 +90,46 @@ def find_guest_customer_by_email(email):
 
 def create_guest_customer(email, first_name, last_name, phone=None):
     """
-    Create a new guest customer.
+    Create a new guest customer or update existing one.
+    If the guest already exists and a new phone is provided, append it to the phone list.
     
     Args:
         email: Guest's email (becomes primary key)
         first_name: First name
         last_name: Last name (SecondName in schema)
-        phone: Phone number (will be stored as JSON)
+        phone: Phone number (will be appended to JSON array)
     
     Returns:
-        Email of created guest (the PK)
+        Email of created/updated guest (the PK)
     """
-    phone_json = json.dumps(phone) if phone else None
-    sql = """
-        INSERT INTO GuestCustomer (UniqueMail, FirstName, SecondName, PhoneNum)
-        VALUES (%s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE FirstName = VALUES(FirstName), SecondName = VALUES(SecondName), PhoneNum = VALUES(PhoneNum)
-    """
-    execute_query(sql, (email, first_name, last_name, phone_json), commit=True)
+    # Check if guest already exists
+    existing = find_guest_customer_by_email(email)
+    
+    if existing:
+        # Guest exists - append new phone if provided and not already in list
+        existing_phones = existing.get('PhoneNum') or []
+        if not isinstance(existing_phones, list):
+            existing_phones = [existing_phones] if existing_phones else []
+        
+        if phone and phone not in existing_phones:
+            existing_phones.append(phone)
+        
+        phone_json = json.dumps(existing_phones) if existing_phones else None
+        sql = """
+            UPDATE GuestCustomer 
+            SET FirstName = %s, SecondName = %s, PhoneNum = %s
+            WHERE UniqueMail = %s
+        """
+        execute_query(sql, (first_name, last_name, phone_json, email), commit=True)
+    else:
+        # New guest - create with phone as array
+        phone_json = json.dumps([phone]) if phone else None
+        sql = """
+            INSERT INTO GuestCustomer (UniqueMail, FirstName, SecondName, PhoneNum)
+            VALUES (%s, %s, %s, %s)
+        """
+        execute_query(sql, (email, first_name, last_name, phone_json), commit=True)
+    
     return email
 
 
