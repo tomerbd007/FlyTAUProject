@@ -5,7 +5,7 @@ Handles flight search, seat availability, and flight details
 Schema:
 - Flights: FlightId + Airplanes_AirplaneId (composite PK), OriginPort, DestPort, 
            DepartureDate, DepartureHour, Duration, Status
-- Airplanes: AirplaneId (PK), Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`
+- Airplanes: AirplaneId (PK), Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols
 - Airports: Code (PK), Name, City, Country
 - Tickets: Used to track sold seats (RowNum, Seat per flight)
 """

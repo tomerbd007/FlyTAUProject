@@ -2,7 +2,7 @@
 
 SELECT 
     Airplanes.Manufacturer AS Airplane_Manufacturer,
-    IF(Airplanes.`Business (Rows, Cols)` IS NULL, 'Small', 'Large') AS Airplane_Size,
+    IF(Airplanes.BusinessRows IS NULL OR Airplanes.BusinessRows = 0, 'Small', 'Large') AS Airplane_Size,
     -- We use COALESCE or IFNULL to show 0 instead of nothing
     Tickets.Class AS Ticket_Class,
     SUM(

@@ -477,6 +477,86 @@
         border: 1px solid #f3c8c8;
     }
 
+    /* Resource availability alerts */
+    .resource-error-banner {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        padding: 20px 24px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+
+    .resource-error-banner h3 {
+        font-size: 1.2rem;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .resource-error-banner h3::before {
+        content: '⚠️';
+        font-size: 1.4rem;
+    }
+
+    .resource-error-banner ul {
+        margin: 0 0 0 24px;
+        line-height: 1.8;
+    }
+
+    .resource-error-banner ul li {
+        margin-bottom: 4px;
+    }
+
+    .resource-error-banner p.help-text {
+        margin-top: 14px;
+        font-size: 0.9rem;
+        opacity: 0.9;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        padding-top: 12px;
+    }
+
+    .section-warning {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        color: #856404;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-warning::before {
+        content: '⚠️';
+        font-size: 1.2rem;
+    }
+
+    .section-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-error::before {
+        content: '❌';
+        font-size: 1.1rem;
+    }
+
+    .btn-disabled {
+        background: #ccc !important;
+        cursor: not-allowed !important;
+        pointer-events: none;
+    }
+
     /* Buttons */
     .wizard-actions {
         display: flex;
@@ -631,6 +711,62 @@
         </div>
         
         <div class="wizard-content">
+            {# Calculate resource availability #}
+            {% set num_aircraft = aircraft_list|length %}
+            {% set num_pilots = available_pilots|length %}
+            {% set num_attendants = available_attendants|length %}
+            
+            {# Check for large aircraft availability #}
+            {% set large_aircraft = aircraft_list|selectattr('size', 'equalto', 'large')|list %}
+            {% set small_aircraft = aircraft_list|selectattr('size', 'equalto', 'small')|list %}
+            {% set has_large_aircraft = large_aircraft|length > 0 %}
+            {% set has_small_aircraft = small_aircraft|length > 0 %}
+            
+            {# Minimum requirements: small aircraft needs 2 pilots + 3 FA, large needs 3 pilots + 6 FA #}
+            {% set min_pilots_small = 2 %}
+            {% set min_pilots_large = 3 %}
+            {% set min_attendants_small = 3 %}
+            {% set min_attendants_large = 6 %}
+            
+            {# Determine if we can create a flight with any aircraft #}
+            {% set can_use_small = has_small_aircraft and num_pilots >= min_pilots_small and num_attendants >= min_attendants_small %}
+            {% set can_use_large = has_large_aircraft and num_pilots >= min_pilots_large and num_attendants >= min_attendants_large %}
+            {% set can_create_flight = can_use_small or can_use_large %}
+            
+            {# Build list of issues #}
+            {% set issues = [] %}
+            {% if num_aircraft == 0 %}
+                {% set _ = issues.append('No aircraft available for this route and schedule') %}
+            {% endif %}
+            {% if num_pilots < min_pilots_small %}
+                {% set _ = issues.append('Not enough pilots available (need at least ' ~ min_pilots_small ~ ' for small aircraft, have ' ~ num_pilots ~ ')') %}
+            {% elif num_pilots < min_pilots_large and not has_small_aircraft and has_large_aircraft %}
+                {% set _ = issues.append('Not enough pilots for large aircraft (need ' ~ min_pilots_large ~ ', have ' ~ num_pilots ~ ')') %}
+            {% endif %}
+            {% if num_attendants < min_attendants_small %}
+                {% set _ = issues.append('Not enough flight attendants available (need at least ' ~ min_attendants_small ~ ' for small aircraft, have ' ~ num_attendants ~ ')') %}
+            {% elif num_attendants < min_attendants_large and not has_small_aircraft and has_large_aircraft %}
+                {% set _ = issues.append('Not enough flight attendants for large aircraft (need ' ~ min_attendants_large ~ ', have ' ~ num_attendants ~ ')') %}
+            {% endif %}
+            
+            {# Show blocking error banner if flight cannot be created #}
+            {% if not can_create_flight %}
+            <div class="resource-error-banner">
+                <h3>This Flight Cannot Be Created</h3>
+                <ul>
+                    {% for issue in issues %}
+                    <li>{{ issue }}</li>
+                    {% endfor %}
+                </ul>
+                <p class="help-text">
+                    {% if is_long_flight %}
+                    This is a long flight (>6 hours) requiring large aircraft and long-flight certified crew. 
+                    {% endif %}
+                    Please try a different date/time or contact operations to free up resources.
+                </p>
+            </div>
+            {% endif %}
+            
             <div class="flight-summary-bar">
                 <span class="summary-item">
                     <strong>{{ flight_data.origin_name|default(flight_data.origin) }}</strong> → <strong>{{ flight_data.destination_name|default(flight_data.destination) }}</strong>
@@ -655,16 +791,39 @@
                 <div class="form-section">
                     <h3>Aircraft Selection</h3>
                     
-                    {% if aircraft_list %}
+                    {% if num_aircraft == 0 %}
+                    <div class="section-error">
+                        <span>No aircraft available for this route and time{% if is_long_flight %} (long flights require large aircraft with business class){% endif %}.</span>
+                    </div>
+                    {% elif is_long_flight and not has_large_aircraft %}
+                    <div class="section-error">
+                        <span>No large aircraft available. Long flights (>6 hours) require large aircraft with business class seating.</span>
+                    </div>
+                    {% else %}
+                        {# Show warning if only some aircraft types available #}
+                        {% if not has_large_aircraft and num_pilots < min_pilots_large %}
+                        <div class="section-warning">
+                            <span>Only small aircraft available. Large aircraft require {{ min_pilots_large }} pilots and {{ min_attendants_large }} flight attendants.</span>
+                        </div>
+                        {% elif not has_small_aircraft %}
+                        <div class="section-warning">
+                            <span>Only large aircraft available for this route (require {{ min_pilots_large }} pilots and {{ min_attendants_large }} flight attendants).</span>
+                        </div>
+                        {% endif %}
+                    
                     <div class="aircraft-selection">
                         {% for aircraft in aircraft_list %}
+                        {% set aircraft_pilots_needed = min_pilots_large if aircraft.size == 'large' else min_pilots_small %}
+                        {% set aircraft_attendants_needed = min_attendants_large if aircraft.size == 'large' else min_attendants_small %}
+                        {% set aircraft_has_enough_crew = num_pilots >= aircraft_pilots_needed and num_attendants >= aircraft_attendants_needed %}
                         <label class="aircraft-option">
                             <input type="radio" 
                                    name="aircraft_id" 
                                    value="{{ aircraft.id }}"
                                    {% if request.form.get('aircraft_id')|int == aircraft.id %}checked{% endif %}
+                                   {% if not aircraft_has_enough_crew %}disabled{% endif %}
                                    required>
-                            <div class="aircraft-card">
+                            <div class="aircraft-card" {% if not aircraft_has_enough_crew %}style="opacity: 0.6;"{% endif %}>
                                 <div class="aircraft-header">
                                     <span class="aircraft-name">{{ aircraft.type }}</span>
                                     <span class="aircraft-reg">{{ aircraft.registration }}</span>
@@ -679,13 +838,14 @@
                                         <span class="value">{{ aircraft.size|capitalize }}</span>
                                     </span>
                                 </div>
+                                {% if not aircraft_has_enough_crew %}
+                                <div class="unavailable-reason">
+                                    Insufficient crew: needs {{ aircraft_pilots_needed }} pilots (have {{ num_pilots }}) and {{ aircraft_attendants_needed }} attendants (have {{ num_attendants }})
+                                </div>
+                                {% endif %}
                             </div>
                         </label>
                         {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="no-data-message">
-                        <p>No aircraft available for this route and time.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -707,9 +867,27 @@
                     <div class="crew-section">
                         <div class="crew-section-header">
                             <h4>Pilots</h4>
-                            <span class="selection-counter">Select <strong>2</strong> (small) or <strong>3</strong> (large aircraft)</span>
+                            <span class="selection-counter">
+                                Available: <strong>{{ num_pilots }}</strong> | 
+                                Need: <strong>{{ min_pilots_small }}</strong> (small) or <strong>{{ min_pilots_large }}</strong> (large)
+                            </span>
                         </div>
                         
+                        {% if num_pilots == 0 %}
+                        <div class="section-error">
+                            <span>No pilots available{% if is_long_flight %} with long-flight certification{% endif %} for this schedule.</span>
+                        </div>
+                        {% elif num_pilots < min_pilots_small %}
+                        <div class="section-error">
+                            <span>Not enough pilots available. Need at least {{ min_pilots_small }} pilots, but only {{ num_pilots }} available{% if is_long_flight %} with long-flight certification{% endif %}.</span>
+                        </div>
+                        {% elif num_pilots < min_pilots_large %}
+                        <div class="section-warning">
+                            <span>Only {{ num_pilots }} pilots available{% if is_long_flight %} with long-flight certification{% endif %}. Can only staff small aircraft (need {{ min_pilots_large }} for large aircraft).</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if num_pilots > 0 %}
                         <div class="crew-grid">
                             {% for pilot in available_pilots %}
                             <label class="crew-option">
@@ -727,14 +905,33 @@
                             </label>
                             {% endfor %}
                         </div>
+                        {% endif %}
                     </div>
                     
                     <div class="crew-section">
                         <div class="crew-section-header">
                             <h4>Flight Attendants</h4>
-                            <span class="selection-counter">Select <strong>3</strong> (small) or <strong>6</strong> (large aircraft)</span>
+                            <span class="selection-counter">
+                                Available: <strong>{{ num_attendants }}</strong> | 
+                                Need: <strong>{{ min_attendants_small }}</strong> (small) or <strong>{{ min_attendants_large }}</strong> (large)
+                            </span>
                         </div>
                         
+                        {% if num_attendants == 0 %}
+                        <div class="section-error">
+                            <span>No flight attendants available{% if is_long_flight %} with long-flight certification{% endif %} for this schedule.</span>
+                        </div>
+                        {% elif num_attendants < min_attendants_small %}
+                        <div class="section-error">
+                            <span>Not enough flight attendants available. Need at least {{ min_attendants_small }}, but only {{ num_attendants }} available{% if is_long_flight %} with long-flight certification{% endif %}.</span>
+                        </div>
+                        {% elif num_attendants < min_attendants_large %}
+                        <div class="section-warning">
+                            <span>Only {{ num_attendants }} flight attendants available{% if is_long_flight %} with long-flight certification{% endif %}. Can only staff small aircraft (need {{ min_attendants_large }} for large aircraft).</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if num_attendants > 0 %}
                         <div class="crew-grid">
                             {% for attendant in available_attendants %}
                             <label class="crew-option">
@@ -752,14 +949,21 @@
                             </label>
                             {% endfor %}
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 
                 <div class="wizard-actions">
                     <a href="{{ url_for('add_flight_step1') }}" class="btn btn-secondary">← Back</a>
+                    {% if can_create_flight %}
                     <button type="submit" class="btn btn-primary">
                         Continue to Pricing →
                     </button>
+                    {% else %}
+                    <button type="button" class="btn btn-primary btn-disabled" disabled title="Cannot create flight due to insufficient resources">
+                        Continue to Pricing →
+                    </button>
+                    {% endif %}
                 </div>
             </form>
         </div>

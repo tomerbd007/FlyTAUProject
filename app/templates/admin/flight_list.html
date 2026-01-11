@@ -93,6 +93,7 @@
                     </td>
                     <td>
                         <div class="action-buttons">
+                            {% if flight.id %}
                             <a href="{{ url_for('flight_detail', flight_id=flight.id) }}?airplane_id={{ flight.airplane_id }}" 
                                class="btn btn-ghost btn-sm" title="View Details">
                                 👁
@@ -102,6 +103,7 @@
                                class="btn btn-ghost btn-sm btn-danger-ghost" title="Cancel Flight">
                                 ✕
                             </a>
+                            {% endif %}
                             {% endif %}
                         </div>
                     </td>

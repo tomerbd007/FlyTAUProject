@@ -321,16 +321,8 @@ def update_order_seats(booking_code, new_seats, flight):
     economy_price = Decimal(str(flight.get('EconomyPrice') or 0))
     business_price = Decimal(str(flight.get('BusinessPrice') or 0))
     
-    # Get business row count from flight config
-    business_config = flight.get('BusinessConfig', '')
-    business_rows = 0
-    if business_config:
-        parts = business_config.split()
-        if len(parts) >= 1:
-            try:
-                business_rows = int(parts[0])
-            except ValueError:
-                pass
+    # Get business row count from flight config (now stored as INT column)
+    business_rows = flight.get('BusinessRows') or 0
     
     new_total = Decimal('0')
     seat_details = []

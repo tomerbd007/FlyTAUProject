@@ -109,8 +109,8 @@ def search_flights(departure_date=None, origin=None, destination=None, status=No
         SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
                f.EconomyPrice, f.BusinessPrice, f.Duration,
                f.DepartureDate, f.DepartureHour, f.OriginPort, f.DestPort,
-               a.Manufacturer, a.`Couch (Rows, Cols)` as EconomyConfig,
-               a.`Business (Rows, Cols)` as BusinessConfig
+               a.Manufacturer, a.CouchRows, a.CouchCols,
+               a.BusinessRows, a.BusinessCols
         FROM Flights f
         JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
         WHERE 1=1
@@ -151,8 +151,8 @@ def get_flight_by_id(flight_id, airplane_id=None):
             SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
                    f.EconomyPrice, f.BusinessPrice, f.Duration,
                    f.DepartureDate, f.DepartureHour, f.OriginPort, f.DestPort,
-                   a.Manufacturer, a.`Couch (Rows, Cols)` as EconomyConfig,
-                   a.`Business (Rows, Cols)` as BusinessConfig, a.PurchaseDate
+                   a.Manufacturer, a.CouchRows, a.CouchCols,
+                   a.BusinessRows, a.BusinessCols, a.PurchaseDate
             FROM Flights f
             JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
             WHERE f.FlightId = %s AND f.Airplanes_AirplaneId = %s
@@ -164,8 +164,8 @@ def get_flight_by_id(flight_id, airplane_id=None):
             SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
                    f.EconomyPrice, f.BusinessPrice, f.Duration,
                    f.DepartureDate, f.DepartureHour, f.OriginPort, f.DestPort,
-                   a.Manufacturer, a.`Couch (Rows, Cols)` as EconomyConfig,
-                   a.`Business (Rows, Cols)` as BusinessConfig, a.PurchaseDate
+                   a.Manufacturer, a.CouchRows, a.CouchCols,
+                   a.BusinessRows, a.BusinessCols, a.PurchaseDate
             FROM Flights f
             JOIN Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
             WHERE f.FlightId = %s

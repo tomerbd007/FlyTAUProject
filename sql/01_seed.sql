@@ -195,20 +195,22 @@ ON DUPLICATE KEY UPDATE
   SecondName = new_guest.SecondName;
 
 -- -----------------------------------------------------------------------------
--- AIRPLANES (standardized "rows cols" format)
+-- AIRPLANES (separate columns for rows and cols)
 -- -----------------------------------------------------------------------------
-INSERT INTO Airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`) VALUES
-('PLANE-001', 'Boeing', '20 6', '5 4'),
-('PLANE-002', 'Boeing', '20 6', '5 4'),
-('PLANE-003', 'Airbus', '25 6', '6 4'),
-('PLANE-004', 'Airbus', '22 6', '5 4'),
-('PLANE-005', 'Dassault', '10 4', NULL),
-('PLANE-006', 'Dassault', '8 4', NULL)
-AS new_airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`)
+INSERT INTO Airplanes (AirplaneId, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols) VALUES
+('PLANE-001', 'Boeing', 20, 6, 5, 4),
+('PLANE-002', 'Boeing', 20, 6, 5, 4),
+('PLANE-003', 'Airbus', 25, 6, 6, 4),
+('PLANE-004', 'Airbus', 22, 6, 5, 4),
+('PLANE-005', 'Dassault', 10, 4, NULL, NULL),
+('PLANE-006', 'Dassault', 8, 4, NULL, NULL)
+AS new_airplanes (AirplaneId, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols)
 ON DUPLICATE KEY UPDATE
   Manufacturer = new_airplanes.Manufacturer,
-  `Couch (Rows, Cols)` = new_airplanes.`Couch (Rows, Cols)`,
-  `Business (Rows, Cols)` = new_airplanes.`Business (Rows, Cols)`;
+  CouchRows = new_airplanes.CouchRows,
+  CouchCols = new_airplanes.CouchCols,
+  BusinessRows = new_airplanes.BusinessRows,
+  BusinessCols = new_airplanes.BusinessCols;
 
 -- -----------------------------------------------------------------------------
 -- FLIGHTS

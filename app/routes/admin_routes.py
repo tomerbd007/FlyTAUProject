@@ -32,6 +32,10 @@ def register_admin_routes(app):
 
         flights = []
         for f in flights_raw:
+            # Skip flights without a valid FlightId
+            if not f.get('FlightId'):
+                continue
+                
             # Parse departure date/time into a single datetime object
             dep_date = f.get('DepartureDate')
             dep_hour = f.get('DepartureHour')
@@ -86,6 +90,7 @@ def register_admin_routes(app):
                 'destination': f.get('DestPort'),
                 'departure_time': departure_dt,
                 'aircraft_type': f.get('Manufacturer'),
+                'airplane_id': f.get('Airplanes_AirplaneId'),
                 'status': (f.get('Status') or '').lower(),
                 'booked_seats': booked_seats,
                 'total_seats': total_seats,

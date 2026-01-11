@@ -45,32 +45,15 @@ def get_average_occupancy():
             a.Manufacturer,
             COUNT(t.TicketId) AS sold_seats,
             (
-                IFNULL(
-                    (SELECT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Business (Rows, Cols)`, ',', 1), '(', -1) AS UNSIGNED) *
-                            CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Business (Rows, Cols)`, ')', 1), ',', -1) AS UNSIGNED)
-                     FROM Airplanes WHERE AirplaneId = f.Airplanes_AirplaneId), 0
-                ) +
-                IFNULL(
-                    (SELECT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Couch (Rows, Cols)`, ',', 1), '(', -1) AS UNSIGNED) *
-                            CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Couch (Rows, Cols)`, ')', 1), ',', -1) AS UNSIGNED)
-                     FROM Airplanes WHERE AirplaneId = f.Airplanes_AirplaneId), 0
-                )
+                IFNULL(a.BusinessRows * a.BusinessCols, 0) +
+                IFNULL(a.CouchRows * a.CouchCols, 0)
             ) AS total_seats,
             ROUND(
                 COUNT(t.TicketId) * 100.0 / 
                 NULLIF(
-                    (
-                        IFNULL(
-                            (SELECT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Business (Rows, Cols)`, ',', 1), '(', -1) AS UNSIGNED) *
-                                    CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Business (Rows, Cols)`, ')', 1), ',', -1) AS UNSIGNED)
-                             FROM Airplanes WHERE AirplaneId = f.Airplanes_AirplaneId), 0
-                        ) +
-                        IFNULL(
-                            (SELECT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Couch (Rows, Cols)`, ',', 1), '(', -1) AS UNSIGNED) *
-                                    CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(`Couch (Rows, Cols)`, ')', 1), ',', -1) AS UNSIGNED)
-                             FROM Airplanes WHERE AirplaneId = f.Airplanes_AirplaneId), 0
-                        )
-                    ), 1
+                    IFNULL(a.BusinessRows * a.BusinessCols, 0) +
+                    IFNULL(a.CouchRows * a.CouchCols, 0),
+                    0
                 ), 
                 1
             ) AS occupancy_pct
@@ -79,7 +62,8 @@ def get_average_occupancy():
         LEFT JOIN orders o ON f.FlightId = o.Flights_FlightId
         LEFT JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
         WHERE f.Status = 'occurred' AND (o.Status IS NULL OR o.Status != 'cancelled')
-        GROUP BY f.FlightId, f.Airplanes_AirplaneId, f.DepartureDate, f.OriginPort, f.DestPort, a.Manufacturer
+        GROUP BY f.FlightId, f.Airplanes_AirplaneId, f.DepartureDate, f.OriginPort, f.DestPort, a.Manufacturer,
+                 a.BusinessRows, a.BusinessCols, a.CouchRows, a.CouchCols
         ORDER BY f.DepartureDate DESC
     """
     return _execute_report_sql(sql)

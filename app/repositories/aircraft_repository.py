@@ -3,65 +3,39 @@ FLYTAU Aircraft Repository
 Database access for Airplanes
 
 Schema:
-- Airplanes: AirplaneId (PK), PurchaseDate, Manufacturer, `Couch (Rows, Cols)`, `Business (Rows, Cols)`
+- Airplanes: AirplaneId (PK), PurchaseDate, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols
 
-Note: Seat configuration is stored as VARCHAR in format "rows,cols" (e.g., "20,6" for 20 rows, 6 columns)
-- `Couch (Rows, Cols)` = Economy class seating
-- `Business (Rows, Cols)` = Business class seating
+Note: Seat configuration is stored as separate INT columns:
+- CouchRows, CouchCols = Economy class seating (rows and columns)
+- BusinessRows, BusinessCols = Business class seating (rows and columns)
 """
 from app.db import execute_query
-
-
-def parse_seat_config(config_str):
-    """
-    Parse seat configuration string "rows,cols" or "rows cols" into tuple (rows, cols).
-    
-    Args:
-        config_str: String like "20,6" or "(20,6)" or "20, 6" or "20 6"
-    
-    Returns:
-        Tuple of (rows, cols) as integers, or (0, 0) if parsing fails
-    """
-    if not config_str:
-        return (0, 0)
-    try:
-        # Remove parentheses and extra spaces
-        cleaned = config_str.replace('(', '').replace(')', '').strip()
-        # Split by comma or space
-        if ',' in cleaned:
-            parts = cleaned.split(',')
-        else:
-            parts = cleaned.split()
-        if len(parts) >= 2:
-            return (int(parts[0].strip()), int(parts[1].strip()))
-    except (ValueError, IndexError):
-        pass
-    return (0, 0)
 
 
 def get_airplane_by_id(airplane_id):
     """
     Get airplane by AirplaneId.
     
-    Returns dict with parsed seat configuration:
+    Returns dict with seat configuration:
         - AirplaneId, PurchaseDate, Manufacturer
-        - economy_rows, economy_cols (parsed from `Couch (Rows, Cols)`)
-        - business_rows, business_cols (parsed from `Business (Rows, Cols)`)
+        - economy_rows, economy_cols (from CouchRows, CouchCols)
+        - business_rows, business_cols (from BusinessRows, BusinessCols)
         - total_seats (computed)
     """
     sql = """
         SELECT AirplaneId, PurchaseDate, Manufacturer, 
-               `Couch (Rows, Cols)` as EconomyConfig,
-               `Business (Rows, Cols)` as BusinessConfig
+               CouchRows, CouchCols, BusinessRows, BusinessCols
         FROM Airplanes
         WHERE AirplaneId = %s
     """
     result = execute_query(sql, (airplane_id,), fetch_one=True)
     if result:
         result = dict(result)
-        # Parse seat configurations
-        economy_rows, economy_cols = parse_seat_config(result.get('EconomyConfig'))
-        business_rows, business_cols = parse_seat_config(result.get('BusinessConfig'))
+        # Read seat configurations directly from INT columns
+        economy_rows = result.get('CouchRows') or 0
+        economy_cols = result.get('CouchCols') or 0
+        business_rows = result.get('BusinessRows') or 0
+        business_cols = result.get('BusinessCols') or 0
         
         result['economy_rows'] = economy_rows
         result['economy_cols'] = economy_cols
@@ -77,11 +51,10 @@ def get_airplane_by_id(airplane_id):
 
 
 def get_all_airplanes():
-    """Get all airplanes with parsed seat configurations."""
+    """Get all airplanes with seat configurations."""
     sql = """
         SELECT AirplaneId, PurchaseDate, Manufacturer, 
-               `Couch (Rows, Cols)` as EconomyConfig,
-               `Business (Rows, Cols)` as BusinessConfig
+               CouchRows, CouchCols, BusinessRows, BusinessCols
         FROM Airplanes
         ORDER BY Manufacturer, AirplaneId
     """
@@ -92,8 +65,10 @@ def get_all_airplanes():
     parsed_results = []
     for row in results:
         airplane = dict(row)
-        economy_rows, economy_cols = parse_seat_config(airplane.get('EconomyConfig'))
-        business_rows, business_cols = parse_seat_config(airplane.get('BusinessConfig'))
+        economy_rows = airplane.get('CouchRows') or 0
+        economy_cols = airplane.get('CouchCols') or 0
+        business_rows = airplane.get('BusinessRows') or 0
+        business_cols = airplane.get('BusinessCols') or 0
         
         airplane['economy_rows'] = economy_rows
         airplane['economy_cols'] = economy_cols
@@ -161,8 +136,7 @@ def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport
     # Get all airplanes
     sql_all = """
         SELECT a.AirplaneId, a.PurchaseDate, a.Manufacturer, 
-               a.`Couch (Rows, Cols)` as EconomyConfig,
-               a.`Business (Rows, Cols)` as BusinessConfig
+               a.CouchRows, a.CouchCols, a.BusinessRows, a.BusinessCols
         FROM Airplanes a
         ORDER BY a.Manufacturer, a.AirplaneId
     """
@@ -194,8 +168,10 @@ def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport
         if airplane['AirplaneId'] in busy_ids:
             continue
             
-        economy_rows, economy_cols = parse_seat_config(airplane.get('EconomyConfig'))
-        business_rows, business_cols = parse_seat_config(airplane.get('BusinessConfig'))
+        economy_rows = airplane.get('CouchRows') or 0
+        economy_cols = airplane.get('CouchCols') or 0
+        business_rows = airplane.get('BusinessRows') or 0
+        business_cols = airplane.get('BusinessCols') or 0
         
         airplane['economy_rows'] = economy_rows
         airplane['economy_cols'] = economy_cols
@@ -231,7 +207,7 @@ def generate_seat_map(airplane_id):
     Generate a virtual seat map for an airplane based on its seat configuration.
     
     This doesn't query a seat_map table - it generates seats dynamically from
-    the airplane's `Couch (Rows, Cols)` and `Business (Rows, Cols)` config.
+    the airplane's CouchRows, CouchCols, BusinessRows, BusinessCols columns.
     
     Returns list of seat dicts:
         - seat_code: e.g., "1A", "10F"

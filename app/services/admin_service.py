@@ -256,7 +256,7 @@ def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport
     Business Rule:
         - Long flights (> 6 hours): Only big airplanes (those with Business class)
         - Short flights (≤ 6 hours): All airplanes (big and small)
-        - An airplane is considered 'big' if it has Business config (not null)
+        - An airplane is considered 'big' if it has BusinessRows > 0
         - An airplane is unavailable if it has any flight that overlaps with the
           requested time period (from departure to landing)
         - An airplane must be located at origin_airport at departure time

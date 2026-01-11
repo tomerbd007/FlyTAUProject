@@ -94,8 +94,10 @@ CREATE TABLE IF NOT EXISTS `flytau`.`Airplanes` (
   `AirplaneId` VARCHAR(45) NOT NULL,
   `PurchaseDate` DATE NULL,
   `Manufacturer` VARCHAR(45) NULL,
-  `Couch (Rows, Cols)` VARCHAR(45) NULL,
-  `Business (Rows, Cols)` VARCHAR(45) NULL,
+  `CouchRows` INT NULL,
+  `CouchCols` INT NULL,
+  `BusinessRows` INT NULL,
+  `BusinessCols` INT NULL,
   PRIMARY KEY (`AirplaneId`))
 ENGINE = InnoDB;
 
