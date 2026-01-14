@@ -2,19 +2,21 @@
 -- Shows seat occupancy percentage for completed flights
 
 SELECT 
-    f.flight_number,
-    DATE(f.departure_datetime) AS flight_date,
-    CONCAT(r.origin, ' → ', r.destination) AS route,
-    COUNT(CASE WHEN fs.status = 'sold' THEN 1 END) AS sold_seats,
-    COUNT(fs.id) AS total_seats,
-    ROUND(
-        COUNT(CASE WHEN fs.status = 'sold' THEN 1 END) * 100.0 / 
-        NULLIF(COUNT(fs.id), 0), 
-        1
-    ) AS occupancy_pct
-FROM flights f
-JOIN routes r ON f.route_id = r.id
-JOIN flight_seats fs ON f.id = fs.flight_id
-WHERE f.status = 'occurred'
-GROUP BY f.id, f.flight_number, f.departure_datetime, r.origin, r.destination
-ORDER BY f.departure_datetime DESC;
+    AVG(OccupancyRate) AS AverageOccupancyRate
+FROM (
+    SELECT 
+        f.FlightId,    
+        (a.CouchRows * a.CouchCols + a.BusinessRows * a.BusinessCols) AS TotalCapacity,
+        COUNT(t.TicketId) AS TicketsSold,
+        (COUNT(t.TicketId) / (a.CouchRows * a.CouchCols + a.BusinessRows * a.BusinessCols)) * 100 AS OccupancyRate
+    FROM 
+        flytau.Flights f
+    JOIN 
+        flytau.Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
+    LEFT JOIN 
+        flytau.orders o ON f.FlightId = o.Flights_FlightId
+    LEFT JOIN 
+        flytau.Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
+    GROUP BY 
+        f.FlightId, TotalCapacity
+) AS FlightStats;

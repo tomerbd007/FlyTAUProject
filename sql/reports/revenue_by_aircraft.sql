@@ -1,22 +1,45 @@
--- we need to calculate the revenue for each Airplane size (big or small), aircraft and department
+-- Revenue by Airplane Capacity, Manufacturer, and Cabin Class
+-- Revenue by Airplane Size (Logic based), Manufacturer, and Cabin Class
+-- Large Airplane: Has Business class rows
+-- Revenue by Airplane Size, Manufacturer, and Cabin Class
+-- NOTE: This query returns results ONLY for combinations where at least one ticket was sold.
+-- If a specific class (e.g., Boeing Business) has 0 tickets in the 'Tickets' table, 
+-- it will not appear in the final report due to the INNER JOIN logic.
+-- Small Airplane: Business class rows are NULL or 0
 
 SELECT 
-    Airplanes.Manufacturer AS Airplane_Manufacturer,
-    IF(Airplanes.BusinessRows IS NULL OR Airplanes.BusinessRows = 0, 'Small', 'Large') AS Airplane_Size,
-    -- We use COALESCE or IFNULL to show 0 instead of nothing
-    Tickets.Class AS Ticket_Class,
-    SUM(
-        CASE 
-            WHEN Flights.Status = 'Cancelled' THEN 0 
-            WHEN orders.Status = 'Cancelled' THEN Tickets.Price * 0.05 
-            ELSE IFNULL(Tickets.Price, 0) 
-        END
-    ) AS Total_Revenue
-FROM Airplanes
-JOIN Flights ON Airplanes.AirplaneId = Flights.Airplanes_AirplaneId
-LEFT JOIN Tickets ON Flights.FlightId = Tickets.Flights_FlightId
-LEFT JOIN orders ON Tickets.orders_UniqueOrderCode = orders.UniqueOrderCode
-GROUP BY 
-    Airplane_Manufacturer, 
-    Airplane_Size, 
-    Ticket_Class;
+    AirplaneSize,
+    Manufacturer,
+    CabinClass,
+    SUM(Revenue) AS TotalRevenue
+FROM (
+    -- Sub-query for LARGE airplanes (BusinessRows is not null and > 0)
+    SELECT 
+        'Large' AS AirplaneSize,
+        a.Manufacturer,
+        t.Class AS CabinClass,
+        -- We get the price based on ticket class directly
+        (SELECT f.EconomyPrice FROM Flights f WHERE f.FlightId = o.Flights_FlightId AND t.Class = 'economy'
+         UNION 
+         SELECT f.BusinessPrice FROM Flights f WHERE f.FlightId = o.Flights_FlightId AND t.Class = 'business') AS Revenue
+    FROM Airplanes a
+    JOIN Flights f ON a.AirplaneId = f.Airplanes_AirplaneId
+    JOIN orders o ON f.FlightId = o.Flights_FlightId
+    JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
+    WHERE a.BusinessRows IS NOT NULL AND a.BusinessRows > 0
+
+    UNION ALL
+
+    -- Sub-query for SMALL airplanes (BusinessRows is null or 0)
+    SELECT 
+        'Small' AS AirplaneSize,
+        a.Manufacturer,
+        t.Class AS CabinClass,
+        f.EconomyPrice AS Revenue
+    FROM Airplanes a
+    JOIN Flights f ON a.AirplaneId = f.Airplanes_AirplaneId
+    JOIN orders o ON f.FlightId = o.Flights_FlightId
+    JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
+    WHERE a.BusinessRows IS NULL OR a.BusinessRows = 0
+) AS RevenueData
+GROUP BY AirplaneSize, Manufacturer, CabinClass;

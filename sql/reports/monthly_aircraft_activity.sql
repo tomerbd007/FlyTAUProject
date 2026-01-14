@@ -1,31 +1,27 @@
--- Monthly Aircraft Activity Report
--- Shows flight activity summary per aircraft per month
-
-SELECT
-  month,
-  aircraft,
-  SUM(flights_completed) AS flights_completed,
-  SUM(flights_canceled) AS flights_canceled,
-  ROUND(SUM(flights_completed) * 100.0 / NULLIF(SUM(total),0),1) AS utilization_pct,
-  most_common_route
+-- Monthly Activity Summary per Airplane
+SELECT 
+    MainStats.AirplaneId,
+    MainStats.FlightMonth,
+    MainStats.FlightsPerformed,
+    MainStats.FlightsCancelled,
+    -- Utilization percentage: (Performed Flights / 30 Days) * 100
+    ROUND((MainStats.FlightsPerformed / 30.0) * 100, 2) AS UtilizationRatePercent,
+    -- Dominant Route
+    (SELECT CONCAT(f3.OriginPort, '-', f3.DestPort)
+     FROM Flights f3
+     WHERE f3.Airplanes_AirplaneId = MainStats.AirplaneId 
+       AND MONTH(f3.DepartureDate) = MainStats.FlightMonth
+     GROUP BY f3.OriginPort, f3.DestPort
+     ORDER BY COUNT(*) DESC
+     LIMIT 1) AS DominantRoute
 FROM (
-  SELECT
-    DATE_FORMAT(f.DepartureDate, '%Y-%m') AS month,
-    CONCAT(ap.Manufacturer, ' ', ap.AirplaneId) AS aircraft,
-    CASE WHEN f.Status = 'occurred' THEN 1 ELSE 0 END AS flights_completed,
-    CASE WHEN f.Status = 'canceled' THEN 1 ELSE 0 END AS flights_canceled,
-    1 AS total,
-    (
-      SELECT CONCAT(inner_f.OriginPort, ' → ', inner_f.DestPort)
-      FROM Flights inner_f
-      WHERE inner_f.Airplanes_AirplaneId = f.Airplanes_AirplaneId
-        AND DATE_FORMAT(inner_f.DepartureDate, '%Y-%m') = DATE_FORMAT(f.DepartureDate, '%Y-%m')
-      GROUP BY inner_f.OriginPort, inner_f.DestPort
-      ORDER BY COUNT(*) DESC
-      LIMIT 1
-    ) AS most_common_route
-  FROM Flights f
-  JOIN Airplanes ap ON f.Airplanes_AirplaneId = ap.AirplaneId
-) AS sub
-GROUP BY month, aircraft, most_common_route
-ORDER BY month DESC, aircraft;
+    -- Sub-query to count Performed and Cancelled flights
+    SELECT 
+        a.AirplaneId,
+        MONTH(f.DepartureDate) AS FlightMonth,
+        SUM(CASE WHEN f.Status = 'active' THEN 1 ELSE 0 END) AS FlightsPerformed,
+        SUM(CASE WHEN f.Status = 'cancelled' THEN 1 ELSE 0 END) AS FlightsCancelled
+    FROM Airplanes a
+    JOIN Flights f ON a.AirplaneId = f.Airplanes_AirplaneId
+    GROUP BY a.AirplaneId, MONTH(f.DepartureDate)
+) AS MainStats;
