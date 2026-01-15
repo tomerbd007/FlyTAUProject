@@ -89,6 +89,7 @@ INSERT INTO Pilot (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining) VAL
 ('P009', 'Oren', 'Levy', '["972-50-9999999"]', FALSE),
 ('P010', 'Tal', 'Avraham', '["972-52-1010101"]', FALSE);
 
+<<<<<<< Updated upstream
 -- =============================================================================
 -- FLIGHT ATTENDANTS (20) - 12 certified for long flights
 -- =============================================================================
@@ -113,6 +114,9 @@ INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTra
 ('A018', 'Lior', 'Stone', '["972-54-2828282"]', FALSE),
 ('A019', 'Adi', 'Glass', '["972-50-2929292"]', FALSE),
 ('A020', 'Chen', 'Gold', '["972-52-3030303"]', FALSE);
+=======
+-- Foreign key checks remain disabled for the duration of this seed run
+>>>>>>> Stashed changes
 
 -- =============================================================================
 -- REGISTERED CUSTOMERS (2)
@@ -139,9 +143,60 @@ INSERT INTO Airplanes (AirplaneId, Manufacturer, `Couch (Rows, Cols)`, `Business
 ('A005', 'Dassault', '10 4', NULL),
 ('A006', 'Dassault', '8 4', NULL);
 
+<<<<<<< Updated upstream
 -- =============================================================================
 -- FLIGHTS (4 active)
 -- =============================================================================
+=======
+-- -----------------------------------------------------------------------------
+-- REGISTERED CUSTOMERS
+-- -----------------------------------------------------------------------------
+INSERT INTO RegisteredCustomer (UniqueMail, Password, PhoneNum, PassportNum, FirstName, SecondName, BirthDate, RegistrationDate) VALUES
+('customer1@gmail.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', '["972-54-1111111"]', 'P123456', 'John', 'Doe', '1985-06-15', '2020-01-01'),
+('customer2@gmail.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', '["972-54-2222222"]', 'P789012', 'Jane', 'Smith', '1990-09-22', '2021-02-15')
+AS new_registered (UniqueMail, Password, PhoneNum, PassportNum, FirstName, SecondName, BirthDate, RegistrationDate)
+ON DUPLICATE KEY UPDATE
+  Password = new_registered.Password,
+  PhoneNum = new_registered.PhoneNum,
+  PassportNum = new_registered.PassportNum,
+  FirstName = new_registered.FirstName,
+  SecondName = new_registered.SecondName,
+  BirthDate = new_registered.BirthDate,
+  RegistrationDate = new_registered.RegistrationDate;
+
+-- -----------------------------------------------------------------------------
+-- GUEST CUSTOMERS
+-- -----------------------------------------------------------------------------
+INSERT INTO GuestCustomer (UniqueMail, PhoneNum, FirstName, SecondName) VALUES
+('guest1@gmail.com', '["972-50-0000000"]', 'Guest', 'User')
+AS new_guest (UniqueMail, PhoneNum, FirstName, SecondName)
+ON DUPLICATE KEY UPDATE
+  PhoneNum = new_guest.PhoneNum,
+  FirstName = new_guest.FirstName,
+  SecondName = new_guest.SecondName;
+
+-- -----------------------------------------------------------------------------
+-- AIRPLANES (separate columns for rows and cols)
+-- -----------------------------------------------------------------------------
+INSERT INTO Airplanes (AirplaneId, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols) VALUES
+('A001', 'Boeing', 20, 6, 5, 4),
+('A002', 'Boeing', 20, 6, 5, 4),
+('A003', 'Airbus', 25, 6, 6, 4),
+('A004', 'Airbus', 22, 6, 5, 4),
+('A005', 'Dassault', 10, 4, NULL, NULL),
+('A006', 'Dassault', 8, 4, NULL, NULL)
+AS new_airplanes (AirplaneId, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols)
+ON DUPLICATE KEY UPDATE
+  Manufacturer = new_airplanes.Manufacturer,
+  CouchRows = new_airplanes.CouchRows,
+  CouchCols = new_airplanes.CouchCols,
+  BusinessRows = new_airplanes.BusinessRows,
+  BusinessCols = new_airplanes.BusinessCols;
+
+-- -----------------------------------------------------------------------------
+-- FLIGHTS
+-- -----------------------------------------------------------------------------
+>>>>>>> Stashed changes
 INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
 ('FT101', 'A001', 'TLV', 'JFK', '2026-02-15', '08:00:00', 660, 'active', 500.00, 1500.00),
 ('FT102', 'A003', 'TLV', 'LHR', '2026-02-16', '10:00:00', 300, 'active', 300.00, 900.00),
@@ -200,28 +255,12 @@ INSERT INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId) V
 ('A019', 'FT104');
 
 -- =============================================================================
+-- =============================================================================
 -- ORDERS (2 confirmed)
 -- =============================================================================
 INSERT INTO orders (UniqueOrderCode, Flights_FlightId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail) VALUES
 ('FLY-ABC123', 'FT101', 1000.00, 'confirmed', NULL, 'customer1@example.com'),
 ('FLY-DEF456', 'FT102', 900.00, 'confirmed', NULL, 'customer2@example.com');
-
--- =============================================================================
--- TICKETS
--- =============================================================================
-INSERT INTO Tickets (orders_UniqueOrderCode, RowNum, Seat, Class) VALUES
-('FLY-ABC123', 6, 'A', 'economy'),
-('FLY-ABC123', 6, 'B', 'economy'),
-('FLY-DEF456', 1, 'A', 'business');
-
--- =============================================================================
--- MANAGER EDITS (audit trail)
--- =============================================================================
-INSERT INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId) VALUES
-('M001', 'FT101'),
-('M001', 'FT102'),
-('M002', 'FT103'),
-('M002', 'FT104');
 
 -- =============================================================================
 -- ROUTES - All airport combinations with calculated durations
@@ -232,6 +271,31 @@ INSERT INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId) VALUES
 -- Routes are loaded from routes_seed.sql via SOURCE command or can be
 -- concatenated during database initialization
 
+<<<<<<< Updated upstream
 -- =============================================================================
+=======
+-- -----------------------------------------------------------------------------
+-- TICKETS (skip duplicates)
+-- -----------------------------------------------------------------------------
+INSERT IGNORE INTO Tickets (orders_UniqueOrderCode, RowNum, Seat, Class) VALUES
+('FLY-ABC123', 6, 'A', 'economy'),
+('FLY-ABC123', 6, 'B', 'economy'),
+('FLY-DEF456', 1, 'A', 'business'),
+('FLY-DEF768', 24, 'A', 'economy'),
+('FLY-ABC001', 10, 'A', 'economy'),
+('FLY-ABC002', 10, 'B', 'economy'),
+('FLY-DEF003', 4, 'C', 'business');
+
+-- -----------------------------------------------------------------------------
+-- MANAGER EDITS (skip duplicates)
+-- -----------------------------------------------------------------------------
+INSERT IGNORE INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId) VALUES
+('M001', 'FT101'),
+('M001', 'FT102'),
+('M002', 'FT103'),
+('M002', 'FT104');
+
+-- -----------------------------------------------------------------------------
+>>>>>>> Stashed changes
 -- Seed data complete
 -- =============================================================================
