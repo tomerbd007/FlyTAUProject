@@ -12,10 +12,11 @@ FROM (
 ) AS TotalData
 LEFT JOIN (
     -- Sub-query: Count only cancelled orders per month
+    -- Matches 'customer_canceled' or 'system_canceled' statuses
     SELECT MONTH(DepartureDate) AS OrderMonth, COUNT(*) AS CancelledCount
     FROM orders o
     JOIN Flights f ON o.Flights_FlightId = f.FlightId
-    WHERE o.Status = 'cancelled'
+    WHERE o.Status IN ('customer_canceled', 'system_canceled')
     GROUP BY MONTH(DepartureDate)
 ) AS CancelledData ON TotalData.OrderMonth = CancelledData.OrderMonth
 ORDER BY TotalData.OrderMonth;
