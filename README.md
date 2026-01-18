@@ -3,6 +3,169 @@
 **Databases Systems Design and Information Systems Engineering Project**  
 Tel Aviv University
 
+---
+
+## 🚀 Deploy to AWS Elastic Beanstalk
+
+This section covers deploying FLYTAU to AWS Elastic Beanstalk with an RDS MySQL database.
+
+### Prerequisites
+
+- AWS Account
+- Python 3.9+
+- AWS EB CLI installed
+
+### Step 1: Install EB CLI
+
+```bash
+pip install awsebcli
+```
+
+Verify installation:
+
+```bash
+eb --version
+```
+
+### Step 2: Initialize Elastic Beanstalk
+
+Navigate to the project root and run:
+
+```bash
+eb init
+```
+
+When prompted:
+- **Region**: Select `il-central-1` (Tel Aviv / Israel) or your preferred region
+- **Application name**: `flytau` (or your choice)
+- **Platform**: Select `Python`
+- **Platform version**: Select `Python 3.9` or later
+- **SSH**: Yes (create a new KeyPair if needed)
+
+### Step 3: AWS Credentials (if prompted)
+
+If EB CLI asks for credentials:
+
+1. Go to **AWS Console → IAM → Users → Create user**
+2. Attach policy: `AdministratorAccess` (or more restricted policies for production)
+3. Go to **Security credentials → Create access key → CLI use case**
+4. Copy the **Access Key ID** and **Secret Access Key** (you can only copy the secret once!)
+5. Paste them into the EB CLI prompts
+
+### Step 4: Create the Environment
+
+```bash
+eb create flytau-env
+```
+
+When prompted:
+- Select a load balancer type (choose `application` for most cases)
+- Create/select a KeyPair for SSH access
+
+Wait for the environment to be created (this takes several minutes).
+
+### Step 5: Enable RDS Database
+
+1. Go to **AWS Console → Elastic Beanstalk → Environments → flytau-env**
+2. Click **Configuration** in the left sidebar
+3. Find **Database** section → Click **Edit**
+4. Configure:
+   - **Engine**: `mysql`
+   - **Engine version**: `8.0` (or latest)
+   - **Instance class**: `db.t3.micro` (free tier eligible)
+   - **Storage**: `5 GB`
+   - **Username**: Choose a username (e.g., `flytau_admin`)
+   - **Password**: Choose a strong password (save it!)
+5. Click **Apply**
+
+Wait for the database to be created (this takes several minutes).
+
+> **Note**: AWS EB automatically sets these environment variables when RDS is enabled:
+> - `RDS_HOSTNAME` - Database endpoint
+> - `RDS_PORT` - Database port (3306)
+> - `RDS_USERNAME` - Database username
+> - `RDS_PASSWORD` - Database password
+> - `RDS_DB_NAME` - Database name
+
+### Step 6: Set Additional Environment Variables (Optional)
+
+Go to **Configuration → Software → Edit → Environment properties**:
+
+| Property | Value |
+|----------|-------|
+| `SECRET_KEY` | A long random string for Flask sessions |
+
+Click **Apply**.
+
+### Step 7: Deploy the Application
+
+```bash
+eb deploy
+```
+
+### Step 8: Open the Application
+
+```bash
+eb open
+```
+
+### Step 9: Initialize the Database Tables
+
+Visit these URLs **once** to set up the database:
+
+1. **Create tables**: `https://<your-domain>/setup_db`
+2. **Load seed data**: `https://<your-domain>/setup_db_seed`
+
+You should see "Success!" messages.
+
+> ⚠️ **IMPORTANT**: After setup, remove or protect the `/setup_db` and `/setup_db_seed` routes in `application.py` and redeploy for security.
+
+### Step 10: Verify Deployment
+
+1. Visit your application URL
+2. Try logging in with test accounts (see below)
+3. Check the admin panel at `/admin/login`
+
+### Useful EB Commands
+
+```bash
+# View application status
+eb status
+
+# View recent logs
+eb logs
+
+# SSH into the EC2 instance
+eb ssh
+
+# View environment health
+eb health
+
+# Terminate the environment (CAREFUL - deletes RDS too!)
+eb terminate
+
+# List all environments
+eb list
+```
+
+### Troubleshooting
+
+**500 Internal Server Error**:
+```bash
+eb logs
+```
+Check the logs for Python errors.
+
+**Database connection issues**:
+- Verify RDS is running in AWS Console → RDS → Databases
+- Check environment variables in Configuration → Software
+
+**Session issues**:
+- The app uses filesystem sessions stored in `flask_session_data/`
+- This directory is created automatically
+
+---
+
 ## Overview
 
 FLYTAU is a Flask-based web application for flight booking and management. It includes:

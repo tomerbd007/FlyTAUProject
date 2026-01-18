@@ -1,7 +1,4 @@
-"""
-FLYTAU Report Routes
-Handles admin reports - occupancy, revenue, flight hours, cancellation rate, aircraft activity
-"""
+"""Admin report routes."""
 from datetime import datetime
 from flask import render_template, request
 from app.services import report_service

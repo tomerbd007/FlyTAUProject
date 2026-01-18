@@ -1,27 +1,12 @@
-"""
-FLYTAU Flight Repository
-Database access for Flights
-
-Schema:
-- Flights: FlightId (PK), Airplanes_AirplaneId (PK), Status, EconomyPrice, BusinessPrice,
-           Duration, DepartureDate, DepartureHour, OriginPort, DestPort
-- Airports: Code (PK), Name, City, Country
-
-Note: 
-- No separate routes table - origin/destination stored directly in Flights
-- Composite primary key: (FlightId, Airplanes_AirplaneId)
-- Seat availability tracked via Tickets table (taken seats)
-"""
+"""Database access for flights, airports, and routes."""
 from app.db import execute_query
 from app.repositories.aircraft_repository import get_airplane_by_id, generate_seat_map
 import random
 import string
 
 
-# ============ AIRPORT OPERATIONS ============
-
 def get_all_airports():
-    """Get all airports from the Airports table, ordered by city name."""
+    """Get all airports ordered by city."""
     sql = """
         SELECT Code as code, Name as name, City as city, Country as country
         FROM Airports
@@ -32,26 +17,14 @@ def get_all_airports():
 
 
 def get_airport_by_code(code):
-    """Get a single airport by its code."""
+    """Get airport by code."""
     sql = "SELECT Code as code, Name as name, City as city, Country as country FROM Airports WHERE Code = %s"
     results = execute_query(sql, (code,))
     return results[0] if results else None
 
 
-# ============ ROUTE OPERATIONS ============
-
 def get_route(origin, destination):
-    """
-    Get route information for a given origin-destination pair.
-    
-    Args:
-        origin: Origin airport code
-        destination: Destination airport code
-    
-    Returns:
-        Dict with id, origin, destination, duration_minutes, distance_km
-        or None if route not found
-    """
+    """Get route info for origin-destination pair."""
     sql = """
         SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
                DurationMinutes as duration_minutes, DistanceKm as distance_km
@@ -63,12 +36,7 @@ def get_route(origin, destination):
 
 
 def get_all_routes():
-    """
-    Get all routes from the Routes table.
-    
-    Returns:
-        List of route dicts with id, origin, destination, duration_minutes
-    """
+    """Get all routes."""
     sql = """
         SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
                DurationMinutes as duration_minutes, DistanceKm as distance_km
@@ -96,15 +64,7 @@ def get_all_unique_cities():
 
 
 def search_flights(departure_date=None, origin=None, destination=None, status=None):
-    """
-    Search flights with filters.
-    
-    Args:
-        departure_date: Filter by DepartureDate (DATE or 'YYYY-MM-DD')
-        origin: Filter by OriginPort
-        destination: Filter by DestPort
-        status: Filter by Status
-    """
+    """Search flights with optional filters."""
     sql = """
         SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
                f.EconomyPrice, f.BusinessPrice, f.Duration,
@@ -139,13 +99,7 @@ def search_flights(departure_date=None, origin=None, destination=None, status=No
 
 
 def get_flight_by_id(flight_id, airplane_id=None):
-    """
-    Get flight with all details.
-    
-    Args:
-        flight_id: FlightId
-        airplane_id: Airplanes_AirplaneId (optional if FlightId is unique)
-    """
+    """Get flight with details."""
     if airplane_id:
         sql = """
             SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
@@ -196,21 +150,7 @@ def get_all_flights(status_filter=None):
 
 def create_flight(flight_id, airplane_id, departure_date, departure_hour,
                   origin_port, dest_port, duration, status, economy_price, business_price):
-    """
-    Create a new flight.
-    
-    Args:
-        flight_id: Unique FlightId (e.g., "TAU101")
-        airplane_id: AirplaneId of the assigned airplane
-        departure_date: DepartureDate (DATE or 'YYYY-MM-DD')
-        departure_hour: DepartureHour (e.g., "08:00" or "14:30")
-        origin_port: Origin airport/city
-        dest_port: Destination airport/city
-        duration: Duration in minutes
-        status: Flight status (e.g., 'scheduled', 'active', 'cancelled')
-        economy_price: Economy ticket price
-        business_price: Business ticket price
-    """
+    """Create a new flight."""
     sql = """
         INSERT INTO Flights (FlightId, Airplanes_AirplaneId, DepartureDate, DepartureHour,
                             OriginPort, DestPort, Duration, Status, EconomyPrice, BusinessPrice)
@@ -228,17 +168,7 @@ def update_flight_status(flight_id, new_status):
 
 
 def update_flight(flight_id, airplane_id, updates):
-    """
-    Update flight details.
-    
-    Args:
-        flight_id: Flight ID
-        airplane_id: Airplane ID
-        updates: Dict with fields to update (status, economy_price, business_price)
-    
-    Returns:
-        True if successful
-    """
+    """Update flight details."""
     allowed_fields = {
         'status': 'Status',
         'economy_price': 'EconomyPrice',
@@ -264,20 +194,7 @@ def update_flight(flight_id, airplane_id, updates):
 
 
 def update_flight_comprehensive(flight_id, airplane_id, updates):
-    """
-    Comprehensive flight update supporting all editable fields.
-    
-    Args:
-        flight_id: Flight ID
-        airplane_id: Airplane ID
-        updates: Dict with any of these fields:
-            - status, economy_price, business_price
-            - departure_date, departure_hour
-            - origin_port, dest_port, duration
-    
-    Returns:
-        True if successful
-    """
+    """Comprehensive flight update supporting all editable fields."""
     allowed_fields = {
         'status': 'Status',
         'economy_price': 'EconomyPrice',
@@ -307,26 +224,7 @@ def update_flight_comprehensive(flight_id, airplane_id, updates):
 
 def update_flight_with_new_ids(original_flight_id, original_airplane_id, 
                                new_flight_id, new_airplane_id, updates):
-    """
-    Update a flight with potentially changed identifiers (flight number or airplane).
-    
-    Best practice approach:
-    1. If IDs aren't changing, just update in place
-    2. If IDs are changing, update all FK references first, then update the flight record
-    
-    Args:
-        original_flight_id: Original Flight ID
-        original_airplane_id: Original Airplane ID
-        new_flight_id: New Flight ID (may be same as original)
-        new_airplane_id: New Airplane ID (may be same as original)
-        updates: Dict with updated field values
-    
-    Returns:
-        True if successful
-    
-    Raises:
-        ValueError: If new flight ID already exists
-    """
+    """Update a flight with potentially changed IDs. Updates FK references first."""
     ids_changing = (original_flight_id != new_flight_id or 
                     original_airplane_id != new_airplane_id)
     
@@ -458,14 +356,8 @@ def generate_flight_number():
             return number
 
 
-# ============ SEAT OPERATIONS (via Tickets table) ============
-
 def get_flight_seats(flight_id, airplane_id):
-    """
-    Get all seats for a flight with availability status.
-    
-    Generates seat map from airplane config and marks taken seats from Tickets table.
-    """
+    """Get all seats for a flight with availability status."""
     # Get the airplane to generate seat map
     airplane = get_airplane_by_id(airplane_id)
     if not airplane:
@@ -543,31 +435,12 @@ def get_seat_counts(flight_id, airplane_id):
 
 
 def get_seat_availability(flight_id, airplane_id):
-    """
-    Get seat availability for a flight.
-    Alias for get_seat_counts for backward compatibility.
-    
-    Args:
-        flight_id: Flight ID
-        airplane_id: Airplane ID
-    
-    Returns:
-        Dict with seat availability by class
-    """
+    """Get seat availability (alias for get_seat_counts)."""
     return get_seat_counts(flight_id, airplane_id)
 
 
 def get_taken_seats(flight_id, airplane_id=None):
-    """
-    Get list of taken seats for a flight.
-    
-    Args:
-        flight_id: Flight ID
-        airplane_id: Airplane ID (optional, kept for backward compatibility)
-    
-    Returns:
-        List of dicts with RowNum, Seat, Class
-    """
+    """Get list of taken seats for a flight."""
     sql = """
         SELECT t.RowNum, t.Seat, t.Class
         FROM Tickets t
@@ -580,14 +453,7 @@ def get_taken_seats(flight_id, airplane_id=None):
 
 
 def get_available_seat_codes(flight_id, airplane_id, seat_class=None):
-    """
-    Get list of available seat codes for a flight.
-    
-    Args:
-        flight_id: FlightId
-        airplane_id: Airplanes_AirplaneId
-        seat_class: Optional filter by 'business' or 'economy'
-    """
+    """Get list of available seat codes for a flight."""
     seats = get_flight_seats(flight_id, airplane_id)
     available = [s for s in seats if s['status'] == 'available']
     

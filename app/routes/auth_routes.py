@@ -1,7 +1,4 @@
-"""
-FLYTAU Authentication Routes
-Handles customer registration, login, manager login, and logout
-"""
+"""Authentication routes: login, register, logout."""
 from flask import render_template, request, redirect, url_for, flash, session
 from app.services import auth_service
 from app.utils.decorators import guest_only

@@ -1,7 +1,4 @@
-"""
-FLYTAU Flight Routes
-Handles public flight search, flight details, and seat selection
-"""
+"""Public flight search and seat selection routes."""
 from datetime import date
 from flask import render_template, request, redirect, url_for, flash, session
 from app.services import flight_service

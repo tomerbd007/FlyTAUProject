@@ -1,14 +1,4 @@
-"""
-FLYTAU Admin Service
-Handles flight creation, cancellation, crew management, and admin operations
-
-Schema:
-- Flights: FlightId + Airplanes_AirplaneId (composite PK), OriginPort, DestPort,
-           DepartureDate, DepartureHour, Duration, Status
-- Routes: RouteId (PK), OriginPort, DestPort, DurationMinutes, DistanceKm
-- Pilot_has_Flights, FlightAttendant_has_Flights: Junction tables for crew assignments
-- Managers_edits_Flights: Audit trail for manager edits
-"""
+"""Flight management, crew assignment, and admin operations."""
 from datetime import datetime, timedelta
 from decimal import Decimal
 from app.repositories import (
@@ -19,35 +9,17 @@ from app.repositories import (
 )
 
 
-# Hours before departure when flight cancellation is no longer allowed
 FLIGHT_CANCELLATION_CUTOFF_HOURS = 72
-
-# Flight duration threshold for long flights (in minutes)
 LONG_FLIGHT_THRESHOLD_MINUTES = 360  # 6 hours
 
 
 def get_route(origin, destination):
-    """
-    Get route information for given origin-destination pair.
-    
-    Args:
-        origin: Origin airport code
-        destination: Destination airport code
-    
-    Returns:
-        Dict with id, origin, destination, duration_minutes, distance_km
-        or None if route not found
-    """
+    """Get route info for origin-destination pair."""
     return flight_repository.get_route(origin, destination)
 
 
 def update_expired_flight_statuses():
-    """
-    Check all 'active' and 'full' flights and update their status to 'done'
-    if the flight has already landed (current time > departure time + duration).
-    
-    Cancelled flights are NOT modified - they remain 'cancelled'.
-    """
+    """Mark landed flights as 'done'. Skips cancelled flights."""
     # Get all flights that could potentially need status update
     raw_flights = flight_repository.get_all_flights()
     
@@ -105,12 +77,7 @@ def update_expired_flight_statuses():
 
 
 def get_dashboard_stats():
-    """
-    Get summary statistics for admin dashboard.
-    
-    Returns:
-        Dict with various statistics including all flights
-    """
+    """Get summary stats for admin dashboard."""
     # Get all flights with transformed data
     flights = get_all_flights()
     
@@ -127,19 +94,7 @@ def get_dashboard_stats():
 
 
 def get_all_flights(status_filter=None):
-    """
-    Get all flights, optionally filtered by status.
-    Transforms raw database results into template-friendly format.
-    
-    Also checks and updates flight statuses - flights that have landed
-    (current time > departure + duration) are marked as 'done'.
-    
-    Args:
-        status_filter: Optional status to filter by
-    
-    Returns:
-        List of flight dicts with template-friendly field names
-    """
+    """Get all flights with template-friendly format. Updates expired statuses."""
     # First, update any expired flight statuses
     update_expired_flight_statuses()
     
@@ -212,17 +167,7 @@ def get_all_flights(status_filter=None):
 
 
 def compute_flight_times(departure_date, departure_time, duration_minutes):
-    """
-    Compute departure datetime and arrival datetime.
-    
-    Args:
-        departure_date: Date string (YYYY-MM-DD)
-        departure_time: Time string (HH:MM)
-        duration_minutes: Flight duration in minutes
-    
-    Returns:
-        Tuple of (departure_datetime, arrival_datetime)
-    """
+    """Compute departure and arrival datetimes."""
     departure_str = f"{departure_date} {departure_time}"
     departure_datetime = datetime.strptime(departure_str, "%Y-%m-%d %H:%M")
     arrival_datetime = departure_datetime + timedelta(minutes=duration_minutes)
@@ -241,26 +186,7 @@ def get_airplane_by_id(airplane_id):
 
 
 def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport=None, for_long_flight=False):
-    """
-    Get airplanes available for a flight.
-    
-    Args:
-        departure_datetime: Flight departure time
-        arrival_datetime: Flight arrival time
-        origin_airport: Origin airport code - only return aircraft at this location
-        for_long_flight: Whether this is a long flight (> 6 hours)
-    
-    Returns:
-        List of available airplane dicts with template-friendly field names
-    
-    Business Rule:
-        - Long flights (> 6 hours): Only big airplanes (those with Business class)
-        - Short flights (≤ 6 hours): All airplanes (big and small)
-        - An airplane is considered 'big' if it has BusinessRows > 0
-        - An airplane is unavailable if it has any flight that overlaps with the
-          requested time period (from departure to landing)
-        - An airplane must be located at origin_airport at departure time
-    """
+    """Get available airplanes at origin for time range. Long flights require big planes."""
     if isinstance(departure_datetime, str):
         departure_datetime = datetime.fromisoformat(departure_datetime)
     if isinstance(arrival_datetime, str):
@@ -295,18 +221,7 @@ def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport
 
 
 def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=None, for_long_flight=False):
-    """
-    Get pilots available for a flight.
-    
-    Args:
-        departure_datetime: Flight departure time
-        arrival_datetime: Flight arrival time
-        origin_airport: Origin airport code - only return pilots at this location
-        for_long_flight: Whether this is a long flight
-    
-    Returns:
-        List of available pilot dicts
-    """
+    """Get available pilots at origin for time range."""
     if isinstance(departure_datetime, str):
         departure_datetime = datetime.fromisoformat(departure_datetime)
     if isinstance(arrival_datetime, str):
@@ -324,18 +239,7 @@ def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=No
 
 
 def get_available_attendants(departure_datetime, arrival_datetime, origin_airport=None, for_long_flight=False):
-    """
-    Get attendants available for a flight.
-    
-    Args:
-        departure_datetime: Flight departure time
-        arrival_datetime: Flight arrival time
-        origin_airport: Origin airport code - only return attendants at this location
-        for_long_flight: Whether this is a long flight
-    
-    Returns:
-        List of available attendant dicts
-    """
+    """Get available attendants at origin for time range."""
     if isinstance(departure_datetime, str):
         departure_datetime = datetime.fromisoformat(departure_datetime)
     if isinstance(arrival_datetime, str):
@@ -355,26 +259,7 @@ def get_available_attendants(departure_datetime, arrival_datetime, origin_airpor
 def create_flight(airplane_id, origin, destination, departure_date, departure_hour,
                   duration, economy_price, business_price, pilot_ids, attendant_ids,
                   manager_id=None, flight_id=None):
-    """
-    Create a new flight with crew assignments.
-    
-    Args:
-        airplane_id: Airplane ID
-        origin: Origin airport code
-        destination: Destination airport code
-        departure_date: Departure date (YYYY-MM-DD)
-        departure_hour: Departure hour (HH:MM)
-        duration: Duration in minutes
-        economy_price: Economy class ticket price
-        business_price: Business class ticket price (can be None if no business class)
-        pilot_ids: List of pilot IDs
-        attendant_ids: List of attendant IDs
-        manager_id: Manager ID creating this flight (for audit)
-        flight_id: Optional pre-generated flight ID
-    
-    Returns:
-        New flight ID
-    """
+    """Create flight with crew assignments. Returns new flight ID."""
     # Generate flight ID if not provided
     if not flight_id:
         flight_id = flight_repository.generate_flight_number()
@@ -428,17 +313,9 @@ def log_manager_edit(manager_id, flight_id, airplane_id, action):
 
 
 def can_cancel_flight(flight):
-    """
-    Check if a flight can be canceled (72h rule).
-    
-    Args:
-        flight: Flight dict
-    
-    Returns:
-        Tuple of (can_cancel: bool, message: str)
-    """
-    if flight.get('Status') == 'canceled':
-        return (False, "Flight is already canceled.")
+    """Check if flight can be cancelled (72h rule). Returns (can_cancel, message)."""
+    if flight.get('Status') == 'cancelled':
+        return (False, "Flight is already cancelled.")
     
     if flight.get('Status') == 'occurred':
         return (False, "Cannot cancel a flight that has already occurred.")
@@ -481,16 +358,7 @@ def get_affected_orders_count(flight_id):
 
 
 def get_flight_cancellation_info(flight_id, airplane_id):
-    """
-    Get detailed information needed for flight cancellation page.
-    
-    Args:
-        flight_id: Flight ID
-        airplane_id: Airplane ID
-    
-    Returns:
-        Dict with flight info, affected orders count, affected tickets count, and total refund
-    """
+    """Get info for flight cancellation page including affected orders."""
     from app.services import flight_service
     
     flight = flight_repository.get_flight_by_id(flight_id, airplane_id)
@@ -568,15 +436,9 @@ def get_flight_cancellation_info(flight_id, airplane_id):
 
 
 def cancel_flight(flight_id, manager_id=None):
-    """
-    Cancel a flight and credit all active orders.
-    
-    Args:
-        flight_id: Flight ID
-        manager_id: Manager performing cancellation (for audit)
-    """
+    """Cancel flight and credit all active orders."""
     # Update flight status
-    flight_repository.update_flight_status(flight_id, 'canceled')
+    flight_repository.update_flight_status(flight_id, 'cancelled')
     
     # Get all active orders for this flight
     orders = order_repository.get_active_orders_for_flight(flight_id)
@@ -593,7 +455,7 @@ def cancel_flight(flight_id, manager_id=None):
     
     # Log manager action
     if manager_id:
-        log_manager_edit(manager_id, flight_id, airplane_id, 'canceled')
+        log_manager_edit(manager_id, flight_id, airplane_id, 'cancelled')
 
 
 def get_flight_crew(flight_id, airplane_id):
@@ -607,17 +469,7 @@ def get_flight_crew(flight_id, airplane_id):
 
 
 def get_available_airplanes_for_edit(departure_date, duration_minutes, current_airplane_id=None):
-    """
-    Get airplanes available for a flight edit, including current airplane.
-    
-    Args:
-        departure_date: Date of departure
-        duration_minutes: Flight duration in minutes
-        current_airplane_id: ID of currently assigned airplane (always included)
-    
-    Returns:
-        List of available airplane dicts with template-friendly field names
-    """
+    """Get available airplanes for edit, always including current one."""
     is_long = is_long_flight(duration_minutes)
     
     # Get all available airplanes for this date
@@ -654,18 +506,7 @@ def get_available_airplanes_for_edit(departure_date, duration_minutes, current_a
 
 
 def get_available_pilots_for_edit(departure_date, for_long_flight, flight_id, airplane_id):
-    """
-    Get pilots available for a flight edit, including currently assigned pilots.
-    
-    Args:
-        departure_date: Date of departure
-        for_long_flight: Whether this is a long flight
-        flight_id: Current flight ID (to include its assigned crew)
-        airplane_id: Current airplane ID
-    
-    Returns:
-        List of available pilot dicts
-    """
+    """Get available pilots for edit, includes currently assigned."""
     # Get available pilots for this date, excluding the current flight from conflict check
     # This way, currently assigned pilots will appear as "available"
     available = crew_repository.get_available_pilots(
@@ -679,18 +520,7 @@ def get_available_pilots_for_edit(departure_date, for_long_flight, flight_id, ai
 
 
 def get_available_attendants_for_edit(departure_date, for_long_flight, flight_id, airplane_id):
-    """
-    Get attendants available for a flight edit, including currently assigned attendants.
-    
-    Args:
-        departure_date: Date of departure
-        for_long_flight: Whether this is a long flight
-        flight_id: Current flight ID (to include its assigned crew)
-        airplane_id: Current airplane ID
-    
-    Returns:
-        List of available attendant dicts
-    """
+    """Get available attendants for edit, includes currently assigned."""
     # Get available attendants for this date, excluding the current flight from conflict check
     # This way, currently assigned attendants will appear as "available"
     available = crew_repository.get_available_flight_attendants(

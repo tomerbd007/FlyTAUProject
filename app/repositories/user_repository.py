@@ -1,22 +1,10 @@
-"""
-FLYTAU User Repository
-Database access for customers (Guest/Registered) and employees (Managers/Pilots/FlightAttendants)
-
-Schema:
-- GuestCustomer: UniqueMail (PK), PhoneNum (JSON), FirstName, SecondName
-- RegisteredCustomer: UniqueMail (PK), PhoneNum (JSON), FirstName, SecondName, Password, RegistrationDate, PassportNum, BirthDate
-- Managers: ManagerId (PK), PhoneNum (JSON), FirstName, SecondName, JoinDate, Street, City, HouseNum, Password
-- Pilot: Id (PK), PhoneNum (JSON), FirstName, SecondName, JoinDate, Street, City, HouseNum, LongFlightsTraining
-- FlightAttendant: Id (PK), PhoneNum (JSON), FirstName, SecondName, JoinDate, Street, City, HouseNum, LongFlightsTraining
-"""
+"""Database access for customers and employees."""
 import json
 from app.db import execute_query
 
 
-# ============ REGISTERED CUSTOMER OPERATIONS ============
-
 def find_registered_customer_by_email(email):
-    """Find a registered customer by email address."""
+    """Find registered customer by email."""
     sql = """
         SELECT UniqueMail, Password, FirstName, SecondName, 
                PhoneNum, RegistrationDate, PassportNum, BirthDate
@@ -36,21 +24,7 @@ def find_registered_customer_by_email(email):
 
 
 def create_registered_customer(email, password_hash, first_name, last_name, phone=None, passport_num=None, birth_date=None):
-    """
-    Create a new registered customer.
-    
-    Args:
-        email: Customer's email (becomes primary key)
-        password_hash: Bcrypt hashed password
-        first_name: First name
-        last_name: Last name (SecondName in schema)
-        phone: Phone number (will be stored as JSON)
-        passport_num: Optional passport number
-        birth_date: Optional birth date
-    
-    Returns:
-        Email of created customer (the PK)
-    """
+    """Create new registered customer. Returns email (PK)."""
     phone_json = json.dumps(phone) if phone else None
     sql = """
         INSERT INTO RegisteredCustomer 
@@ -89,19 +63,7 @@ def find_guest_customer_by_email(email):
 
 
 def create_guest_customer(email, first_name, last_name, phone=None):
-    """
-    Create a new guest customer or update existing one.
-    If the guest already exists and a new phone is provided, append it to the phone list.
-    
-    Args:
-        email: Guest's email (becomes primary key)
-        first_name: First name
-        last_name: Last name (SecondName in schema)
-        phone: Phone number (will be appended to JSON array)
-    
-    Returns:
-        Email of created/updated guest (the PK)
-    """
+    """Create or update guest customer. Appends new phone if provided."""
     # Check if guest already exists
     existing = find_guest_customer_by_email(email)
     
@@ -140,10 +102,8 @@ def email_exists_guest(email):
     return result is not None
 
 
-# ============ MANAGER OPERATIONS ============
-
 def find_manager_by_id(manager_id):
-    """Find a manager by their ManagerId."""
+    """Find manager by ID."""
     sql = """
         SELECT ManagerId, Password, FirstName, SecondName, 
                PhoneNum, JoinDate, Street, City, HouseNum
@@ -171,10 +131,8 @@ def get_all_managers():
     return execute_query(sql)
 
 
-# ============ PILOT OPERATIONS ============
-
 def find_pilot_by_id(pilot_id):
-    """Find a pilot by their Id."""
+    """Find pilot by ID."""
     sql = """
         SELECT Id, FirstName, SecondName, PhoneNum, JoinDate, 
                Street, City, HouseNum, LongFlightsTraining
@@ -193,12 +151,7 @@ def find_pilot_by_id(pilot_id):
 
 
 def get_all_pilots(long_flight_certified_only=False):
-    """
-    Get all pilots.
-    
-    Args:
-        long_flight_certified_only: If True, only return pilots with LongFlightsTraining=1
-    """
+    """Get all pilots. Can filter to only certified for long flights."""
     if long_flight_certified_only:
         sql = """
             SELECT Id, FirstName, SecondName, JoinDate, LongFlightsTraining, PhoneNum
@@ -217,14 +170,7 @@ def get_all_pilots(long_flight_certified_only=False):
 
 
 def get_available_pilots(flight_id, airplane_id, require_long_flight_cert=False):
-    """
-    Get pilots not already assigned to a flight on the same date.
-    
-    Args:
-        flight_id: FlightId to check
-        airplane_id: Airplanes_AirplaneId to check
-        require_long_flight_cert: If True, only return certified pilots
-    """
+    """Get pilots not assigned to flights on same date."""
     cert_condition = "AND p.LongFlightsTraining = 1" if require_long_flight_cert else ""
     sql = f"""
         SELECT p.Id, p.FirstName, p.SecondName, p.LongFlightsTraining
@@ -245,10 +191,8 @@ def get_available_pilots(flight_id, airplane_id, require_long_flight_cert=False)
     return execute_query(sql, (flight_id, airplane_id))
 
 
-# ============ FLIGHT ATTENDANT OPERATIONS ============
-
 def find_flight_attendant_by_id(attendant_id):
-    """Find a flight attendant by their Id."""
+    """Find flight attendant by ID."""
     sql = """
         SELECT Id, FirstName, SecondName, PhoneNum, JoinDate, 
                Street, City, HouseNum, LongFlightsTraining
@@ -267,12 +211,7 @@ def find_flight_attendant_by_id(attendant_id):
 
 
 def get_all_flight_attendants(long_flight_certified_only=False):
-    """
-    Get all flight attendants.
-    
-    Args:
-        long_flight_certified_only: If True, only return attendants with LongFlightsTraining=1
-    """
+    """Get all flight attendants. Can filter to only long-flight certified."""
     if long_flight_certified_only:
         sql = """
             SELECT Id, FirstName, SecondName, JoinDate, LongFlightsTraining, PhoneNum
@@ -291,14 +230,7 @@ def get_all_flight_attendants(long_flight_certified_only=False):
 
 
 def get_available_flight_attendants(flight_id, airplane_id, require_long_flight_cert=False):
-    """
-    Get flight attendants not already assigned to a flight on the same date.
-    
-    Args:
-        flight_id: FlightId to check
-        airplane_id: Airplanes_AirplaneId to check
-        require_long_flight_cert: If True, only return certified attendants
-    """
+    """Get attendants not assigned to flights on same date."""
     cert_condition = "AND fa.LongFlightsTraining = 1" if require_long_flight_cert else ""
     sql = f"""
         SELECT fa.Id, fa.FirstName, fa.SecondName, fa.LongFlightsTraining

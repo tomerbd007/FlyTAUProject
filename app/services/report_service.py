@@ -1,21 +1,9 @@
-"""
-FLYTAU Report Service
-Executes report queries from SQL files and generates visualizations.
-
-Schema:
-- Flights: FlightId, Airplanes_AirplaneId, OriginPort, DestPort,
-           DepartureDate, DepartureHour, Duration, Status
-- Tickets: Track sold seats
-- orders: UniqueOrderCode, TotalCost, Status
-- Pilot/FlightAttendant: LongFlightsTraining
-- Pilot_has_Flights, FlightAttendant_has_Flights: Crew assignments
-"""
+"""Report queries and chart generation."""
 from app.db import execute_query
 from app.utils import charts
 import os
 
 
-# Path to SQL report files
 SQL_REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'sql', 'reports')
 
 
@@ -32,13 +20,7 @@ def _execute_report_sql(sql):
 
 
 def get_average_occupancy():
-    """
-    Get average occupancy across all flights.
-    Uses the avg_occupancy.sql report file.
-    
-    Returns:
-        dict with 'data' (list of flight occupancy data), 'summary', and 'chart'
-    """
+    """Get flight occupancy report with chart."""
     # Get per-flight occupancy data for the table
     detail_sql = """
         SELECT 
@@ -96,13 +78,7 @@ def get_average_occupancy():
 
 
 def get_revenue_by_aircraft():
-    """
-    Get revenue breakdown by aircraft size, manufacturer, and cabin class.
-    Uses the revenue_by_aircraft.sql report file.
-    
-    Returns:
-        dict with 'data', 'summary', and 'chart'
-    """
+    """Get revenue by aircraft report with chart."""
     sql = _load_sql_file('revenue_by_aircraft.sql')
     results = _execute_report_sql(sql) or []
     
@@ -156,13 +132,7 @@ def get_revenue_by_aircraft():
 
 
 def get_flight_hours_per_employee():
-    """
-    Get cumulative flight hours per employee, split by short/long flights.
-    Uses the flight_hours_per_employee.sql report file.
-    
-    Returns:
-        dict with 'data', 'summary', and 'chart'
-    """
+    """Get flight hours per employee report with chart."""
     sql = _load_sql_file('flight_hours_per_employee.sql')
     results = _execute_report_sql(sql) or []
     
@@ -205,13 +175,7 @@ def get_flight_hours_per_employee():
 
 
 def get_monthly_cancellation_rate():
-    """
-    Get monthly order cancellation rate.
-    Uses the monthly_cancellation_rate.sql report file.
-    
-    Returns:
-        dict with 'data', 'summary', and 'chart'
-    """
+    """Get monthly cancellation rate report with chart."""
     sql = _load_sql_file('monthly_cancellation_rate.sql')
     results = _execute_report_sql(sql) or []
     
@@ -256,13 +220,7 @@ def get_monthly_cancellation_rate():
 
 
 def get_monthly_aircraft_activity():
-    """
-    Get monthly activity summary per aircraft.
-    Uses the monthly_aircraft_activity.sql report file.
-    
-    Returns:
-        dict with 'data', 'summary', and 'chart'
-    """
+    """Get monthly aircraft activity report with chart."""
     sql = _load_sql_file('monthly_aircraft_activity.sql')
     results = _execute_report_sql(sql) or []
     

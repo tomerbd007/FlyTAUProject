@@ -1,23 +1,14 @@
-"""
-FLYTAU Database Module
-MySQL connection management using mysql-connector-python
-"""
+"""MySQL connection pool and query execution."""
 import mysql.connector
 from mysql.connector import pooling
 from flask import current_app, g
 
 
-# Global connection pool (initialized once)
 _connection_pool = None
 
 
 def init_app(app):
-    """
-    Initialize the database connection pool with the Flask app.
-    
-    Args:
-        app: Flask application instance
-    """
+    """Initialize connection pool with Flask app config."""
     global _connection_pool
     
     pool_config = {
@@ -39,18 +30,11 @@ def init_app(app):
         app.logger.error(f"Failed to create connection pool: {err}")
         raise
     
-    # Register teardown function to close connections
     app.teardown_appcontext(close_db)
 
 
 def get_db():
-    """
-    Get a database connection from the pool.
-    Stores connection in Flask's g object for request-scoped reuse.
-    
-    Returns:
-        MySQL connection object
-    """
+    """Get connection from pool (reused per request)."""
     if 'db' not in g:
         if _connection_pool is None:
             raise RuntimeError("Database not initialized. Call init_app first.")
@@ -59,12 +43,7 @@ def get_db():
 
 
 def close_db(error=None):
-    """
-    Close the database connection at the end of the request.
-    
-    Args:
-        error: Exception if one occurred during the request
-    """
+    """Return connection to pool at end of request."""
     db = g.pop('db', None)
     if db is not None:
         if error:
@@ -73,19 +52,7 @@ def close_db(error=None):
 
 
 def execute_query(query, params=None, fetch_one=False, fetch_all=True, commit=False):
-    """
-    Execute a SQL query and return results.
-    
-    Args:
-        query: SQL query string
-        params: Tuple of parameters for the query
-        fetch_one: If True, return only one row
-        fetch_all: If True, return all rows (default)
-        commit: If True, commit the transaction
-    
-    Returns:
-        Query results as list of dicts, single dict, or None
-    """
+    """Execute SQL and return results as dicts. Use commit=True for INSERT/UPDATE/DELETE."""
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
@@ -94,10 +61,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=True, commit=Fa
         
         if commit:
             conn.commit()
-            # For INSERT, return the last inserted ID
-            if cursor.lastrowid:
-                return cursor.lastrowid
-            return cursor.rowcount
+            return cursor.lastrowid if cursor.lastrowid else cursor.rowcount
         
         if fetch_one:
             return cursor.fetchone()
@@ -113,17 +77,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=True, commit=Fa
 
 
 def execute_many(query, data_list, commit=True):
-    """
-    Execute a query multiple times with different parameters.
-    
-    Args:
-        query: SQL query string with placeholders
-        data_list: List of tuples containing parameters
-        commit: If True, commit the transaction
-    
-    Returns:
-        Number of rows affected
-    """
+    """Execute same query with multiple parameter sets."""
     conn = get_db()
     cursor = conn.cursor()
     
@@ -140,12 +94,8 @@ def execute_many(query, data_list, commit=True):
 
 
 def commit():
-    """Commit the current transaction."""
-    conn = get_db()
-    conn.commit()
+    get_db().commit()
 
 
 def rollback():
-    """Rollback the current transaction."""
-    conn = get_db()
-    conn.rollback()
+    get_db().rollback()

@@ -1,27 +1,9 @@
-"""
-FLYTAU Aircraft Repository
-Database access for Airplanes
-
-Schema:
-- Airplanes: AirplaneId (PK), PurchaseDate, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols
-
-Note: Seat configuration is stored as separate INT columns:
-- CouchRows, CouchCols = Economy class seating (rows and columns)
-- BusinessRows, BusinessCols = Business class seating (rows and columns)
-"""
+"""Database access for airplanes and seat configurations."""
 from app.db import execute_query
 
 
 def get_airplane_by_id(airplane_id):
-    """
-    Get airplane by AirplaneId.
-    
-    Returns dict with seat configuration:
-        - AirplaneId, PurchaseDate, Manufacturer
-        - economy_rows, economy_cols (from CouchRows, CouchCols)
-        - business_rows, business_cols (from BusinessRows, BusinessCols)
-        - total_seats (computed)
-    """
+    """Get airplane with computed seat configuration."""
     sql = """
         SELECT AirplaneId, PurchaseDate, Manufacturer, 
                CouchRows, CouchCols, BusinessRows, BusinessCols
@@ -89,21 +71,7 @@ HOME_BASE_AIRPORT = 'TLV'
 
 
 def get_aircraft_location_at_time(airplane_id, at_datetime):
-    """
-    Determine where an aircraft will be at a given datetime.
-    
-    Logic:
-    - Find the most recent flight (by landing time) that lands before at_datetime
-    - If found, aircraft is at that flight's destination (DestPort)
-    - If no prior flight, assume aircraft starts at HOME_BASE_AIRPORT
-    
-    Args:
-        airplane_id: The airplane ID to check
-        at_datetime: The datetime to check location at
-    
-    Returns:
-        Airport code string (e.g., 'TLV', 'JFK')
-    """
+    """Find where an aircraft will be at a given time based on flight history."""
     sql = """
         SELECT f.DestPort
         FROM Flights f
@@ -121,18 +89,7 @@ def get_aircraft_location_at_time(airplane_id, at_datetime):
 
 
 def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport=None):
-    """
-    Get airplanes not assigned to flights during the given time range.
-    
-    An airplane is available if:
-    1. Not assigned to any overlapping flight (departure to landing)
-    2. Located at origin_airport at departure time (if origin_airport specified)
-    
-    Args:
-        departure_datetime: Departure datetime of the new flight
-        arrival_datetime: Arrival/landing datetime of the new flight
-        origin_airport: Origin airport code - only return aircraft at this location
-    """
+    """Get airplanes not assigned to flights during the time range and at the origin airport."""
     # Get all airplanes
     sql_all = """
         SELECT a.AirplaneId, a.PurchaseDate, a.Manufacturer, 
@@ -202,19 +159,29 @@ def count_airplanes():
     return result['count'] if result else 0
 
 
+def create_airplane(airplane_id, purchase_date, manufacturer, economy_rows, economy_cols, business_rows=0, business_cols=0):
+    """Create a new airplane."""
+    sql = """
+        INSERT INTO Airplanes (AirplaneId, PurchaseDate, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    try:
+        execute_query(sql, (airplane_id, purchase_date, manufacturer, economy_rows, economy_cols, business_rows, business_cols), commit=True)
+        return True
+    except Exception as e:
+        print(f"Error creating airplane: {e}")
+        return False
+
+
+def airplane_exists(airplane_id):
+    """Check if an airplane with the given ID exists."""
+    sql = "SELECT 1 FROM Airplanes WHERE AirplaneId = %s"
+    result = execute_query(sql, (airplane_id,), fetch_one=True)
+    return result is not None
+
+
 def generate_seat_map(airplane_id):
-    """
-    Generate a virtual seat map for an airplane based on its seat configuration.
-    
-    This doesn't query a seat_map table - it generates seats dynamically from
-    the airplane's CouchRows, CouchCols, BusinessRows, BusinessCols columns.
-    
-    Returns list of seat dicts:
-        - seat_code: e.g., "1A", "10F"
-        - seat_class: "business" or "economy"
-        - row_num: Row number (1-based)
-        - col_letter: Column letter (A, B, C, etc.)
-    """
+    """Generate a virtual seat map from the airplane's seat configuration."""
     airplane = get_airplane_by_id(airplane_id)
     if not airplane:
         return []

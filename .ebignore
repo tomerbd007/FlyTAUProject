@@ -1,0 +1,57 @@
+# AWS Elastic Beanstalk ignore file
+# Files and directories listed here will not be uploaded during eb deploy
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Test files
+tests/
+pytest_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Documentation
+*.md
+!README.md
+
+# MySQL Workbench files
+*.mwb
+*.mwb.bak
+
+# Backup SQL files
+*-backup-*.sql
+
+# Flask session data (will be created on server)
+flask_session_data/
+
+# macOS files
+.DS_Store
+
+# Logs
+*.log
+logs/

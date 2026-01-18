@@ -360,7 +360,6 @@ INSERT IGNORE INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId)
 ('M001', 'FT205'), ('M002', 'FT206'), ('M001', 'FT207');
 
 -- =============================================================================
--- SUMMARY:
 -- - 8 Airplanes: 6 assigned to flights + 2 unassigned at TLV (PLANE-007, PLANE-008)
 --   Manufacturers: Boeing, Airbus, Dassault only
 -- - 16 Pilots: 10 assigned to flights + 6 unassigned at TLV (P011-P016)

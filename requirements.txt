@@ -1,0 +1,23 @@
+# FLYTAU - Python Dependencies for AWS Elastic Beanstalk
+# ======================================================
+
+# Core Flask framework
+Flask==3.0.0
+
+# Flask session management (filesystem backend for EB)
+Flask-Session==0.5.0
+
+# MySQL database connector
+mysql-connector-python==8.0.33
+
+# WSGI HTTP Server for production
+gunicorn==20.1.0
+
+# Password hashing
+bcrypt==4.0.1
+
+# Environment variable loading
+python-dotenv==1.0.0
+
+# Cachelib (required by Flask-Session for filesystem sessions)
+cachelib==0.10.2

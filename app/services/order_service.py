@@ -1,55 +1,18 @@
-"""
-FLYTAU Order Service
-Handles order creation, cancellation, and refund calculations
-
-Schema (normalized):
-- orders: UniqueOrderCode (PK), TotalCost, Status,
-          GuestCustomer_UniqueMail (nullable), RegisteredCustomer_UniqueMail (nullable),
-          Flights_FlightId
-- Tickets: TicketId, Class, RowNum, Seat, orders_UniqueOrderCode
-
-Note:
-- Ticket price is calculated dynamically from Flight's EconomyPrice/BusinessPrice
-- Order's class is derived from its tickets
-- Airplane ID is derived from Flights table via Flights_FlightId
-"""
+"""Order creation, cancellation, and refund calculations."""
 from datetime import datetime, timedelta
 from decimal import Decimal
 from app.repositories import order_repository, flight_repository
 from app.services import auth_service
 
 
-# Cancellation fee percentage
 CANCELLATION_FEE_PERCENT = Decimal('0.05')
-
-# Hours before departure when cancellation is no longer allowed
 CANCELLATION_CUTOFF_HOURS = 36
 
 
 def create_order(flight_id, airplane_id, selected_seats, economy_price, business_price,
                  registered_email=None, guest_email=None, guest_first_name=None, guest_last_name=None,
                  guest_phone=None):
-    """
-    Create a new order with selected seats.
-    
-    Args:
-        flight_id: Flight ID
-        airplane_id: Airplane ID (used for seat validation, derived from flight)
-        selected_seats: List of dicts with row, seat, class info
-        economy_price: Price per economy seat
-        business_price: Price per business seat
-        registered_email: Registered customer email (if logged in)
-        guest_email: Guest email (if not logged in)
-        guest_first_name: Guest first name (required if guest)
-        guest_last_name: Guest last name (required if guest)
-        guest_phone: Guest phone number (optional)
-    
-    Returns:
-        Booking code for the new order
-    
-    Raises:
-        ValueError: If seats are no longer available
-    """
+    """Create order with selected seats. Returns booking code."""
     # Verify all seats are still available
     taken_seats = flight_repository.get_taken_seats(flight_id, airplane_id)
     taken_set = {(t['RowNum'], t['Seat']) for t in taken_seats}
@@ -130,17 +93,7 @@ def get_order_with_tickets(booking_code):
 
 
 def get_customer_orders(email, is_registered=True, status_filter=None):
-    """
-    Get all orders for a customer.
-    
-    Args:
-        email: Customer email
-        is_registered: True if registered customer, False if guest
-        status_filter: Optional status to filter by
-    
-    Returns:
-        List of order dicts
-    """
+    """Get all orders for a customer."""
     if is_registered:
         return order_repository.get_orders_by_registered_customer(email.lower(), status_filter)
     else:
@@ -148,16 +101,7 @@ def get_customer_orders(email, is_registered=True, status_filter=None):
 
 
 def get_order_for_guest(booking_code, email):
-    """
-    Get order for guest lookup (requires both booking code and email match).
-    
-    Args:
-        booking_code: Order booking code
-        email: Guest email address
-    
-    Returns:
-        Order dict if found and email matches, None otherwise
-    """
+    """Get order for guest (requires matching code and email)."""
     order = order_repository.get_order_by_code_and_email(booking_code.upper(), email.lower())
     
     if not order:
@@ -167,15 +111,7 @@ def get_order_for_guest(booking_code, email):
 
 
 def can_cancel_order(order):
-    """
-    Check if an order can be canceled (36h rule).
-    
-    Args:
-        order: Order dict with flight info
-    
-    Returns:
-        True if cancellation is allowed
-    """
+    """Check if order can be canceled (must be 36h+ before departure)."""
     if order.get('Status') not in ('confirmed', 'active'):
         return False
     
@@ -217,15 +153,7 @@ def can_cancel_order(order):
 
 
 def calculate_cancellation_fee(paid_total):
-    """
-    Calculate cancellation fee and refund amount.
-    
-    Args:
-        paid_total: Original paid amount
-    
-    Returns:
-        Tuple of (fee, refund)
-    """
+    """Calculate 5% cancellation fee and refund amount."""
     total = Decimal(str(paid_total))
     fee = total * CANCELLATION_FEE_PERCENT
     refund = total - fee
@@ -233,22 +161,7 @@ def calculate_cancellation_fee(paid_total):
 
 
 def cancel_order(booking_code, email):
-    """
-    Cancel an order (customer cancellation).
-    
-    Customer cancellation: TotalCost is updated to the 5% cancellation fee,
-    which represents the final amount paid (revenue) to the system.
-    
-    Args:
-        booking_code: Order booking code
-        email: Email of user requesting cancellation (for ownership verification)
-    
-    Returns:
-        Tuple of (original_cost, fee, refund)
-    
-    Raises:
-        ValueError: If order cannot be canceled
-    """
+    """Cancel order. Returns (original_cost, fee, refund)."""
     order = get_order_with_tickets(booking_code)
     
     if not order:
@@ -281,17 +194,7 @@ def cancel_order(booking_code, email):
 
 
 def update_order_seats(booking_code, new_seats, flight):
-    """
-    Update seats for an existing order.
-    
-    Args:
-        booking_code: Order booking code
-        new_seats: List of new seat codes (e.g., ['1A', '1B'])
-        flight: Flight dict with pricing info
-    
-    Raises:
-        ValueError: If seats are not available
-    """
+    """Update seats for an existing order."""
     from decimal import Decimal
     
     order = get_order_with_tickets(booking_code)

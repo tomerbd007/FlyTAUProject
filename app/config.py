@@ -1,43 +1,33 @@
-"""
-FLYTAU Configuration
-Loads settings from environment variables via .env file
-"""
+"""App configuration from environment variables."""
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 
 class Config:
-    """Base configuration class."""
-    
-    # Flask settings
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
-    # MySQL Database settings
-    DB_HOST = os.environ.get('DB_HOST', 'localhost')
-    DB_PORT = int(os.environ.get('DB_PORT', 3306))
-    DB_USER = os.environ.get('DB_USER', 'root')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
-    DB_NAME = os.environ.get('DB_NAME', 'flytau')
-    
-    # Connection pool settings
+    # Database configuration - supports both local and AWS RDS environment variables
+    # AWS EB with RDS sets: RDS_HOSTNAME, RDS_PORT, RDS_USERNAME, RDS_PASSWORD, RDS_DB_NAME
+    # For manual config, use: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+    DB_HOST = os.environ.get('RDS_HOSTNAME') or os.environ.get('DB_HOST', 'localhost')
+    DB_PORT = int(os.environ.get('RDS_PORT') or os.environ.get('DB_PORT', 3306))
+    DB_USER = os.environ.get('RDS_USERNAME') or os.environ.get('DB_USER', 'root')
+    DB_PASSWORD = os.environ.get('RDS_PASSWORD') or os.environ.get('DB_PASSWORD', '')
+    DB_NAME = os.environ.get('RDS_DB_NAME') or os.environ.get('DB_NAME', 'flytau')
     DB_POOL_SIZE = int(os.environ.get('DB_POOL_SIZE', 5))
     DB_POOL_NAME = 'flytau_pool'
     
-    # Session settings
     SESSION_TYPE = 'filesystem'
-    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour in seconds
+    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
 
 
 class DevelopmentConfig(Config):
-    """Development configuration."""
     DEBUG = True
 
 
 class ProductionConfig(Config):
-    """Production configuration."""
     DEBUG = False
     
     # In production, SECRET_KEY must be set via environment variable

@@ -517,14 +517,15 @@
         </div>
 
         <div class="sidebar-actions">
-            <a href="{{ url_for('admin_flights') }}" class="btn">← Back to Flights</a>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn">Dashboard</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn">← Back to Dashboard</a>
+            <a href="{{ url_for('reports_index') }}" class="btn">Statistics</a>
+            <a href="{{ url_for('logout') }}" class="btn">Logout</a>
         </div>
     </div>
 
     <div class="dashboard-content">
         <div class="admin-header">
-            <a href="{{ url_for('admin_flights') }}" class="back-link">← Back to Flights</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Dashboard</a>
             <h1>Cancel Flight {{ flight.flight_number }}</h1>
             <p>This action cannot be undone. Please review the details carefully.</p>
         </div>
@@ -600,7 +601,7 @@
                 </div>
                 
                 <div class="cancel-actions">
-                    <a href="{{ url_for('admin_flights') }}" class="btn btn-secondary">
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
                         Keep Flight Active
                     </a>
                     <button type="submit" class="btn btn-danger">

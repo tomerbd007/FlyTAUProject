@@ -1,16 +1,10 @@
-"""
-FLYTAU Route Decorators
-Access control decorators for routes
-"""
+"""Route access control decorators."""
 from functools import wraps
 from flask import session, redirect, url_for, flash, abort
 
 
 def login_required(f):
-    """
-    Decorator that requires user to be logged in.
-    Redirects to login page if not authenticated.
-    """
+    """Require any logged-in user."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -21,10 +15,7 @@ def login_required(f):
 
 
 def guest_only(f):
-    """
-    Decorator that only allows guests (not logged in).
-    Redirects logged-in users away from login/register pages.
-    """
+    """Only allow non-logged-in users (for login/register pages)."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' in session:
@@ -36,10 +27,7 @@ def guest_only(f):
 
 
 def manager_required(f):
-    """
-    Decorator that requires user to be a logged-in manager.
-    Returns 403 Forbidden if not a manager.
-    """
+    """Require manager role."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -53,10 +41,7 @@ def manager_required(f):
 
 
 def customer_required(f):
-    """
-    Decorator that requires user to be a logged-in customer.
-    Managers are explicitly blocked.
-    """
+    """Require customer role (block managers)."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('role') == 'manager':
@@ -70,11 +55,7 @@ def customer_required(f):
 
 
 def customer_or_guest(f):
-    """
-    Decorator that allows customers and guests (not managers).
-    Guests can proceed without login for booking flow.
-    Managers are explicitly blocked from purchasing.
-    """
+    """Allow customers and guests, block managers."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('role') == 'manager':
@@ -85,14 +66,7 @@ def customer_or_guest(f):
 
 
 def role_required(*roles):
-    """
-    Decorator factory that requires user to have one of the specified roles.
-    
-    Usage:
-        @role_required('manager', 'admin')
-        def admin_page():
-            ...
-    """
+    """Require one of the specified roles."""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):

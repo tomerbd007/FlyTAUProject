@@ -1,7 +1,4 @@
-"""
-FLYTAU Admin Routes
-Handles admin dashboard, flight management, and flight cancellation
-"""
+"""Admin routes: dashboard, flight management, cancellation."""
 import json
 from datetime import datetime, timedelta
 from flask import render_template, request, redirect, url_for, flash, session
@@ -24,82 +21,8 @@ def register_admin_routes(app):
     @app.route('/admin/flights')
     @manager_required
     def admin_flights():
-        """Admin flight list with status filter."""
-        from datetime import datetime, timedelta
-
-        status_filter = request.args.get('status', '')
-        flights_raw = admin_service.get_all_flights(status_filter) or []
-
-        flights = []
-        for f in flights_raw:
-            # Skip flights without a valid FlightId
-            if not f.get('FlightId'):
-                continue
-                
-            # Parse departure date/time into a single datetime object
-            dep_date = f.get('DepartureDate')
-            dep_hour = f.get('DepartureHour')
-
-            if isinstance(dep_date, str):
-                try:
-                    dep_date_obj = datetime.strptime(dep_date, '%Y-%m-%d').date()
-                except ValueError:
-                    dep_date_obj = None
-            else:
-                dep_date_obj = dep_date
-
-            if dep_hour:
-                if isinstance(dep_hour, str):
-                    try:
-                        parts = dep_hour.split(':')
-                        dep_time_obj = datetime.strptime(f"{parts[0]}:{parts[1]}", '%H:%M').time()
-                    except ValueError:
-                        dep_time_obj = datetime.min.time()
-                elif hasattr(dep_hour, 'seconds'):
-                    total_seconds = int(dep_hour.total_seconds())
-                    hours = total_seconds // 3600
-                    minutes = (total_seconds % 3600) // 60
-                    dep_time_obj = datetime.strptime(f"{hours}:{minutes}", '%H:%M').time()
-                else:
-                    dep_time_obj = datetime.min.time()
-            else:
-                dep_time_obj = datetime.min.time()
-
-            departure_dt = datetime.combine(dep_date_obj, dep_time_obj) if dep_date_obj else datetime.now()
-
-            # Seat availability for booked/total calculation
-            seat_avail = flight_service.get_seat_availability(f.get('FlightId'), f.get('Airplanes_AirplaneId')) or {}
-            business_avail = seat_avail.get('business', {}) or {}
-            economy_avail = seat_avail.get('economy', {}) or {}
-
-            business_total = business_avail.get('total', 0) or 0
-            economy_total = economy_avail.get('total', 0) or 0
-            business_available = business_avail.get('available', 0) or 0
-            economy_available = economy_avail.get('available', 0) or 0
-
-            total_seats = business_total + economy_total
-            total_available = business_available + economy_available
-            booked_seats = max(total_seats - total_available, 0)
-
-            can_cancel = (departure_dt - datetime.now()) > timedelta(hours=36)
-
-            flights.append({
-                'id': f.get('FlightId'),
-                'flight_number': f.get('FlightId'),
-                'origin': f.get('OriginPort'),
-                'destination': f.get('DestPort'),
-                'departure_time': departure_dt,
-                'aircraft_type': f.get('Manufacturer'),
-                'airplane_id': f.get('Airplanes_AirplaneId'),
-                'status': (f.get('Status') or '').lower(),
-                'booked_seats': booked_seats,
-                'total_seats': total_seats,
-                'can_cancel': can_cancel
-            })
-
-        return render_template('admin/flight_list.html',
-                               flights=flights,
-                               current_filter=status_filter)
+        """Redirect to dashboard - flight list is shown on dashboard."""
+        return redirect(url_for('admin_dashboard'))
     
     @app.route('/admin/flights/add', methods=['GET', 'POST'])
     @manager_required
@@ -412,14 +335,14 @@ def register_admin_routes(app):
         
         if not flight_raw:
             flash('Flight not found.', 'error')
-            return redirect(url_for('admin_flights'))
+            return redirect(url_for('admin_dashboard'))
         
         # Check if cancellation is allowed
         can_cancel, message = admin_service.can_cancel_flight(flight_raw)
         
         if not can_cancel:
             flash(message, 'error')
-            return redirect(url_for('admin_flights'))
+            return redirect(url_for('admin_dashboard'))
         
         if request.method == 'POST':
             try:
@@ -438,3 +361,152 @@ def register_admin_routes(app):
                                affected_orders=flight_info['affected_orders'],
                                affected_tickets=flight_info['affected_tickets'],
                                total_refund=flight_info['total_refund'])
+
+    # ============ ADD RESOURCE ROUTES ============
+    
+    @app.route('/admin/add')
+    @manager_required
+    def add_menu():
+        """Add resource selection page."""
+        return render_template('admin/add_menu.html')
+    
+    @app.route('/admin/add/airplane', methods=['GET', 'POST'])
+    @manager_required
+    def add_airplane():
+        """Add a new airplane to the fleet."""
+        from app.repositories import aircraft_repository
+        
+        if request.method == 'POST':
+            airplane_id = request.form.get('airplane_id', '').strip().upper()
+            manufacturer = request.form.get('manufacturer', '').strip()
+            purchase_date = request.form.get('purchase_date')
+            economy_rows = int(request.form.get('economy_rows', 0))
+            economy_cols = int(request.form.get('economy_cols', 0))
+            business_rows = int(request.form.get('business_rows', 0))
+            business_cols = int(request.form.get('business_cols', 0))
+            
+            # Validation
+            if not airplane_id or not manufacturer or not purchase_date:
+                flash('Please fill in all required fields.', 'danger')
+                return render_template('admin/add_airplane.html')
+            
+            if aircraft_repository.airplane_exists(airplane_id):
+                flash(f'Airplane with ID "{airplane_id}" already exists.', 'danger')
+                return render_template('admin/add_airplane.html')
+            
+            if economy_rows < 1 or economy_cols < 1:
+                flash('Economy class must have at least 1 row and 1 seat per row.', 'danger')
+                return render_template('admin/add_airplane.html')
+            
+            # Create airplane
+            success = aircraft_repository.create_airplane(
+                airplane_id=airplane_id,
+                purchase_date=purchase_date,
+                manufacturer=manufacturer,
+                economy_rows=economy_rows,
+                economy_cols=economy_cols,
+                business_rows=business_rows,
+                business_cols=business_cols
+            )
+            
+            if success:
+                flash(f'Airplane "{airplane_id}" added successfully!', 'success')
+                return redirect(url_for('add_menu'))
+            else:
+                flash('Error creating airplane. Please try again.', 'danger')
+        
+        return render_template('admin/add_airplane.html')
+    
+    @app.route('/admin/add/pilot', methods=['GET', 'POST'])
+    @manager_required
+    def add_pilot():
+        """Add a new pilot to the crew."""
+        from app.repositories import crew_repository
+        
+        if request.method == 'POST':
+            pilot_id = request.form.get('pilot_id', '').strip().upper()
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            phone = request.form.get('phone', '').strip()
+            join_date = request.form.get('join_date')
+            long_flights_training = request.form.get('long_flights_training') == '1'
+            street = request.form.get('street', '').strip() or None
+            city = request.form.get('city', '').strip() or None
+            house_num = request.form.get('house_num', '').strip() or None
+            
+            # Validation
+            if not pilot_id or not first_name or not last_name or not phone or not join_date:
+                flash('Please fill in all required fields.', 'danger')
+                return render_template('admin/add_pilot.html')
+            
+            if crew_repository.pilot_exists(pilot_id):
+                flash(f'Pilot with ID "{pilot_id}" already exists.', 'danger')
+                return render_template('admin/add_pilot.html')
+            
+            # Create pilot
+            success = crew_repository.create_pilot(
+                pilot_id=pilot_id,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                join_date=join_date,
+                long_flights_training=long_flights_training,
+                street=street,
+                city=city,
+                house_num=house_num
+            )
+            
+            if success:
+                flash(f'Pilot "{first_name} {last_name}" added successfully!', 'success')
+                return redirect(url_for('add_menu'))
+            else:
+                flash('Error creating pilot. Please try again.', 'danger')
+        
+        return render_template('admin/add_pilot.html')
+    
+    @app.route('/admin/add/attendant', methods=['GET', 'POST'])
+    @manager_required
+    def add_attendant():
+        """Add a new flight attendant to the crew."""
+        from app.repositories import crew_repository
+        
+        if request.method == 'POST':
+            attendant_id = request.form.get('attendant_id', '').strip().upper()
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            phone = request.form.get('phone', '').strip()
+            join_date = request.form.get('join_date')
+            long_flights_training = request.form.get('long_flights_training') == '1'
+            street = request.form.get('street', '').strip() or None
+            city = request.form.get('city', '').strip() or None
+            house_num = request.form.get('house_num', '').strip() or None
+            
+            # Validation
+            if not attendant_id or not first_name or not last_name or not phone or not join_date:
+                flash('Please fill in all required fields.', 'danger')
+                return render_template('admin/add_attendant.html')
+            
+            if crew_repository.flight_attendant_exists(attendant_id):
+                flash(f'Flight attendant with ID "{attendant_id}" already exists.', 'danger')
+                return render_template('admin/add_attendant.html')
+            
+            # Create flight attendant
+            success = crew_repository.create_flight_attendant(
+                attendant_id=attendant_id,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                join_date=join_date,
+                long_flights_training=long_flights_training,
+                street=street,
+                city=city,
+                house_num=house_num
+            )
+            
+            if success:
+                flash(f'Flight attendant "{first_name} {last_name}" added successfully!', 'success')
+                return redirect(url_for('add_menu'))
+            else:
+                flash('Error creating flight attendant. Please try again.', 'danger')
+        
+        return render_template('admin/add_attendant.html')

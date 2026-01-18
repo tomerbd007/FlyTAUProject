@@ -1,7 +1,4 @@
-"""
-FLYTAU Order Routes
-Handles checkout, order viewing, cancellation, and guest lookup
-"""
+"""Order routes: checkout, viewing, cancellation, guest lookup."""
 from flask import render_template, request, redirect, url_for, flash, session
 from datetime import datetime, timedelta
 from app.services import order_service, flight_service

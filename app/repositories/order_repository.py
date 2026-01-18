@@ -1,40 +1,11 @@
-"""
-FLYTAU Order Repository
-Database access for orders and tickets
-
-Schema (normalized):
-- orders: UniqueOrderCode (PK), TotalCost, Status, 
-          GuestCustomer_UniqueMail (nullable), RegisteredCustomer_UniqueMail (nullable),
-          Flights_FlightId
-- Tickets: TicketId (PK), Class, RowNum, Seat, orders_UniqueOrderCode
-
-Note: 
-- Either GuestCustomer_UniqueMail OR RegisteredCustomer_UniqueMail should be set, not both.
-- Flight's AirplaneId is derived via Flights table using Flights_FlightId.
-- Ticket price is calculated dynamically from Flight's EconomyPrice/BusinessPrice based on Ticket.Class.
-- Order's class can be derived from its associated tickets.
-- Seat uniqueness per flight is enforced in the backend (see is_seat_taken_for_flight).
-"""
+"""Database access for orders and tickets."""
 from app.db import execute_query
 import random
 import string
 
 
-# ============ SEAT UNIQUENESS VALIDATION ============
-
 def is_seat_taken_for_flight(flight_id, row_num, seat, exclude_order_code=None):
-    """
-    Check if a seat is already taken for a specific flight.
-    
-    Args:
-        flight_id: The flight ID to check
-        row_num: Row number
-        seat: Seat letter (e.g., 'A', 'B')
-        exclude_order_code: Optional order code to exclude (for seat updates)
-    
-    Returns:
-        True if seat is taken, False if available
-    """
+    """Check if seat is taken. Can exclude an order (for updates)."""
     sql = """
         SELECT 1
         FROM Tickets t
@@ -77,21 +48,9 @@ def booking_code_exists(booking_code):
     return execute_query(sql, (booking_code,), fetch_one=True) is not None
 
 
-# ============ ORDER OPERATIONS ============
-
 def create_order(booking_code, flight_id, total_cost, status, 
                  guest_email=None, registered_email=None):
-    """
-    Create a new order.
-    
-    Args:
-        booking_code: UniqueOrderCode
-        flight_id: Flights_FlightId
-        total_cost: TotalCost
-        status: Order status (e.g., 'confirmed', 'cancelled')
-        guest_email: GuestCustomer_UniqueMail (if guest booking)
-        registered_email: RegisteredCustomer_UniqueMail (if registered user booking)
-    """
+    """Create new order."""
     sql = """
         INSERT INTO orders (UniqueOrderCode, Flights_FlightId, TotalCost, Status, 
                            GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail)
@@ -102,10 +61,7 @@ def create_order(booking_code, flight_id, total_cost, status,
 
 
 def get_order_by_booking_code(booking_code):
-    """
-    Get an order by booking code (UniqueOrderCode).
-    Returns order with flight details and derived class from tickets.
-    """
+    """Get order with flight details."""
     sql = """
         SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
                o.GuestCustomer_UniqueMail, o.RegisteredCustomer_UniqueMail,
@@ -301,29 +257,13 @@ def get_total_revenue():
     return float(result['total_revenue']) if result else 0
 
 
-# ============ TICKET OPERATIONS ============
-
 class SeatAlreadyTakenError(Exception):
     """Raised when attempting to book a seat that is already taken."""
     pass
 
 
 def create_ticket(order_code, row_num, seat, seat_class, validate_seat=True):
-    """
-    Create a new ticket with optional seat validation.
-    
-    Args:
-        order_code: orders_UniqueOrderCode
-        row_num: Row number
-        seat: Seat letter (e.g., 'A', 'B', 'C')
-        seat_class: 'business' or 'economy'
-        validate_seat: Whether to check seat availability before insert (default: True)
-    
-    Note: Price is calculated dynamically from the flight's pricing via the order.
-    
-    Raises:
-        SeatAlreadyTakenError: If seat is already taken for this flight
-    """
+    """Create ticket with optional seat validation. Raises SeatAlreadyTakenError if taken."""
     if validate_seat:
         # Get flight ID from order
         flight_id = get_flight_id_for_order(order_code)

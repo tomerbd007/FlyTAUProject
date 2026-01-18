@@ -1,17 +1,6 @@
-"""
-FLYTAU Crew Repository
-Database access for crew assignments (Pilots and Flight Attendants)
-
-Schema:
-- Pilot: Id (PK), FirstName, SecondName, LongFlightsTraining, etc.
-- FlightAttendant: Id (PK), FirstName, SecondName, LongFlightsTraining, etc.
-- Pilot_has_Flights: Pilot_Id, Flights_FlightId (junction)
-- FlightAttendant_has_Flights: FlightAttendant_Id, Flights_FlightId (junction)
-"""
+"""Database access for crew assignments (pilots and flight attendants)."""
 from app.db import execute_query
 
-
-# ============ SINGLE CREW MEMBER LOOKUP ============
 
 def get_pilot_by_id(pilot_id):
     """Get a single pilot by ID."""
@@ -27,28 +16,11 @@ def get_attendant_by_id(attendant_id):
     return results[0] if results else None
 
 
-# ============ CREW LOCATION TRACKING ============
-
-# Default home base airport (where crew start if no flight history)
 HOME_BASE_AIRPORT = 'TLV'
 
 
 def get_pilot_location_at_time(pilot_id, at_datetime):
-    """
-    Determine where a pilot will be at a given datetime.
-    
-    Logic:
-    - Find the most recent flight (by landing time) that the pilot was on before at_datetime
-    - If found, pilot is at that flight's destination (DestPort)
-    - If no prior flight, assume pilot starts at HOME_BASE_AIRPORT
-    
-    Args:
-        pilot_id: The pilot ID to check
-        at_datetime: The datetime to check location at
-    
-    Returns:
-        Airport code string (e.g., 'TLV', 'JFK')
-    """
+    """Find where a pilot will be at a given time based on flight history."""
     sql = """
         SELECT f.DestPort
         FROM Pilot_has_Flights pf
@@ -67,21 +39,7 @@ def get_pilot_location_at_time(pilot_id, at_datetime):
 
 
 def get_attendant_location_at_time(attendant_id, at_datetime):
-    """
-    Determine where a flight attendant will be at a given datetime.
-    
-    Logic:
-    - Find the most recent flight (by landing time) that the attendant was on before at_datetime
-    - If found, attendant is at that flight's destination (DestPort)
-    - If no prior flight, assume attendant starts at HOME_BASE_AIRPORT
-    
-    Args:
-        attendant_id: The flight attendant ID to check
-        at_datetime: The datetime to check location at
-    
-    Returns:
-        Airport code string (e.g., 'TLV', 'JFK')
-    """
+    """Find where an attendant will be at a given time based on flight history."""
     sql = """
         SELECT f.DestPort
         FROM FlightAttendant_has_Flights faf
@@ -99,24 +57,9 @@ def get_attendant_location_at_time(attendant_id, at_datetime):
     return HOME_BASE_AIRPORT
 
 
-# ============ PILOT CREW OPERATIONS ============
-
 def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=None, 
                          require_long_flight_cert=False, exclude_flight_id=None):
-    """
-    Get pilots available for a flight during the given time range.
-    
-    A pilot is available if:
-    1. Not assigned to any flight that overlaps with [departure, arrival]
-    2. Located at origin_airport at departure time (if origin_airport specified)
-    
-    Args:
-        departure_datetime: Departure datetime of the new flight
-        arrival_datetime: Arrival/landing datetime of the new flight  
-        origin_airport: Origin airport code - only return pilots at this location
-        require_long_flight_cert: If True, only return pilots with LongFlightsTraining=1
-        exclude_flight_id: Flight ID to exclude from conflict check (for editing)
-    """
+    """Get pilots available during time range and at origin airport."""
     cert_condition = "AND p.LongFlightsTraining = 1" if require_long_flight_cert else ""
     
     # Build exclusion condition for the flight being edited
@@ -205,24 +148,9 @@ def delete_all_pilots_from_flight(flight_id, airplane_id=None):
     return execute_query(sql, (flight_id,), commit=True)
 
 
-# ============ FLIGHT ATTENDANT CREW OPERATIONS ============
-
 def get_available_flight_attendants(departure_datetime, arrival_datetime, origin_airport=None,
                                     require_long_flight_cert=False, exclude_flight_id=None):
-    """
-    Get flight attendants available for a flight during the given time range.
-    
-    A flight attendant is available if:
-    1. Not assigned to any flight that overlaps with [departure, arrival]
-    2. Located at origin_airport at departure time (if origin_airport specified)
-    
-    Args:
-        departure_datetime: Departure datetime of the new flight
-        arrival_datetime: Arrival/landing datetime of the new flight  
-        origin_airport: Origin airport code - only return attendants at this location
-        require_long_flight_cert: If True, only return attendants with LongFlightsTraining=1
-        exclude_flight_id: Flight ID to exclude from conflict check (for editing)
-    """
+    """Get flight attendants available during time range and at origin airport."""
     cert_condition = "AND fa.LongFlightsTraining = 1" if require_long_flight_cert else ""
     
     # Build exclusion condition for the flight being edited
@@ -311,14 +239,8 @@ def delete_all_attendants_from_flight(flight_id, airplane_id=None):
     return execute_query(sql, (flight_id,), commit=True)
 
 
-# ============ COMBINED CREW OPERATIONS ============
-
 def get_all_crew_for_flight(flight_id, airplane_id):
-    """
-    Get all crew (pilots + attendants) assigned to a flight.
-    
-    Returns dict with 'pilots' and 'attendants' lists.
-    """
+    """Get all crew (pilots + attendants) assigned to a flight."""
     pilots = get_pilots_for_flight(flight_id, airplane_id)
     attendants = get_attendants_for_flight(flight_id, airplane_id)
     
@@ -371,3 +293,53 @@ def get_all_flight_attendants():
         ORDER BY SecondName, FirstName
     """
     return execute_query(sql)
+
+
+def create_pilot(pilot_id, first_name, last_name, phone, join_date, long_flights_training=False, street=None, city=None, house_num=None):
+    """Create a new pilot."""
+    import json
+    phone_json = json.dumps([phone]) if phone else None
+    
+    sql = """
+        INSERT INTO Pilot (Id, FirstName, SecondName, PhoneNum, JoinDate, LongFlightsTraining, Street, City, HouseNum)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    try:
+        execute_query(sql, (pilot_id, first_name, last_name, phone_json, join_date, 
+                           1 if long_flights_training else 0, street, city, house_num), commit=True)
+        return True
+    except Exception as e:
+        print(f"Error creating pilot: {e}")
+        return False
+
+
+def pilot_exists(pilot_id):
+    """Check if a pilot with the given ID exists."""
+    sql = "SELECT 1 FROM Pilot WHERE Id = %s"
+    result = execute_query(sql, (pilot_id,), fetch_one=True)
+    return result is not None
+
+
+def create_flight_attendant(attendant_id, first_name, last_name, phone, join_date, long_flights_training=False, street=None, city=None, house_num=None):
+    """Create a new flight attendant."""
+    import json
+    phone_json = json.dumps([phone]) if phone else None
+    
+    sql = """
+        INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, JoinDate, LongFlightsTraining, Street, City, HouseNum)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    try:
+        execute_query(sql, (attendant_id, first_name, last_name, phone_json, join_date,
+                           1 if long_flights_training else 0, street, city, house_num), commit=True)
+        return True
+    except Exception as e:
+        print(f"Error creating flight attendant: {e}")
+        return False
+
+
+def flight_attendant_exists(attendant_id):
+    """Check if a flight attendant with the given ID exists."""
+    sql = "SELECT 1 FROM FlightAttendant WHERE Id = %s"
+    result = execute_query(sql, (attendant_id,), fetch_one=True)
+    return result is not None

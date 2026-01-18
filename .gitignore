@@ -88,3 +88,8 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
