@@ -5,11 +5,12 @@ from flask import current_app, g
 
 
 _connection_pool = None
+_db_available = False
 
 
 def init_app(app):
     """Initialize connection pool with Flask app config."""
-    global _connection_pool
+    global _connection_pool, _db_available
     
     pool_config = {
         'pool_name': app.config['DB_POOL_NAME'],
@@ -26,12 +27,20 @@ def init_app(app):
     
     try:
         _connection_pool = pooling.MySQLConnectionPool(**pool_config)
+        _db_available = True
+        app.logger.info("Database connection pool created successfully")
     except mysql.connector.Error as err:
-        app.logger.error(f"Failed to create connection pool: {err}")
-        raise
+        _db_available = False
+        app.logger.warning(f"Database not available at startup: {err}")
+        app.logger.warning("App will start but DB operations will fail until DB is available")
+        # Don't raise - let the app start without DB
     
     app.teardown_appcontext(close_db)
 
+
+def is_db_available():
+    """Check if database connection is available."""
+    return _db_available
 
 def get_db():
     """Get connection from pool (reused per request)."""
