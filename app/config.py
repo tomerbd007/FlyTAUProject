@@ -11,11 +11,12 @@ class Config:
     # Database configuration - supports both local and AWS RDS environment variables
     # AWS EB with RDS sets: RDS_HOSTNAME, RDS_PORT, RDS_USERNAME, RDS_PASSWORD, RDS_DB_NAME
     # For manual config, use: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
-    DB_HOST = os.environ.get('RDS_HOSTNAME') or os.environ.get('DB_HOST', 'awseb-e-axxpyrp6jn-stack-awsebrdsdatabase-zdcptgsoelxx.cfaao2wyugtt.il-central-1.rds.amazonaws.com')
+    DB_HOST = os.environ.get('RDS_HOSTNAME') or os.environ.get('DB_HOST', 'localhost')
     DB_PORT = int(os.environ.get('RDS_PORT') or os.environ.get('DB_PORT', 3306))
-    DB_USER = os.environ.get('RDS_USERNAME') or os.environ.get('DB_USER', 'flytauadmin')
-    DB_PASSWORD = os.environ.get('RDS_PASSWORD') or os.environ.get('DB_PASSWORD', 'FlytauPass1234')
-    DB_NAME = os.environ.get('RDS_DB_NAME') or os.environ.get('DB_NAME', 'flytau')
+    DB_USER = os.environ.get('RDS_USERNAME') or os.environ.get('DB_USER', 'root')
+    DB_PASSWORD = os.environ.get('RDS_PASSWORD') or os.environ.get('DB_PASSWORD', '')
+    # Always use 'flytau' database - our schema creates this, not the default 'ebdb'
+    DB_NAME = os.environ.get('DB_NAME', 'flytau')
     DB_POOL_SIZE = int(os.environ.get('DB_POOL_SIZE', 5))
     DB_POOL_NAME = 'flytau_pool'
     
