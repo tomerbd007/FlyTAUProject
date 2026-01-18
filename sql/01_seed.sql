@@ -25,6 +25,7 @@ INSERT INTO Airports (Code, Name, City, Country, Latitude, Longitude) VALUES
 ('BAH', 'Bahrain International Airport', 'Manama', 'Bahrain', 26.2708, 50.6336),
 ('KWI', 'Kuwait International Airport', 'Kuwait City', 'Kuwait', 29.2266, 47.9689),
 ('MCT', 'Muscat International Airport', 'Muscat', 'Oman', 23.5933, 58.2844),
+('LCA', 'Larnaca International Airport', 'Larnaca', 'Cyprus', 34.8754, 33.6249),
 -- Europe
 ('LHR', 'Heathrow Airport', 'London', 'United Kingdom', 51.4700, -0.4543),
 ('CDG', 'Charles de Gaulle Airport', 'Paris', 'France', 49.0097, 2.5479),

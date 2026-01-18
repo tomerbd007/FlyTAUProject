@@ -20,7 +20,7 @@ FROM (
     JOIN Flights f ON a.AirplaneId = f.Airplanes_AirplaneId
     JOIN orders o ON f.FlightId = o.Flights_FlightId
     JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
-    WHERE f.Status = 'active' AND o.Status = 'confirmed'
+    WHERE f.Status IN ('active', 'done') AND o.Status = 'confirmed'
 
     UNION ALL
 
@@ -38,7 +38,7 @@ FROM (
     JOIN Flights f ON a.AirplaneId = f.Airplanes_AirplaneId
     JOIN orders o ON f.FlightId = o.Flights_FlightId
     JOIN Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
-    WHERE f.Status = 'active' AND o.Status = 'cancelled'
+    WHERE f.Status IN ('active', 'done') AND o.Status = 'cancelled'
 
     -- NOTE: Flights with status 'cancelled' (by managers) are ignored 
     -- because their revenue is 0 as per your instructions.

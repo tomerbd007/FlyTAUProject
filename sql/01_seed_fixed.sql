@@ -129,15 +129,16 @@ ON DUPLICATE KEY UPDATE
 -- -----------------------------------------------------------------------------
 -- AIRPLANES (Corrected Column Names)
 -- -----------------------------------------------------------------------------
-INSERT INTO Airplanes (AirplaneId, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols) VALUES
-('PLANE-001', 'Boeing', 18, 7, 6, 4),
-('PLANE-002', 'Boeing', 8, 4, 0, 0),
-('PLANE-003', 'Airbus', 20, 7, 6, 4),
-('PLANE-004', 'Airbus', 9, 4, 0, 0),
-('PLANE-005', 'Dassault', 18, 7, 6, 4),
-('PLANE-006', 'Dassault', 22, 4, 0, 0)
+INSERT INTO Airplanes (AirplaneId, PurchaseDate, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols) VALUES
+('PLANE-001', '2018-03-15', 'Boeing', 18, 7, 6, 4),
+('PLANE-002', '2019-07-22', 'Boeing', 8, 4, 0, 0),
+('PLANE-003', '2017-11-08', 'Airbus', 20, 7, 6, 4),
+('PLANE-004', '2020-02-14', 'Airbus', 9, 4, 0, 0),
+('PLANE-005', '2021-06-30', 'Dassault', 18, 7, 6, 4),
+('PLANE-006', '2022-01-10', 'Dassault', 22, 4, 0, 0)
 AS new_air
 ON DUPLICATE KEY UPDATE
+  PurchaseDate = new_air.PurchaseDate,
   Manufacturer = new_air.Manufacturer,
   CouchRows = new_air.CouchRows,
   CouchCols = new_air.CouchCols,
@@ -145,13 +146,25 @@ ON DUPLICATE KEY UPDATE
   BusinessCols = new_air.BusinessCols;
 
 -- -----------------------------------------------------------------------------
--- FLIGHTS
+-- FLIGHTS (5 months: Sep, Oct, Nov 2025, Jan, Feb 2026 | 5 aircraft with revenue)
 -- -----------------------------------------------------------------------------
 INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
-('FT101', 'PLANE-001', 'TLV', 'JFK', '2025-11-15', '08:00:00', 660, 'active', 500.00, 1500.00),
-('FT102', 'PLANE-003', 'JFK', 'LCA', '2025-11-20', '06:30:00', 600, 'active', 400.00, 1200.00),
+-- September 2025 - PLANE-001 (Boeing Large) and PLANE-002 (Boeing Small)
+('FT201', 'PLANE-001', 'TLV', 'LHR', '2025-09-10', '07:00:00', 298, 'done', 350.00, 1100.00),
+('FT202', 'PLANE-002', 'TLV', 'ATH', '2025-09-15', '09:30:00', 129, 'done', 180.00, 550.00),
+-- October 2025 - PLANE-003 (Airbus Large) and PLANE-005 (Dassault Large)
+('FT203', 'PLANE-003', 'TLV', 'CDG', '2025-10-05', '06:00:00', 277, 'done', 320.00, 980.00),
+('FT204', 'PLANE-005', 'TLV', 'FRA', '2025-10-20', '14:00:00', 253, 'done', 300.00, 920.00),
+-- November 2025 - PLANE-001 (Boeing Large) and PLANE-004 (Airbus Small)
+('FT101', 'PLANE-001', 'TLV', 'JFK', '2025-11-15', '08:00:00', 660, 'done', 500.00, 1500.00),
+('FT102', 'PLANE-003', 'JFK', 'LCA', '2025-11-20', '06:30:00', 600, 'done', 400.00, 1200.00),
 ('FT103', 'PLANE-002', 'LCA', 'TLV', '2025-11-29', '22:00:00', 40, 'cancelled', 120.00, 700.00),
-('FT104', 'PLANE-004', 'TLV', 'RUH', '2026-01-21', '20:00:00', 160, 'active', 150.00, 800.00)
+-- January 2026 - PLANE-004 (Airbus Small) and PLANE-006 (Dassault Small)
+('FT104', 'PLANE-004', 'TLV', 'RUH', '2026-01-21', '20:00:00', 160, 'active', 150.00, 800.00),
+('FT205', 'PLANE-006', 'TLV', 'CAI', '2026-01-25', '11:00:00', 73, 'active', 120.00, 400.00),
+-- February 2026 - PLANE-005 (Dassault Large)
+('FT206', 'PLANE-005', 'TLV', 'BCN', '2026-02-10', '08:30:00', 262, 'active', 280.00, 850.00),
+('FT207', 'PLANE-001', 'TLV', 'AMS', '2026-02-18', '10:00:00', 279, 'active', 310.00, 950.00)
 AS new_f
 ON DUPLICATE KEY UPDATE
   Airplanes_AirplaneId = new_f.Airplanes_AirplaneId,
@@ -168,26 +181,55 @@ ON DUPLICATE KEY UPDATE
 -- CREW ASSIGNMENTS (associations)
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId) VALUES
+-- Original flights
 ('P001', 'FT101'), ('P002', 'FT101'), ('P003', 'FT101'),
 ('P001', 'FT102'), ('P002', 'FT102'), ('P003', 'FT102'),
-('P001', 'FT103'), ('P002', 'FT103'), ('P003', 'FT104');
+('P001', 'FT103'), ('P002', 'FT103'), ('P003', 'FT104'),
+-- New flights
+('P004', 'FT201'), ('P005', 'FT201'), ('P006', 'FT202'),
+('P007', 'FT203'), ('P008', 'FT203'), ('P009', 'FT204'),
+('P004', 'FT205'), ('P005', 'FT206'), ('P006', 'FT207');
 
 INSERT IGNORE INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId) VALUES
+-- Original flights
 ('A001', 'FT101'), ('A002', 'FT101'), ('A003', 'FT101'), ('A004', 'FT101'), ('A005', 'FT101'), ('A006', 'FT101'),
 ('A001', 'FT102'), ('A002', 'FT102'), ('A003', 'FT102'), ('A004', 'FT102'), ('A005', 'FT102'), ('A006', 'FT102'),
 ('A001', 'FT103'), ('A002', 'FT103'), ('A003', 'FT103'),
-('A004', 'FT104'), ('A005', 'FT104'), ('A006', 'FT104');
+('A004', 'FT104'), ('A005', 'FT104'), ('A006', 'FT104'),
+-- New flights
+('A007', 'FT201'), ('A008', 'FT201'), ('A009', 'FT202'),
+('A010', 'FT203'), ('A011', 'FT203'), ('A012', 'FT204'),
+('A013', 'FT205'), ('A014', 'FT206'), ('A015', 'FT207');
 
 -- -----------------------------------------------------------------------------
--- ORDERS
+-- ORDERS (spread across 5 months with mix of confirmed/cancelled)
 -- -----------------------------------------------------------------------------
 INSERT INTO orders (UniqueOrderCode, Flights_FlightId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail) VALUES
+-- September 2025 orders (PLANE-001, PLANE-002)
+('ORD-SEP01', 'FT201', 700.00, 'confirmed', NULL, 'customer1@gmail.com'),
+('ORD-SEP02', 'FT201', 1100.00, 'confirmed', NULL, 'customer2@gmail.com'),
+('ORD-SEP03', 'FT202', 180.00, 'confirmed', 'guest1@gmail.com', NULL),
+('ORD-SEP04', 'FT202', 180.00, 'cancelled', NULL, 'customer1@gmail.com'),
+-- October 2025 orders (PLANE-003, PLANE-005)
+('ORD-OCT01', 'FT203', 640.00, 'confirmed', NULL, 'customer2@gmail.com'),
+('ORD-OCT02', 'FT203', 320.00, 'cancelled', NULL, 'customer1@gmail.com'),
+('ORD-OCT03', 'FT204', 920.00, 'confirmed', NULL, 'customer2@gmail.com'),
+('ORD-OCT04', 'FT204', 300.00, 'confirmed', 'guest1@gmail.com', NULL),
+-- November 2025 orders (original)
 ('FLY-ABC123', 'FT101', 1000.00, 'confirmed', NULL, 'customer1@gmail.com'),
 ('FLY-DEF456', 'FT102', 1200.00, 'confirmed', NULL, 'customer2@gmail.com'),
 ('FLY-DEF768', 'FT102', 400.00, 'confirmed', 'guest1@gmail.com', NULL),
+-- January 2026 orders (PLANE-004, PLANE-006)
 ('FLY-ABC001', 'FT104', 300.00, 'cancelled', NULL, 'customer1@gmail.com'),
 ('FLY-ABC002', 'FT104', 150.00, 'confirmed', NULL, 'customer2@gmail.com'),
-('FLY-DEF003', 'FT104', 150.00, 'cancelled', NULL, 'customer1@gmail.com')
+('FLY-DEF003', 'FT104', 150.00, 'cancelled', NULL, 'customer1@gmail.com'),
+('ORD-JAN01', 'FT205', 240.00, 'confirmed', NULL, 'customer1@gmail.com'),
+('ORD-JAN02', 'FT205', 120.00, 'cancelled', 'guest1@gmail.com', NULL),
+-- February 2026 orders (PLANE-005, PLANE-001)
+('ORD-FEB01', 'FT206', 850.00, 'confirmed', NULL, 'customer2@gmail.com'),
+('ORD-FEB02', 'FT206', 280.00, 'confirmed', NULL, 'customer1@gmail.com'),
+('ORD-FEB03', 'FT207', 620.00, 'confirmed', 'guest1@gmail.com', NULL),
+('ORD-FEB04', 'FT207', 310.00, 'cancelled', NULL, 'customer2@gmail.com')
 AS new_o
 ON DUPLICATE KEY UPDATE
   Flights_FlightId = new_o.Flights_FlightId,
@@ -195,22 +237,47 @@ ON DUPLICATE KEY UPDATE
   Status = new_o.Status;
 
 -- -----------------------------------------------------------------------------
--- TICKETS
+-- TICKETS (for all orders)
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Tickets (orders_UniqueOrderCode, RowNum, Seat, Class) VALUES
+-- September tickets
+('ORD-SEP01', 5, 'A', 'economy'),
+('ORD-SEP01', 5, 'B', 'economy'),
+('ORD-SEP02', 1, 'A', 'business'),
+('ORD-SEP03', 8, 'A', 'economy'),
+('ORD-SEP04', 8, 'B', 'economy'),
+-- October tickets
+('ORD-OCT01', 3, 'A', 'economy'),
+('ORD-OCT01', 3, 'B', 'economy'),
+('ORD-OCT02', 10, 'A', 'economy'),
+('ORD-OCT03', 1, 'A', 'business'),
+('ORD-OCT04', 12, 'A', 'economy'),
+-- November tickets (original)
 ('FLY-ABC123', 7, 'A', 'economy'),
 ('FLY-ABC123', 7, 'B', 'economy'),
 ('FLY-DEF456', 1, 'A', 'business'),
 ('FLY-DEF768', 24, 'A', 'economy'),
+-- January tickets
 ('FLY-ABC001', 5, 'A', 'economy'),
 ('FLY-ABC001', 5, 'B', 'economy'),
 ('FLY-ABC002', 8, 'A', 'economy'),
-('FLY-DEF003', 4, 'C', 'economy');
+('FLY-DEF003', 4, 'C', 'economy'),
+('ORD-JAN01', 6, 'A', 'economy'),
+('ORD-JAN01', 6, 'B', 'economy'),
+('ORD-JAN02', 9, 'A', 'economy'),
+-- February tickets
+('ORD-FEB01', 1, 'A', 'business'),
+('ORD-FEB02', 15, 'A', 'economy'),
+('ORD-FEB03', 4, 'A', 'economy'),
+('ORD-FEB03', 4, 'B', 'economy'),
+('ORD-FEB04', 18, 'A', 'economy');
 
 -- -----------------------------------------------------------------------------
 -- MANAGER EDITS
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId) VALUES
-('M001', 'FT101'), ('M001', 'FT102'), ('M002', 'FT103'), ('M002', 'FT104');
+('M001', 'FT101'), ('M001', 'FT102'), ('M002', 'FT103'), ('M002', 'FT104'),
+('M001', 'FT201'), ('M001', 'FT202'), ('M002', 'FT203'), ('M002', 'FT204'),
+('M001', 'FT205'), ('M002', 'FT206'), ('M001', 'FT207');
 
 -- Seed Complete

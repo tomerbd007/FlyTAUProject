@@ -48,7 +48,11 @@
 
 <div class="detail-shell">
     <div class="detail-hero">
+        {% if is_manager %}
+        <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Dashboard</a>
+        {% else %}
         <a href="{{ url_for('flight_search_results') }}?origin={{ flight.OriginPort }}&destination={{ flight.DestPort }}&date={{ flight.DepartureDate }}&passengers={{ passengers }}" class="back-link">← Back to results</a>
+        {% endif %}
         <h1>Flight {{ flight.FlightId }}</h1>
         <p>{{ flight.OriginPort }} → {{ flight.DestPort }} • {{ flight.Manufacturer }}</p>
     </div>
@@ -106,6 +110,13 @@
         </div>
 
         <div class="side-panel">
+            {% if is_manager %}
+            <div class="action-card">
+                <p><strong>Manager View</strong></p>
+                <p style="color:#5b6d81; font-size:0.9rem; margin-top:8px;">You are viewing this flight as a manager. Booking is not available.</p>
+                <a href="{{ url_for('admin_dashboard') }}" class="action-btn" style="margin-top:12px; background:#2d5a7b;">← Back to Dashboard</a>
+            </div>
+            {% else %}
             <div class="action-card">
                 <p>Booking for <strong>{{ passengers }} passenger{{ 's' if passengers|int > 1 else '' }}</strong></p>
                 {% if flight.Status == 'active' %}
@@ -114,6 +125,7 @@
                 <p class="warning-text">This flight is not available for booking ({{ flight.Status }})</p>
                 {% endif %}
             </div>
+            {% endif %}
 
             <div class="card">
                 <h2>Tips</h2>

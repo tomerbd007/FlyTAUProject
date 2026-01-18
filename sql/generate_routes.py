@@ -21,6 +21,7 @@ AIRPORT_COORDS = {
     'BAH': (26.2708, 50.6336),   # Bahrain
     'KWI': (29.2266, 47.9689),   # Kuwait
     'MCT': (23.5933, 58.2844),   # Muscat
+    'LCA': (34.8754, 33.6249),    # Larnaca, Cyprus
     # Europe
     'LHR': (51.4700, -0.4543),   # London Heathrow
     'CDG': (49.0097, 2.5479),    # Paris CDG

@@ -68,10 +68,8 @@ def register_flight_routes(app):
     @app.route('/flights/<flight_id>')
     def flight_detail(flight_id):
         """Flight detail page."""
-        # Managers cannot select flights
-        if session.get('role') == 'manager':
-            flash('Managers cannot select flights or purchase tickets.', 'error')
-            return redirect(url_for('admin_dashboard'))
+        # Check if user is a manager (view-only mode)
+        is_manager = session.get('role') == 'manager'
         
         airplane_id = request.args.get('airplane_id')
         passengers = request.args.get('passengers', '1')
@@ -80,6 +78,8 @@ def register_flight_routes(app):
         
         if not flight:
             flash('Flight not found.', 'error')
+            if is_manager:
+                return redirect(url_for('admin_dashboard'))
             return redirect(url_for('flights'))
         
         # Get seat availability counts
@@ -91,7 +91,8 @@ def register_flight_routes(app):
         return render_template('flights/detail.html',
                                flight=flight,
                                seat_counts=seat_counts,
-                               passengers=passengers)
+                               passengers=passengers,
+                               is_manager=is_manager)
     
     @app.route('/flights/<flight_id>/seats', methods=['GET', 'POST'])
     @customer_or_guest
