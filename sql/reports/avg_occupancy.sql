@@ -1,12 +1,11 @@
--- Average Occupancy Report
--- Shows seat occupancy percentage for completed flights
-
+-- Average Occupancy Report (Excluding Cancelled Orders)
 SELECT 
     AVG(OccupancyRate) AS AverageOccupancyRate
 FROM (
     SELECT 
-        f.FlightId,    
+        f.FlightId, 
         (a.CouchRows * a.CouchCols + a.BusinessRows * a.BusinessCols) AS TotalCapacity,
+        -- COUNT(t.TicketId) will now only count tickets from confirmed orders
         COUNT(t.TicketId) AS TicketsSold,
         (COUNT(t.TicketId) / (a.CouchRows * a.CouchCols + a.BusinessRows * a.BusinessCols)) * 100 AS OccupancyRate
     FROM 
@@ -14,7 +13,7 @@ FROM (
     JOIN 
         flytau.Airplanes a ON f.Airplanes_AirplaneId = a.AirplaneId
     LEFT JOIN 
-        flytau.orders o ON f.FlightId = o.Flights_FlightId
+        flytau.orders o ON f.FlightId = o.Flights_FlightId AND o.Status = 'confirmed' -- Only join confirmed orders
     LEFT JOIN 
         flytau.Tickets t ON o.UniqueOrderCode = t.orders_UniqueOrderCode
     GROUP BY 
