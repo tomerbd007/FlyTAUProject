@@ -284,51 +284,29 @@ ON DUPLICATE KEY UPDATE
 -- Long flights need crew with the right training
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId) VALUES
--- FT201: Large aircraft, 3 pilots (P001, P002, P003)
 ('P001', 'FT201'), ('P002', 'FT201'), ('P003', 'FT201'),
--- FT202: Small aircraft, 2 pilots (P007, P008)
 ('P007', 'FT202'), ('P008', 'FT202'),
--- FT203: Large aircraft, 3 pilots (P004, P005, P006)
 ('P004', 'FT203'), ('P005', 'FT203'), ('P006', 'FT203'),
--- FT204: Large aircraft, 3 pilots (P001, P002, P003) - available after FT201
 ('P001', 'FT204'), ('P002', 'FT204'), ('P003', 'FT204'),
--- FT101: LONG flight (>6h), Large aircraft, 3 TRAINED pilots (P001, P002, P003)
 ('P001', 'FT101'), ('P002', 'FT101'), ('P003', 'FT101'),
--- FT102: LONG flight (>6h), Large aircraft, 3 TRAINED pilots (P004, P005, P006)
 ('P004', 'FT102'), ('P005', 'FT102'), ('P006', 'FT102'),
--- FT103: Small aircraft, 2 pilots (P007, P008) - cancelled but still assigned
 ('P007', 'FT103'), ('P008', 'FT103'),
--- FT104: Small aircraft, 2 pilots (P009, P010)
 ('P009', 'FT104'), ('P010', 'FT104'),
--- FT205: Small aircraft, 2 pilots (P007, P008)
 ('P007', 'FT205'), ('P008', 'FT205'),
--- FT206: Large aircraft, 3 pilots (P001, P002, P003)
 ('P001', 'FT206'), ('P002', 'FT206'), ('P003', 'FT206'),
--- FT207: Large aircraft, 3 pilots (P004, P005, P006)
 ('P004', 'FT207'), ('P005', 'FT207'), ('P006', 'FT207');
 
 INSERT IGNORE INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_FlightId) VALUES
--- FT201: Large aircraft, 6 flight attendants (A001-A006)
 ('A001', 'FT201'), ('A002', 'FT201'), ('A003', 'FT201'), ('A004', 'FT201'), ('A005', 'FT201'), ('A006', 'FT201'),
--- FT202: Small aircraft, 3 flight attendants (A013, A014, A015)
 ('A013', 'FT202'), ('A014', 'FT202'), ('A015', 'FT202'),
--- FT203: Large aircraft, 6 flight attendants (A007-A012)
 ('A007', 'FT203'), ('A008', 'FT203'), ('A009', 'FT203'), ('A010', 'FT203'), ('A011', 'FT203'), ('A012', 'FT203'),
--- FT204: Large aircraft, 6 flight attendants (A001-A006) - available after FT201
 ('A001', 'FT204'), ('A002', 'FT204'), ('A003', 'FT204'), ('A004', 'FT204'), ('A005', 'FT204'), ('A006', 'FT204'),
--- FT101: LONG flight, Large aircraft, 6 TRAINED flight attendants (A001-A006)
 ('A001', 'FT101'), ('A002', 'FT101'), ('A003', 'FT101'), ('A004', 'FT101'), ('A005', 'FT101'), ('A006', 'FT101'),
--- FT102: LONG flight, Large aircraft, 6 TRAINED flight attendants (A007-A012)
 ('A007', 'FT102'), ('A008', 'FT102'), ('A009', 'FT102'), ('A010', 'FT102'), ('A011', 'FT102'), ('A012', 'FT102'),
--- FT103: Small aircraft, 3 flight attendants (A013, A014, A015) - cancelled but still assigned
 ('A013', 'FT103'), ('A014', 'FT103'), ('A015', 'FT103'),
--- FT104: Small aircraft, 3 flight attendants (A016, A017, A018)
 ('A016', 'FT104'), ('A017', 'FT104'), ('A018', 'FT104'),
--- FT205: Small aircraft, 3 flight attendants (A019, A020, A013)
 ('A019', 'FT205'), ('A020', 'FT205'), ('A013', 'FT205'),
--- FT206: Large aircraft, 6 flight attendants (A001-A006)
 ('A001', 'FT206'), ('A002', 'FT206'), ('A003', 'FT206'), ('A004', 'FT206'), ('A005', 'FT206'), ('A006', 'FT206'),
--- FT207: Large aircraft, 6 flight attendants (A007-A012)
 ('A007', 'FT207'), ('A008', 'FT207'), ('A009', 'FT207'), ('A010', 'FT207'), ('A011', 'FT207'), ('A012', 'FT207');
 
 -- -----------------------------------------------------------------------------

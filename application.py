@@ -146,15 +146,22 @@ def setup_db_seed():
         cursor = conn.cursor()
         
         try:
+            # Use autocommit for large seed files to avoid transaction timeouts
+            conn.autocommit = True
+            statement_count = 0
             for result in cursor.execute(sql_script, multi=True):
-                pass
-            conn.commit()
+                statement_count += 1
+                # Consume any results to prevent buffering issues
+                if result.with_rows:
+                    result.fetchall()
+            conn.autocommit = False
         finally:
             cursor.close()
         
-        return f"Success! Seed data loaded from {used_file}."
+        return f"Success! Seed data loaded from {used_file}. ({statement_count} statements executed)"
     except Exception as e:
-        return f"Error running seed file: {str(e)}", 500
+        import traceback
+        return f"Error running seed file: {str(e)}<br><pre>{traceback.format_exc()}</pre>", 500
 
 
 # ---------------------------------------------------------------------------
