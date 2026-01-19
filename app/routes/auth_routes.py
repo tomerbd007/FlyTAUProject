@@ -1,11 +1,11 @@
-"""Authentication routes: login, register, logout."""
+"""Login, registration, and logout routes for customers and managers."""
 from flask import render_template, request, redirect, url_for, flash, session
 from app.services import auth_service
 from app.utils.decorators import guest_only
 
 
 def register_auth_routes(app):
-    """Register authentication routes with the Flask app."""
+    """Hooks up the login/register/logout URLs."""
     
     @app.route('/register', methods=['GET', 'POST'])
     @guest_only

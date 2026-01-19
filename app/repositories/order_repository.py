@@ -1,11 +1,11 @@
-"""Database access for orders and tickets."""
+"""All the SQL queries for orders and tickets."""
 from app.db import execute_query
 import random
 import string
 
 
 def is_seat_taken_for_flight(flight_id, row_num, seat, exclude_order_code=None):
-    """Check if seat is taken. Can exclude an order (for updates)."""
+    """Checks if a seat is already booked. Can ignore a specific order (useful for updates)."""
     sql = """
         SELECT 1
         FROM Tickets t
@@ -26,7 +26,7 @@ def is_seat_taken_for_flight(flight_id, row_num, seat, exclude_order_code=None):
 
 
 def get_flight_id_for_order(order_code):
-    """Get the flight ID associated with an order."""
+    """Gets the flight ID that an order is for."""
     sql = "SELECT Flights_FlightId FROM orders WHERE UniqueOrderCode = %s"
     result = execute_query(sql, (order_code,), fetch_one=True)
     return result['Flights_FlightId'] if result else None
@@ -35,7 +35,7 @@ def get_flight_id_for_order(order_code):
 # ============ BOOKING CODE GENERATION ============
 
 def generate_booking_code():
-    """Generate a unique booking code in format FLY-XXXXXX."""
+    """Creates a unique booking code like FLY-ABC123."""
     while True:
         code = 'FLY-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         if not booking_code_exists(code):
@@ -43,14 +43,14 @@ def generate_booking_code():
 
 
 def booking_code_exists(booking_code):
-    """Check if a booking code already exists."""
+    """Checks if a booking code is already in use."""
     sql = "SELECT UniqueOrderCode FROM orders WHERE UniqueOrderCode = %s"
     return execute_query(sql, (booking_code,), fetch_one=True) is not None
 
 
 def create_order(booking_code, flight_id, total_cost, status, 
                  guest_email=None, registered_email=None):
-    """Create new order."""
+    """Inserts a new order into the database."""
     sql = """
         INSERT INTO orders (UniqueOrderCode, Flights_FlightId, TotalCost, Status, 
                            GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail)
@@ -61,7 +61,7 @@ def create_order(booking_code, flight_id, total_cost, status,
 
 
 def get_order_by_booking_code(booking_code):
-    """Get order with flight details."""
+    """Fetches an order along with its flight info."""
     sql = """
         SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
                o.GuestCustomer_UniqueMail, o.RegisteredCustomer_UniqueMail,
@@ -83,7 +83,7 @@ def get_order_by_booking_code(booking_code):
 
 
 def get_order_with_tickets(booking_code):
-    """Get an order with all its tickets and flight details."""
+    """Gets the full order with all its tickets and flight details."""
     order = get_order_by_booking_code(booking_code)
     if not order:
         return None
@@ -108,7 +108,7 @@ def get_order_with_tickets(booking_code):
 
 
 def get_orders_by_registered_customer(email, status_filter=None):
-    """Get all orders for a registered customer."""
+    """Gets all orders for someone with an account."""
     sql = """
         SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
                o.Flights_FlightId,
@@ -140,7 +140,7 @@ def get_orders_by_registered_customer(email, status_filter=None):
 
 
 def get_orders_by_guest_email(email, status_filter=None):
-    """Get all orders for a guest customer by email."""
+    """Gets all orders for a guest customer by their email."""
     sql = """
         SELECT o.UniqueOrderCode, o.TotalCost, o.Status,
                o.Flights_FlightId,

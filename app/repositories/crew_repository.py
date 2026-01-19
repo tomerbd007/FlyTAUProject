@@ -1,16 +1,16 @@
-"""Database access for crew assignments (pilots and flight attendants)."""
+"""All the SQL queries for pilots and flight attendants."""
 from app.db import execute_query
 
 
 def get_pilot_by_id(pilot_id):
-    """Get a single pilot by ID."""
+    """Looks up a pilot by their ID."""
     sql = "SELECT Id, FirstName, SecondName, LongFlightsTraining, PhoneNum FROM Pilot WHERE Id = %s"
     results = execute_query(sql, (pilot_id,))
     return results[0] if results else None
 
 
 def get_attendant_by_id(attendant_id):
-    """Get a single flight attendant by ID."""
+    """Looks up a flight attendant by their ID."""
     sql = "SELECT Id, FirstName, SecondName, LongFlightsTraining, PhoneNum FROM FlightAttendant WHERE Id = %s"
     results = execute_query(sql, (attendant_id,))
     return results[0] if results else None
@@ -20,7 +20,7 @@ HOME_BASE_AIRPORT = 'TLV'
 
 
 def get_pilot_location_at_time(pilot_id, at_datetime):
-    """Find where a pilot will be at a given time based on flight history."""
+    """Figures out where a pilot will be at a given time (based on their flight history)."""
     sql = """
         SELECT f.DestPort
         FROM Pilot_has_Flights pf
@@ -39,7 +39,7 @@ def get_pilot_location_at_time(pilot_id, at_datetime):
 
 
 def get_attendant_location_at_time(attendant_id, at_datetime):
-    """Find where an attendant will be at a given time based on flight history."""
+    """Figures out where an attendant will be at a given time (based on their flight history)."""
     sql = """
         SELECT f.DestPort
         FROM FlightAttendant_has_Flights faf
@@ -59,7 +59,7 @@ def get_attendant_location_at_time(attendant_id, at_datetime):
 
 def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=None, 
                          require_long_flight_cert=False, exclude_flight_id=None):
-    """Get pilots available during time range and at origin airport."""
+    """Finds pilots who aren't scheduled during the time slot and are at the right airport."""
     cert_condition = "AND p.LongFlightsTraining = 1" if require_long_flight_cert else ""
     
     # Build exclusion condition for the flight being edited
@@ -109,7 +109,7 @@ def get_available_pilots(departure_datetime, arrival_datetime, origin_airport=No
 
 
 def get_pilots_for_flight(flight_id, airplane_id=None):
-    """Get all pilots assigned to a specific flight."""
+    """Gets the pilots assigned to a specific flight."""
     sql = """
         SELECT p.Id, p.FirstName, p.SecondName, p.LongFlightsTraining, p.PhoneNum
         FROM Pilot p
@@ -121,7 +121,7 @@ def get_pilots_for_flight(flight_id, airplane_id=None):
 
 
 def assign_pilot_to_flight(pilot_id, flight_id, airplane_id=None):
-    """Assign a pilot to a flight."""
+    """Assigns a pilot to fly on a flight."""
     sql = """
         INSERT INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId)
         VALUES (%s, %s)
@@ -130,7 +130,7 @@ def assign_pilot_to_flight(pilot_id, flight_id, airplane_id=None):
 
 
 def remove_pilot_from_flight(pilot_id, flight_id, airplane_id=None):
-    """Remove a pilot assignment from a flight."""
+    """Takes a pilot off a flight assignment."""
     sql = """
         DELETE FROM Pilot_has_Flights 
         WHERE Pilot_Id = %s 
@@ -140,7 +140,7 @@ def remove_pilot_from_flight(pilot_id, flight_id, airplane_id=None):
 
 
 def delete_all_pilots_from_flight(flight_id, airplane_id=None):
-    """Remove all pilot assignments from a flight."""
+    """Removes all pilot assignments from a flight."""
     sql = """
         DELETE FROM Pilot_has_Flights 
         WHERE Flights_FlightId = %s

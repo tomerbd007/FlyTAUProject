@@ -1,4 +1,4 @@
-"""Flask app factory."""
+"""Main Flask app setup - creates and configures the application."""
 from flask import Flask
 from .config import Config
 
@@ -7,7 +7,7 @@ __all__ = ['create_app', 'register_error_handlers']
 
 
 def create_app(config_class=Config):
-    """Create and configure the Flask app."""
+    """Sets up Flask with all the routes, DB connection, and error handlers."""
     app = Flask(__name__)
     app.config.from_object(config_class)
     

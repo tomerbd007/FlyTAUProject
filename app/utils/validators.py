@@ -1,4 +1,4 @@
-"""Form validation helpers. Each returns (is_valid, error_message)."""
+"""Simple validation helpers - each returns (is_valid, error_message)."""
 import re
 
 

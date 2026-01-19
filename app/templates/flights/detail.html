@@ -98,13 +98,13 @@
                     <h3>Business Class</h3>
                     <div class="seats">{{ seat_counts.business.available if seat_counts.business else 0 }}</div>
                     <div class="seats-label">seats available</div>
-                    <div class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}/seat</div>
+                    <div class="price">${{ "%.2f"|format((flight.BusinessPrice or 0)|float) }}/seat</div>
                 </div>
                 <div class="class-card">
                     <h3>Economy Class</h3>
                     <div class="seats">{{ seat_counts.economy.available if seat_counts.economy else 0 }}</div>
                     <div class="seats-label">seats available</div>
-                    <div class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}/seat</div>
+                    <div class="price">${{ "%.2f"|format((flight.EconomyPrice or 0)|float) }}/seat</div>
                 </div>
             </div>
         </div>

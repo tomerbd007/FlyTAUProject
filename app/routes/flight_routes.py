@@ -1,4 +1,4 @@
-"""Public flight search and seat selection routes."""
+"""Routes for searching flights and picking seats - the customer-facing booking flow."""
 from datetime import date
 from flask import render_template, request, redirect, url_for, flash, session
 from app.services import flight_service
@@ -6,7 +6,7 @@ from app.utils.decorators import customer_or_guest
 
 
 def register_flight_routes(app):
-    """Register flight routes with the Flask app."""
+    """Hooks up all the flight-related URLs."""
     
     @app.route('/flights')
     def flights():

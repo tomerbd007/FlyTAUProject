@@ -150,8 +150,8 @@
                             <span class="row-number">{{ row_num }}</span>
                             <div class="seats-group">
                                 {% for seat in seats %}
-                                <label class="seat seat-business {% if seat.status == 'taken' %}seat-occupied{% endif %}" title="Seat {{ seat.code }} - ${{ '%.2f'|format(flight.BusinessPrice|float) }}">
-                                    <input type="checkbox" name="seats" value="{{ seat.code }}" {% if seat.status == 'taken' %}disabled{% endif %} data-price="{{ flight.BusinessPrice }}" data-class="business">
+                                <label class="seat seat-business {% if seat.status == 'taken' %}seat-occupied{% endif %}" title="Seat {{ seat.code }} - ${{ '%.2f'|format((flight.BusinessPrice or 0)|float) }}">
+                                    <input type="checkbox" name="seats" value="{{ seat.code }}" {% if seat.status == 'taken' %}disabled{% endif %} data-price="{{ flight.BusinessPrice or 0 }}" data-class="business">
                                     <span class="seat-label">{{ seat.col }}</span>
                                 </label>
                                 {% endfor %}
@@ -195,8 +195,8 @@
             <div class="card pricing-card">
                 <h3>Pricing</h3>
                 <ul class="price-list">
-                    <li><span class="class-name">Business Class</span><span class="price">${{ "%.2f"|format(flight.BusinessPrice|float) }}</span></li>
-                    <li><span class="class-name">Economy Class</span><span class="price">${{ "%.2f"|format(flight.EconomyPrice|float) }}</span></li>
+                    <li><span class="class-name">Business Class</span><span class="price">${{ "%.2f"|format((flight.BusinessPrice or 0)|float) }}</span></li>
+                    <li><span class="class-name">Economy Class</span><span class="price">${{ "%.2f"|format((flight.EconomyPrice or 0)|float) }}</span></li>
                 </ul>
                 <div class="info-box">
                     <h4>Cancellation Policy</h4>

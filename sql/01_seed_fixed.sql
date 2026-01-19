@@ -1,13 +1,12 @@
 -- =============================================================================
--- FLYTAU Fixed Seed Data (FULL REVISED VERSION)
+-- FlyTAU Sample Data (Complete Version)
 -- =============================================================================
 -- 
--- RULES:
--- - Large aircraft (has business class): 3 pilots + 6 flight attendants
--- - Small aircraft (no business class): 2 pilots + 3 flight attendants
--- - Long flights (>6 hours = >360 minutes): need large aircraft
--- - Crew must have LongFlightsTraining=TRUE for flights >6 hours
--- - Aircraft/crew available for next flight if at same location
+-- Quick rules reminder:
+-- - Big planes (with business class): 3 pilots + 6 attendants
+-- - Small planes (economy only): 2 pilots + 3 attendants
+-- - Long flights (>6 hours): need big planes and trained crew
+-- - Crew/aircraft can only fly if they're at the departure airport
 -- =============================================================================
 
 USE flytau;
@@ -48,10 +47,9 @@ ON DUPLICATE KEY UPDATE
   HouseNum = new_m.HouseNum;
 
 -- -----------------------------------------------------------------------------
--- PILOTS (16 total: 10 assigned + 6 unassigned at TLV)
--- Long flight trained pilots: P001-P006 (for flights >6h)
--- Short flight only pilots: P007-P016
--- Unassigned pilots (at TLV base): P011-P016
+-- PILOTS
+-- P001-P006: long flight certified, P007-P016: short flights only
+-- P011-P016 are sitting at TLV ready to be assigned
 -- -----------------------------------------------------------------------------
 INSERT INTO Pilot (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining, JoinDate, Street, City, HouseNum) VALUES
 -- Assigned pilots (will fly scheduled flights)
@@ -84,10 +82,9 @@ ON DUPLICATE KEY UPDATE
   HouseNum = new_p.HouseNum;
 
 -- -----------------------------------------------------------------------------
--- FLIGHT ATTENDANTS (32 total: 20 assigned + 12 unassigned at TLV)
--- Long flight trained: A001-A012 (for flights >6h)
--- Short flight only: A013-A032
--- Unassigned attendants (at TLV base): A021-A032
+-- FLIGHT ATTENDANTS
+-- A001-A012: long flight certified, A013-A032: short flights only
+-- A021-A032 are at TLV ready to be assigned
 -- -----------------------------------------------------------------------------
 INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining, JoinDate, Street, City, HouseNum) VALUES
 -- Assigned flight attendants (will fly scheduled flights)
@@ -163,10 +160,9 @@ ON DUPLICATE KEY UPDATE
   SecondName = new_g.SecondName;
 
 -- -----------------------------------------------------------------------------
--- AIRPLANES (8 total: 6 assigned + 2 unassigned at TLV)
--- Large aircraft (has business class): PLANE-001, PLANE-003, PLANE-005
--- Small aircraft (no business class): PLANE-002, PLANE-004, PLANE-006
--- Unassigned at TLV base: PLANE-007, PLANE-008
+-- AIRPLANES
+-- Big planes have business class, small planes are economy-only
+-- PLANE-007 and PLANE-008 are at TLV ready to use
 -- -----------------------------------------------------------------------------
 INSERT INTO Airplanes (AirplaneId, PurchaseDate, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols) VALUES
 -- Assigned aircraft
@@ -175,7 +171,7 @@ INSERT INTO Airplanes (AirplaneId, PurchaseDate, Manufacturer, CouchRows, CouchC
 ('PLANE-003', '2017-11-08', 'Airbus', 20, 7, 6, 4),     -- Large: 140 economy + 24 business = 164 seats
 ('PLANE-004', '2020-02-14', 'Airbus', 9, 4, 0, 0),      -- Small: 36 economy seats
 ('PLANE-005', '2021-06-30', 'Dassault', 18, 7, 6, 4),   -- Large: 126 economy + 24 business = 150 seats
-('PLANE-006', '2022-01-10', 'Bombardier', 22, 4, 0, 0), -- Small: 88 economy seats
+('PLANE-006', '2022-01-10', 'Dassault', 22, 4, 0, 0), -- Small: 88 economy seats
 -- Unassigned aircraft at TLV base (2 new)
 ('PLANE-007', '2023-05-20', 'Boeing', 24, 7, 6, 4),    -- Large: 168 economy + 24 business = 192 seats
 ('PLANE-008', '2024-02-10', 'Airbus', 10, 4, 0, 0)     -- Small: 40 economy seats
@@ -189,9 +185,8 @@ ON DUPLICATE KEY UPDATE
   BusinessCols = new_air.BusinessCols;
 
 -- -----------------------------------------------------------------------------
--- FLIGHTS (5 months: Sep, Oct, Nov 2025, Jan, Feb 2026)
--- All flights depart from TLV (our base) so aircraft/crew are always available
--- Long flights (>360 min) use large aircraft with long-flight trained crew
+-- FLIGHTS (Sep, Oct, Nov 2025 + Jan, Feb 2026)
+-- Everything leaves from TLV so we don't have to worry about repositioning
 -- -----------------------------------------------------------------------------
 INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
 -- September 2025 - PLANE-001 (Large) and PLANE-002 (Small)
@@ -228,9 +223,8 @@ ON DUPLICATE KEY UPDATE
 
 -- -----------------------------------------------------------------------------
 -- CREW ASSIGNMENTS
--- Large aircraft: 3 pilots + 6 flight attendants
--- Small aircraft: 2 pilots + 3 flight attendants
--- Long flights (>360 min): crew must have LongFlightsTraining=TRUE
+-- Big planes: 3 pilots + 6 attendants, Small planes: 2 pilots + 3 attendants
+-- Long flights need trained crew
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId) VALUES
 -- FT201: Large aircraft, 3 pilots (P001, P002, P003)
@@ -360,19 +354,11 @@ INSERT IGNORE INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId)
 ('M001', 'FT205'), ('M002', 'FT206'), ('M001', 'FT207');
 
 -- =============================================================================
--- SUMMARY:
--- - 8 Airplanes: 6 assigned to flights + 2 unassigned at TLV (PLANE-007, PLANE-008)
---   Manufacturers: Boeing, Airbus, Dassault only
--- - 16 Pilots: 10 assigned to flights + 6 unassigned at TLV (P011-P016)
---   Unassigned: 4/6 (67%) have long flight training
--- - 32 Flight Attendants: 20 assigned to flights + 12 unassigned at TLV (A021-A032)
---   Unassigned: 8/12 (67%) have long flight training
--- - 11 Flights across 5 months
--- - All flights depart from TLV (Ben Gurion) so crew is always available
--- - Long flights (>6h) use large aircraft with trained crew
--- - Large aircraft: 3 pilots + 6 flight attendants
--- - Small aircraft: 2 pilots + 3 flight attendants
--- - Cancelled orders use 'customer_canceled' or 'system_canceled' status
+-- What we've got:
+-- - 8 planes (6 flying, 2 spare at TLV)
+-- - 16 pilots (10 flying, 6 spare at TLV - 4 of them long-flight certified)
+-- - 32 attendants (20 flying, 12 spare at TLV - 8 long-flight certified)
+-- - 11 flights over 5 months, all leaving from TLV
 -- =============================================================================
 
--- Seed Complete
+-- Done!

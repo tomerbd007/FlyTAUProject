@@ -1,10 +1,10 @@
-"""Customer and manager authentication."""
+"""Login and registration logic for customers and managers."""
 from app.repositories import user_repository
 from app.utils.helpers import hash_password, check_password
 
 
 def register_customer(email, password, first_name, last_name, passport=None, date_of_birth=None):
-    """Register new customer. Raises ValueError if email exists."""
+    """Signs up a new customer. Throws an error if the email's already taken."""
     existing = user_repository.find_registered_customer_by_email(email.lower())
     if existing:
         raise ValueError('An account with this email already exists.')
@@ -24,7 +24,7 @@ def register_customer(email, password, first_name, last_name, passport=None, dat
 
 
 def login_customer(email, password):
-    """Authenticate customer, returns user dict or None."""
+    """Verifies customer credentials - returns their info if valid, None if not."""
     customer = user_repository.find_registered_customer_by_email(email.lower())
     
     if not customer:
@@ -45,7 +45,7 @@ def login_customer(email, password):
 
 
 def login_manager(manager_id, password):
-    """Authenticate manager, returns user dict or None."""
+    """Verifies manager credentials - returns their info if valid, None if not."""
     manager = user_repository.find_manager_by_id(manager_id.upper())
     
     if not manager:
@@ -64,17 +64,17 @@ def login_manager(manager_id, password):
 
 
 def get_registered_customer_by_email(email):
-    """Get registered customer by email."""
+    """Finds a registered customer by their email."""
     return user_repository.find_registered_customer_by_email(email.lower())
 
 
 def get_guest_customer_by_email(email):
-    """Get guest customer by email."""
+    """Finds a guest customer by their email."""
     return user_repository.find_guest_customer_by_email(email.lower())
 
 
 def get_or_create_guest_customer(email, first_name, last_name, phone=None):
-    """Get or create guest customer. Appends phone if guest exists."""
+    """Gets an existing guest or creates a new one. If they exist, adds any new phone number."""
     user_repository.create_guest_customer(
         email=email.lower(),
         first_name=first_name,
@@ -85,5 +85,5 @@ def get_or_create_guest_customer(email, first_name, last_name, phone=None):
 
 
 def get_manager_by_id(manager_id):
-    """Get manager by ID."""
+    """Looks up a manager by their ID."""
     return user_repository.find_manager_by_id(manager_id)

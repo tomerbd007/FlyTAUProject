@@ -1,8 +1,4 @@
-"""
-FLYTAU Chart Generation Utilities
-Generates matplotlib charts as base64-encoded PNG images for embedding in templates.
-Uses FLYTAU brand colors for consistent styling.
-"""
+"""Chart generation for reports - creates PNG images with our brand colors."""
 import io
 import base64
 import matplotlib
@@ -39,7 +35,7 @@ CHART_PALETTE = [
 
 
 def _fig_to_base64(fig: plt.Figure) -> str:
-    """Convert matplotlib figure to base64-encoded PNG string."""
+    """Turns a matplotlib figure into a base64 string we can embed in HTML."""
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=120, bbox_inches='tight', 
                 facecolor='white', edgecolor='none')
@@ -51,7 +47,7 @@ def _fig_to_base64(fig: plt.Figure) -> str:
 
 
 def _apply_brand_style(ax: plt.Axes, title: str = None):
-    """Apply FLYTAU brand styling to axes."""
+    """Makes the chart look consistent with our brand styling."""
     ax.set_facecolor('white')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -369,6 +365,7 @@ def create_multi_bar_chart(categories: List[str],
     
     ax.set_xticks(x)
     ax.set_xticklabels(categories, rotation=45, ha='right')
+    ax.tick_params(axis='x', pad=10)  # Add gap between labels and bars
     ax.legend(loc='upper right', frameon=False)
     
     if xlabel:

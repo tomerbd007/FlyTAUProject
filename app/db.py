@@ -1,4 +1,4 @@
-"""MySQL connection pool and query execution."""
+"""Handles all the MySQL connection pooling and query execution stuff."""
 import mysql.connector
 from mysql.connector import pooling
 from flask import current_app, g
@@ -9,7 +9,7 @@ _db_available = False
 
 
 def init_app(app):
-    """Initialize connection pool with Flask app config."""
+    """Sets up the connection pool when Flask starts up."""
     global _connection_pool, _db_available
     
     pool_config = {
@@ -39,11 +39,11 @@ def init_app(app):
 
 
 def is_db_available():
-    """Check if database connection is available."""
+    """Quick check to see if the DB is up and running."""
     return _db_available
 
 def get_db():
-    """Get connection from pool (reused per request)."""
+    """Grabs a connection from the pool (reuses the same one for each request)."""
     if 'db' not in g:
         if _connection_pool is None:
             raise RuntimeError("Database not initialized. Call init_app first.")
@@ -52,7 +52,7 @@ def get_db():
 
 
 def close_db(error=None):
-    """Return connection to pool at end of request."""
+    """Puts the connection back in the pool when the request is done."""
     db = g.pop('db', None)
     if db is not None:
         if error:
@@ -61,7 +61,7 @@ def close_db(error=None):
 
 
 def execute_query(query, params=None, fetch_one=False, fetch_all=True, commit=False):
-    """Execute SQL and return results as dicts. Use commit=True for INSERT/UPDATE/DELETE."""
+    """Runs SQL and returns results as dicts. Pass commit=True for INSERT/UPDATE/DELETE."""
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
@@ -86,7 +86,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=True, commit=Fa
 
 
 def execute_many(query, data_list, commit=True):
-    """Execute same query with multiple parameter sets."""
+    """Runs the same query with a bunch of different parameter sets - great for bulk inserts."""
     conn = get_db()
     cursor = conn.cursor()
     

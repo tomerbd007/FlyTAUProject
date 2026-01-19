@@ -1,4 +1,4 @@
-"""Flight search, availability, and seat management."""
+"""Everything related to finding flights, checking seats, and managing availability."""
 from datetime import datetime, timedelta
 from app.repositories import flight_repository, aircraft_repository
 
@@ -8,27 +8,27 @@ MAX_LAYOVER_HOURS = 12
 
 
 def get_all_airports():
-    """Get all airports."""
+    """Fetches the full airport list."""
     return flight_repository.get_all_airports()
 
 
 def get_airport_by_code(code):
-    """Get airport by code."""
+    """Looks up a specific airport by its code (like TLV, JFK, etc)."""
     return flight_repository.get_airport_by_code(code)
 
 
 def get_all_cities():
-    """Get unique cities with flights."""
+    """Gets all the cities we actually fly to/from."""
     return flight_repository.get_all_unique_cities()
 
 
 def get_all_routes():
-    """Get all origin-destination pairs."""
+    """Returns every origin-destination combo we have."""
     return flight_repository.get_all_routes()
 
 
 def search_available_flights(departure_date=None, origin=None, destination=None, include_indirect=True):
-    """Search for available flights. Returns direct and connecting options."""
+    """Main flight search - finds direct flights and connecting options."""
     results = []
     
     # Search for direct flights
@@ -65,13 +65,8 @@ def search_available_flights(departure_date=None, origin=None, destination=None,
 
 def _process_flight(flight):
     """
-    Process a flight record and add seat availability info.
-    
-    Args:
-        flight: Raw flight dict from database
-    
-    Returns:
-        Processed flight dict with additional fields
+    Takes a raw flight from the DB and enriches it with seat info,
+    calculates arrival time, etc. Returns a nicer dict to work with.
     """
     flight = dict(flight)
     
@@ -118,7 +113,7 @@ def _process_flight(flight):
 
 
 def _search_indirect_flights(departure_date, origin, destination):
-    """Find connecting flights with one stop."""
+    """Looks for connecting flights with one layover."""
     indirect_results = []
     
     # Get all flights departing from origin on the given date (first leg)
@@ -229,7 +224,7 @@ def _search_indirect_flights(departure_date, origin, destination):
 
 
 def _calculate_arrival_datetime(departure_date, departure_hour, duration_minutes):
-    """Calculate arrival datetime from departure + duration."""
+    """Figures out when the plane lands based on departure + flight time."""
     departure = _parse_datetime(departure_date, departure_hour)
     if departure and duration_minutes:
         return departure + timedelta(minutes=duration_minutes)
@@ -237,7 +232,7 @@ def _calculate_arrival_datetime(departure_date, departure_hour, duration_minutes
 
 
 def _parse_datetime(date_val, time_str):
-    """Parse date and time into datetime."""
+    """Combines a date and time string into a proper datetime object."""
     try:
         if isinstance(date_val, str):
             date_obj = datetime.strptime(date_val, '%Y-%m-%d').date()
@@ -258,7 +253,7 @@ def _parse_datetime(date_val, time_str):
 
 
 def _combine_seat_availability(avail1, avail2):
-    """Combine seat availability from two flights (uses minimum)."""
+    """For connecting flights, takes the smaller seat count between the two legs."""
     if not avail1:
         return avail2
     if not avail2:
@@ -278,7 +273,7 @@ def _combine_seat_availability(avail1, avail2):
 
 
 def get_flight_details(flight_id, airplane_id):
-    """Get flight with aircraft info and seat availability."""
+    """Gets all the info about a flight - aircraft, pricing, seat availability."""
     flight = flight_repository.get_flight_by_id(flight_id, airplane_id)
     if flight:
         flight = dict(flight)
@@ -313,17 +308,17 @@ def get_flight_details(flight_id, airplane_id):
 
 
 def get_seat_availability(flight_id, airplane_id):
-    """Get seat counts by class for a flight."""
+    """How many seats are left in each class."""
     return flight_repository.get_seat_availability(flight_id, airplane_id)
 
 
 def get_taken_seats(flight_id, airplane_id):
-    """Get taken seats for a flight."""
+    """Returns which seats are already booked."""
     return flight_repository.get_taken_seats(flight_id, airplane_id)
 
 
 def get_available_seats_for_class(flight_id, airplane_id, seat_class):
-    """Get available seats for a specific class."""
+    """Lists all the open seats in a specific class (business or economy)."""
     # Get airplane seat configuration
     airplane = aircraft_repository.get_airplane_by_id(airplane_id)
     if not airplane:
@@ -370,7 +365,7 @@ def get_available_seats_for_class(flight_id, airplane_id, seat_class):
 
 
 def get_seats_by_codes(flight_id, airplane_id, seat_codes):
-    """Get seat details with prices for given seat codes."""
+    """Takes seat codes like '1A', '2B' and returns all their details with pricing."""
     import re
     
     # Get flight for pricing info
@@ -383,9 +378,9 @@ def get_seats_by_codes(flight_id, airplane_id, seat_codes):
     if not airplane:
         return []
     
-    business_rows = airplane.get('business_rows', 0)
-    business_price = float(flight.get('BusinessPrice', 0))
-    economy_price = float(flight.get('EconomyPrice', 0))
+    business_rows = airplane.get('business_rows', 0) or 0
+    business_price = float(flight.get('BusinessPrice') or 0)
+    economy_price = float(flight.get('EconomyPrice') or 0)
     
     seats_info = []
     for seat_code in seat_codes:
@@ -415,7 +410,7 @@ def get_seats_by_codes(flight_id, airplane_id, seat_codes):
 
 
 def build_seat_map(flight_id, airplane_id, exclude_seats=None):
-    """Build seat map for display. exclude_seats won't be marked as taken."""
+    """Builds the seat grid for the UI. Can exclude certain seats from being marked taken."""
     airplane = aircraft_repository.get_airplane_by_id(airplane_id)
     if not airplane:
         return None
@@ -470,17 +465,13 @@ def build_seat_map(flight_id, airplane_id, exclude_seats=None):
 
 
 def update_flight_status(flight_id, new_status):
-    """Update flight status."""
+    """Changes the status of a flight (active, full, cancelled, etc)."""
     flight_repository.update_flight_status(flight_id, new_status)
 
 
 def check_flight_full(flight_id, airplane_id):
     """
-    Check if a flight is fully booked and update status if so.
-    
-    Args:
-        flight_id: Flight ID
-        airplane_id: Airplane ID (used for seat availability check)
+    Sees if every seat is booked and marks the flight as 'full' if so.
     """
     availability = get_seat_availability(flight_id, airplane_id)
     

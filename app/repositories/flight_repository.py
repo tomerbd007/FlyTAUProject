@@ -1,4 +1,4 @@
-"""Database access for flights, airports, and routes."""
+"""All the SQL queries for flights, airports, and routes."""
 from app.db import execute_query
 from app.repositories.aircraft_repository import get_airplane_by_id, generate_seat_map
 import random
@@ -6,7 +6,7 @@ import string
 
 
 def get_all_airports():
-    """Get all airports ordered by city."""
+    """Grabs all airports, sorted by city."""
     sql = """
         SELECT Code as code, Name as name, City as city, Country as country
         FROM Airports
@@ -17,14 +17,14 @@ def get_all_airports():
 
 
 def get_airport_by_code(code):
-    """Get airport by code."""
+    """Looks up an airport by its code."""
     sql = "SELECT Code as code, Name as name, City as city, Country as country FROM Airports WHERE Code = %s"
     results = execute_query(sql, (code,))
     return results[0] if results else None
 
 
 def get_route(origin, destination):
-    """Get route info for origin-destination pair."""
+    """Finds the route between two airports."""
     sql = """
         SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
                DurationMinutes as duration_minutes, DistanceKm as distance_km
@@ -36,7 +36,7 @@ def get_route(origin, destination):
 
 
 def get_all_routes():
-    """Get all routes."""
+    """Gets every route we have in the system."""
     sql = """
         SELECT RouteId as id, OriginPort as origin, DestPort as destination, 
                DurationMinutes as duration_minutes, DistanceKm as distance_km
@@ -50,7 +50,7 @@ def get_all_routes():
 # ============ FLIGHT OPERATIONS ============
 
 def get_all_unique_cities():
-    """Get all unique cities used as origin or destination."""
+    """Lists all the cities that show up in our flight origins/destinations."""
     sql = """
         SELECT DISTINCT city FROM (
             SELECT OriginPort AS city FROM Flights
@@ -64,7 +64,7 @@ def get_all_unique_cities():
 
 
 def search_flights(departure_date=None, origin=None, destination=None, status=None):
-    """Search flights with optional filters."""
+    """Searches for flights with whatever filters you pass in."""
     sql = """
         SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
                f.EconomyPrice, f.BusinessPrice, f.Duration,
@@ -99,7 +99,7 @@ def search_flights(departure_date=None, origin=None, destination=None, status=No
 
 
 def get_flight_by_id(flight_id, airplane_id=None):
-    """Get flight with details."""
+    """Fetches a specific flight with all its details."""
     if airplane_id:
         sql = """
             SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
@@ -128,7 +128,7 @@ def get_flight_by_id(flight_id, airplane_id=None):
 
 
 def get_all_flights(status_filter=None):
-    """Get all flights, optionally filtered by status."""
+    """Gets all flights, can filter by status if needed."""
     sql = """
         SELECT f.FlightId, f.Airplanes_AirplaneId, f.Status, 
                f.EconomyPrice, f.BusinessPrice, f.Duration,

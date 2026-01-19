@@ -1,10 +1,10 @@
-"""Route access control decorators."""
+"""Decorators for protecting routes based on who's logged in."""
 from functools import wraps
 from flask import session, redirect, url_for, flash, abort
 
 
 def login_required(f):
-    """Require any logged-in user."""
+    """Makes sure someone is logged in before they can access the route."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -15,7 +15,7 @@ def login_required(f):
 
 
 def guest_only(f):
-    """Only allow non-logged-in users (for login/register pages)."""
+    """Only for logged-out users (login/register pages shouldn't show if you're already in)."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' in session:
@@ -27,7 +27,7 @@ def guest_only(f):
 
 
 def manager_required(f):
-    """Require manager role."""
+    """Manager-only routes - redirects everyone else."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -41,7 +41,7 @@ def manager_required(f):
 
 
 def customer_required(f):
-    """Require customer role (block managers)."""
+    """Customer-only routes - managers can't access these."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('role') == 'manager':
@@ -55,7 +55,7 @@ def customer_required(f):
 
 
 def customer_or_guest(f):
-    """Allow customers and guests, block managers."""
+    """Open to customers and guests, but managers are blocked from booking."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('role') == 'manager':
@@ -66,7 +66,7 @@ def customer_or_guest(f):
 
 
 def role_required(*roles):
-    """Require one of the specified roles."""
+    """Restricts access to users with one of the specified roles."""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):

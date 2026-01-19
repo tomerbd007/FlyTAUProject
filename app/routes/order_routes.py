@@ -1,4 +1,4 @@
-"""Order routes: checkout, viewing, cancellation, guest lookup."""
+"""Everything to do with orders - checkout, viewing bookings, cancellations, guest lookup."""
 from flask import render_template, request, redirect, url_for, flash, session
 from datetime import datetime, timedelta
 from app.services import order_service, flight_service
@@ -6,7 +6,7 @@ from app.utils.decorators import login_required, customer_or_guest
 
 
 def register_order_routes(app):
-    """Register order routes with the Flask app."""
+    """Hooks up all the order-related URLs."""
     
     @app.route('/checkout', methods=['GET', 'POST'])
     @customer_or_guest
@@ -30,6 +30,12 @@ def register_order_routes(app):
         flight = flight_service.get_flight_details(flight_id, airplane_id)
         if not flight:
             flash('Flight not found.', 'error')
+            session.pop('checkout', None)
+            return redirect(url_for('flights'))
+        
+        # Check if flight is still available for booking
+        if flight.get('Status') != 'active':
+            flash('This flight is no longer available for booking.', 'error')
             session.pop('checkout', None)
             return redirect(url_for('flights'))
         
@@ -88,8 +94,8 @@ def register_order_routes(app):
                     flight_id=flight_id,
                     airplane_id=airplane_id,
                     selected_seats=order_seats,
-                    economy_price=flight.get('EconomyPrice', 0),
-                    business_price=flight.get('BusinessPrice', 0),
+                    economy_price=flight.get('EconomyPrice') or 0,
+                    business_price=flight.get('BusinessPrice') or 0,
                     registered_email=registered_email,
                     guest_email=guest_email,
                     guest_first_name=guest_first_name,
@@ -454,9 +460,16 @@ def register_order_routes(app):
             contact_email = order.get('RegisteredCustomer_UniqueMail') or order.get('GuestCustomer_UniqueMail') or email
             can_cancel = departure_dt > datetime.now() + timedelta(hours=36)
 
+            # Determine display status - show 'done' for completed flights
+            raw_status = (order.get('Status') or 'unknown').lower()
+            if raw_status == 'confirmed' and departure_dt < datetime.now():
+                display_status = 'done'
+            else:
+                display_status = raw_status
+
             order_vm = {
                 'booking_code': order.get('UniqueOrderCode'),
-                'status': (order.get('Status') or 'unknown').lower(),
+                'status': display_status,
                 'email': contact_email,
                 'flight_number': order.get('Flights_FlightId'),
                 'aircraft_type': order.get('Manufacturer'),
@@ -523,10 +536,21 @@ def register_order_routes(app):
         if request.method == 'POST':
             try:
                 original_cost, fee, refund = order_service.cancel_order(booking_code, email)
-                flash(f'Order canceled. Refund amount: ${refund:.2f} (5% fee: ${fee:.2f})', 'success')
+                # Build success view model for cancel success page
+                success_vm = {
+                    'booking_code': booking_code,
+                    'email': email,
+                    'flight_number': order.get('Flights_FlightId'),
+                    'total_amount': float(original_cost),
+                    'cancellation_fee': float(fee),
+                    'refund_amount': float(refund)
+                }
+                return render_template('orders/cancel_success.html',
+                                       order=success_vm,
+                                       is_guest=True)
             except ValueError as e:
                 flash(str(e), 'error')
-            return redirect(url_for('guest_lookup'))
+                return redirect(url_for('guest_lookup'))
         
         # Build order view model for template
         order_vm = {

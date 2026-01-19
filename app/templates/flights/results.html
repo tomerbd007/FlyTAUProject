@@ -92,8 +92,8 @@
 
             <div class="price-panel">
                 <div class="price-group">
-                    <span class="price-chip">Economy ${{ "%.2f"|format(flight.EconomyPrice|float) }}</span>
-                    <span class="price-chip">Business ${{ "%.2f"|format(flight.BusinessPrice|float) }}</span>
+                    <span class="price-chip">Economy ${{ "%.2f"|format((flight.EconomyPrice or 0)|float) }}</span>
+                    {% if flight.BusinessPrice %}<span class="price-chip">Business ${{ "%.2f"|format(flight.BusinessPrice|float) }}</span>{% endif %}
                 </div>
                 {% if session.get('role') == 'manager' %}
                 <span class="action-btn" style="opacity: 0.5; cursor: not-allowed; background: #6c757d;">Managers Cannot Book</span>

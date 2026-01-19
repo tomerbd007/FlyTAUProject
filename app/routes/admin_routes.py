@@ -1,4 +1,4 @@
-"""Admin routes: dashboard, flight management, cancellation."""
+"""Manager-only routes - dashboard, adding/editing flights, cancellation pages."""
 import json
 from datetime import datetime, timedelta
 from flask import render_template, request, redirect, url_for, flash, session
@@ -8,7 +8,7 @@ from app.utils.decorators import manager_required
 
 
 def register_admin_routes(app):
-    """Register admin routes with the Flask app."""
+    """Hooks up all the manager dashboard URLs."""
     
     @app.route('/admin')
     @manager_required
@@ -410,10 +410,22 @@ def register_admin_routes(app):
             )
             
             if success:
-                flash(f'Airplane "{airplane_id}" added successfully!', 'success')
-                return redirect(url_for('add_menu'))
+                resource_details = {
+                    'Airplane ID': airplane_id,
+                    'Manufacturer': manufacturer,
+                    'Purchase Date': purchase_date,
+                    'Economy Seats': f'{economy_rows} rows × {economy_cols} cols',
+                    'Business Seats': f'{business_rows} rows × {business_cols} cols' if business_rows > 0 else 'None'
+                }
+                return render_template('admin/add_success.html',
+                                       success=True,
+                                       resource_type='Airplane',
+                                       resource_details=resource_details)
             else:
-                flash('Error creating airplane. Please try again.', 'danger')
+                return render_template('admin/add_success.html',
+                                       success=False,
+                                       resource_type='Airplane',
+                                       error_message='Error creating airplane. Please try again.')
         
         return render_template('admin/add_airplane.html')
     
@@ -457,10 +469,22 @@ def register_admin_routes(app):
             )
             
             if success:
-                flash(f'Pilot "{first_name} {last_name}" added successfully!', 'success')
-                return redirect(url_for('add_menu'))
+                resource_details = {
+                    'Pilot ID': pilot_id,
+                    'Name': f'{first_name} {last_name}',
+                    'Phone': phone,
+                    'Join Date': join_date,
+                    'Long Flights Training': 'Yes' if long_flights_training else 'No'
+                }
+                return render_template('admin/add_success.html',
+                                       success=True,
+                                       resource_type='Pilot',
+                                       resource_details=resource_details)
             else:
-                flash('Error creating pilot. Please try again.', 'danger')
+                return render_template('admin/add_success.html',
+                                       success=False,
+                                       resource_type='Pilot',
+                                       error_message='Error creating pilot. Please try again.')
         
         return render_template('admin/add_pilot.html')
     
@@ -504,9 +528,21 @@ def register_admin_routes(app):
             )
             
             if success:
-                flash(f'Flight attendant "{first_name} {last_name}" added successfully!', 'success')
-                return redirect(url_for('add_menu'))
+                resource_details = {
+                    'Attendant ID': attendant_id,
+                    'Name': f'{first_name} {last_name}',
+                    'Phone': phone,
+                    'Join Date': join_date,
+                    'Long Flights Training': 'Yes' if long_flights_training else 'No'
+                }
+                return render_template('admin/add_success.html',
+                                       success=True,
+                                       resource_type='Flight Attendant',
+                                       resource_details=resource_details)
             else:
-                flash('Error creating flight attendant. Please try again.', 'danger')
+                return render_template('admin/add_success.html',
+                                       success=False,
+                                       resource_type='Flight Attendant',
+                                       error_message='Error creating flight attendant. Please try again.')
         
         return render_template('admin/add_attendant.html')

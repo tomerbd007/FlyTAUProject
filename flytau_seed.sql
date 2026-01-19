@@ -1,19 +1,18 @@
 -- =============================================================================
--- FLYTAU Fixed Seed Data (FULL REVISED VERSION)
+-- FlyTAU Seed Data
 -- =============================================================================
 -- 
--- RULES:
--- - Large aircraft (has business class): 3 pilots + 6 flight attendants
--- - Small aircraft (no business class): 2 pilots + 3 flight attendants
--- - Long flights (>6 hours = >360 minutes): need large aircraft
--- - Crew must have LongFlightsTraining=TRUE for flights >6 hours
--- - Aircraft/crew available for next flight if at same location
+-- Quick rules:
+-- - Big planes (with business class): 3 pilots + 6 attendants
+-- - Small planes (economy only): 2 pilots + 3 attendants
+-- - Long flights (over 6 hours): need a big plane and trained crew
+-- - Planes and crew are available again once they're back at TLV
 -- =============================================================================
 
 USE flytau;
 
 -- =============================================================================
--- AIRPORTS (Global) - with coordinates for distance calculations
+-- AIRPORTS - coordinates are for calculating flight distances
 -- =============================================================================
 INSERT IGNORE INTO Airports (Code, Name, City, Country, Latitude, Longitude) VALUES
 -- Middle East
@@ -92,7 +91,7 @@ TRUNCATE TABLE Managers;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- -----------------------------------------------------------------------------
--- MANAGERS
+-- MANAGERS (both have password 'password123')
 -- -----------------------------------------------------------------------------
 INSERT INTO Managers (ManagerId, Password, FirstName, SecondName, PhoneNum, JoinDate, Street, City, HouseNum) VALUES
 ('M001', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'David', 'Cohen', '["972-54-1234567"]', '2018-05-01', 'Main St', 'Tel Aviv', '10'),
@@ -109,10 +108,8 @@ ON DUPLICATE KEY UPDATE
   HouseNum = new_m.HouseNum;
 
 -- -----------------------------------------------------------------------------
--- PILOTS (16 total: 10 assigned + 6 unassigned at TLV)
--- Long flight trained pilots: P001-P006 (for flights >6h)
--- Short flight only pilots: P007-P016
--- Unassigned pilots (at TLV base): P011-P016
+-- PILOTS (16 total, 10 flying and 6 spare at TLV)
+-- P001-P006 can do long flights, P007-P016 are short-haul only
 -- -----------------------------------------------------------------------------
 INSERT INTO Pilot (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining, JoinDate, Street, City, HouseNum) VALUES
 -- Assigned pilots (will fly scheduled flights)
@@ -145,10 +142,8 @@ ON DUPLICATE KEY UPDATE
   HouseNum = new_p.HouseNum;
 
 -- -----------------------------------------------------------------------------
--- FLIGHT ATTENDANTS (32 total: 20 assigned + 12 unassigned at TLV)
--- Long flight trained: A001-A012 (for flights >6h)
--- Short flight only: A013-A032
--- Unassigned attendants (at TLV base): A021-A032
+-- FLIGHT ATTENDANTS (32 total, 20 flying and 12 spare at TLV)
+-- A001-A012 can do long flights, the rest are short-haul only
 -- -----------------------------------------------------------------------------
 INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining, JoinDate, Street, City, HouseNum) VALUES
 -- Assigned flight attendants (will fly scheduled flights)
@@ -197,7 +192,7 @@ ON DUPLICATE KEY UPDATE
   HouseNum = new_fa.HouseNum;
 
 -- -----------------------------------------------------------------------------
--- REGISTERED CUSTOMERS
+-- REGISTERED CUSTOMERS (password is 'password123' for both)
 -- -----------------------------------------------------------------------------
 INSERT INTO RegisteredCustomer (UniqueMail, Password, PhoneNum, PassportNum, FirstName, SecondName, BirthDate, RegistrationDate) VALUES
 ('customer1@gmail.com', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', '["972-54-1111111"]', 'P123456', 'John', 'Doe', '1985-06-15', '2020-01-01'),
@@ -224,10 +219,8 @@ ON DUPLICATE KEY UPDATE
   SecondName = new_g.SecondName;
 
 -- -----------------------------------------------------------------------------
--- AIRPLANES (8 total: 6 assigned + 2 unassigned at TLV)
--- Large aircraft (has business class): PLANE-001, PLANE-003, PLANE-005
--- Small aircraft (no business class): PLANE-002, PLANE-004, PLANE-006
--- Unassigned at TLV base: PLANE-007, PLANE-008
+-- AIRPLANES (8 total, 6 flying and 2 spare at TLV)
+-- Big planes have business class, small ones are economy-only
 -- -----------------------------------------------------------------------------
 INSERT INTO Airplanes (AirplaneId, PurchaseDate, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols) VALUES
 -- Assigned aircraft
@@ -236,8 +229,7 @@ INSERT INTO Airplanes (AirplaneId, PurchaseDate, Manufacturer, CouchRows, CouchC
 ('PLANE-003', '2017-11-08', 'Airbus', 20, 7, 6, 4),     -- Large: 140 economy + 24 business = 164 seats
 ('PLANE-004', '2020-02-14', 'Airbus', 9, 4, 0, 0),      -- Small: 36 economy seats
 ('PLANE-005', '2021-06-30', 'Dassault', 18, 7, 6, 4),   -- Large: 126 economy + 24 business = 150 seats
-('PLANE-006', '2022-01-10', 'Bombardier', 22, 4, 0, 0), -- Small: 88 economy seats
--- Unassigned aircraft at TLV base (2 new)
+('PLANE-006', '2022-01-10', 'Dassault', 22, 4, 0, 0), -- Small: 88 economy seats
 ('PLANE-007', '2023-05-20', 'Boeing', 24, 7, 6, 4),    -- Large: 168 economy + 24 business = 192 seats
 ('PLANE-008', '2024-02-10', 'Airbus', 10, 4, 0, 0)     -- Small: 40 economy seats
 AS new_air
@@ -250,9 +242,8 @@ ON DUPLICATE KEY UPDATE
   BusinessCols = new_air.BusinessCols;
 
 -- -----------------------------------------------------------------------------
--- FLIGHTS (5 months: Sep, Oct, Nov 2025, Jan, Feb 2026)
--- All flights depart from TLV (our base) so aircraft/crew are always available
--- Long flights (>360 min) use large aircraft with long-flight trained crew
+-- FLIGHTS (Sep-Nov 2025, Jan-Feb 2026)
+-- Everything leaves from TLV so planes and crew are always ready
 -- -----------------------------------------------------------------------------
 INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
 -- September 2025 - PLANE-001 (Large) and PLANE-002 (Small)
@@ -289,9 +280,8 @@ ON DUPLICATE KEY UPDATE
 
 -- -----------------------------------------------------------------------------
 -- CREW ASSIGNMENTS
--- Large aircraft: 3 pilots + 6 flight attendants
--- Small aircraft: 2 pilots + 3 flight attendants
--- Long flights (>360 min): crew must have LongFlightsTraining=TRUE
+-- Big planes: 3 pilots + 6 attendants, Small planes: 2 pilots + 3 attendants
+-- Long flights need crew with the right training
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Pilot_has_Flights (Pilot_Id, Flights_FlightId) VALUES
 -- FT201: Large aircraft, 3 pilots (P001, P002, P003)
@@ -342,7 +332,7 @@ INSERT IGNORE INTO FlightAttendant_has_Flights (FlightAttendant_Id, Flights_Flig
 ('A007', 'FT207'), ('A008', 'FT207'), ('A009', 'FT207'), ('A010', 'FT207'), ('A011', 'FT207'), ('A012', 'FT207');
 
 -- -----------------------------------------------------------------------------
--- ORDERS (spread across 5 months with mix of confirmed/cancelled)
+-- ORDERS (mix of confirmed and cancelled across all months)
 -- -----------------------------------------------------------------------------
 INSERT INTO orders (UniqueOrderCode, Flights_FlightId, TotalCost, Status, GuestCustomer_UniqueMail, RegisteredCustomer_UniqueMail) VALUES
 -- September 2025 orders (PLANE-001, PLANE-002)
@@ -377,7 +367,7 @@ ON DUPLICATE KEY UPDATE
   Status = new_o.Status;
 
 -- -----------------------------------------------------------------------------
--- TICKETS (for all orders)
+-- TICKETS
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Tickets (orders_UniqueOrderCode, RowNum, Seat, Class) VALUES
 -- September tickets
@@ -413,7 +403,7 @@ INSERT IGNORE INTO Tickets (orders_UniqueOrderCode, RowNum, Seat, Class) VALUES
 ('ORD-FEB04', 18, 'A', 'economy');
 
 -- -----------------------------------------------------------------------------
--- MANAGER EDITS
+-- MANAGER EDITS (who created which flight)
 -- -----------------------------------------------------------------------------
 INSERT IGNORE INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId) VALUES
 ('M001', 'FT101'), ('M001', 'FT102'), ('M002', 'FT103'), ('M002', 'FT104'),
@@ -421,24 +411,17 @@ INSERT IGNORE INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId)
 ('M001', 'FT205'), ('M002', 'FT206'), ('M001', 'FT207');
 
 -- =============================================================================
--- - 8 Airplanes: 6 assigned to flights + 2 unassigned at TLV (PLANE-007, PLANE-008)
---   Manufacturers: Boeing, Airbus, Dassault only
--- - 16 Pilots: 10 assigned to flights + 6 unassigned at TLV (P011-P016)
---   Unassigned: 4/6 (67%) have long flight training
--- - 32 Flight Attendants: 20 assigned to flights + 12 unassigned at TLV (A021-A032)
---   Unassigned: 8/12 (67%) have long flight training
--- - 11 Flights across 5 months
--- - All flights depart from TLV (Ben Gurion) so crew is always available
--- - Long flights (>6h) use large aircraft with trained crew
--- - Large aircraft: 3 pilots + 6 flight attendants
--- - Small aircraft: 2 pilots + 3 flight attendants
--- - Cancelled orders use 'customer_canceled' or 'system_canceled' status
+-- What we've got:
+-- - 8 planes (6 flying, 2 spare at TLV)
+-- - 16 pilots (10 flying, 6 spare at TLV, 4 of them long-flight certified)
+-- - 32 attendants (20 flying, 12 spare at TLV, 8 long-flight certified)
+-- - 11 flights over 5 months, all from TLV
+-- - Orders can be 'customer_canceled' or 'system_canceled' when cancelled
 -- =============================================================================
 
--- Seed Complete-- =============================================================================
--- ROUTES - All airport combinations with calculated durations
--- Generated automatically using Haversine formula
--- Duration = (distance_km / 850 km/h) * 60 + 45 min overhead
+-- Done!-- =============================================================================
+-- ROUTES - All the airport pairs with travel times
+-- Duration = flight time based on 850 km/h average speed, plus 45 min overhead
 -- =============================================================================
 INSERT INTO Routes (OriginPort, DestPort, DurationMinutes, DistanceKm) VALUES
 ('TLV', 'DXB', 195, 2131),

@@ -1,10 +1,10 @@
-"""Database access for customers and employees."""
+"""All the SQL queries for customers, managers, and other users."""
 import json
 from app.db import execute_query
 
 
 def find_registered_customer_by_email(email):
-    """Find registered customer by email."""
+    """Looks up a registered customer by their email."""
     sql = """
         SELECT UniqueMail, Password, FirstName, SecondName, 
                PhoneNum, RegistrationDate, PassportNum, BirthDate
@@ -24,7 +24,7 @@ def find_registered_customer_by_email(email):
 
 
 def create_registered_customer(email, password_hash, first_name, last_name, phone=None, passport_num=None, birth_date=None):
-    """Create new registered customer. Returns email (PK)."""
+    """Creates a new registered customer account."""
     phone_json = json.dumps(phone) if phone else None
     sql = """
         INSERT INTO RegisteredCustomer 
@@ -36,7 +36,7 @@ def create_registered_customer(email, password_hash, first_name, last_name, phon
 
 
 def email_exists_registered(email):
-    """Check if email already exists in RegisteredCustomer table."""
+    """Checks if an email is already registered."""
     sql = "SELECT 1 FROM RegisteredCustomer WHERE UniqueMail = %s"
     result = execute_query(sql, (email,), fetch_one=True)
     return result is not None
@@ -45,7 +45,7 @@ def email_exists_registered(email):
 # ============ GUEST CUSTOMER OPERATIONS ============
 
 def find_guest_customer_by_email(email):
-    """Find a guest customer by email address."""
+    """Looks up a guest customer by their email."""
     sql = """
         SELECT UniqueMail, FirstName, SecondName, PhoneNum
         FROM GuestCustomer
@@ -63,7 +63,7 @@ def find_guest_customer_by_email(email):
 
 
 def create_guest_customer(email, first_name, last_name, phone=None):
-    """Create or update guest customer. Appends new phone if provided."""
+    """Creates or updates a guest. If they exist, adds the new phone number to their list."""
     # Check if guest already exists
     existing = find_guest_customer_by_email(email)
     
@@ -96,14 +96,14 @@ def create_guest_customer(email, first_name, last_name, phone=None):
 
 
 def email_exists_guest(email):
-    """Check if email already exists in GuestCustomer table."""
+    """Checks if an email belongs to an existing guest."""
     sql = "SELECT 1 FROM GuestCustomer WHERE UniqueMail = %s"
     result = execute_query(sql, (email,), fetch_one=True)
     return result is not None
 
 
 def find_manager_by_id(manager_id):
-    """Find manager by ID."""
+    """Looks up a manager by their ID."""
     sql = """
         SELECT ManagerId, Password, FirstName, SecondName, 
                PhoneNum, JoinDate, Street, City, HouseNum
@@ -122,7 +122,7 @@ def find_manager_by_id(manager_id):
 
 
 def get_all_managers():
-    """Get all managers."""
+    """Gets a list of all managers."""
     sql = """
         SELECT ManagerId, FirstName, SecondName, JoinDate, PhoneNum, City
         FROM Managers
@@ -132,7 +132,7 @@ def get_all_managers():
 
 
 def find_pilot_by_id(pilot_id):
-    """Find pilot by ID."""
+    """Looks up a pilot by their ID."""
     sql = """
         SELECT Id, FirstName, SecondName, PhoneNum, JoinDate, 
                Street, City, HouseNum, LongFlightsTraining

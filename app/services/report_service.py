@@ -1,4 +1,4 @@
-"""Report queries and chart generation."""
+"""Runs the analytics reports and generates the charts for them."""
 from app.db import execute_query
 from app.utils import charts
 import os
@@ -8,19 +8,19 @@ SQL_REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(_
 
 
 def _load_sql_file(filename):
-    """Load SQL from file."""
+    """Reads a SQL file from the reports folder."""
     filepath = os.path.join(SQL_REPORTS_DIR, filename)
     with open(filepath, 'r') as f:
         return f.read()
 
 
 def _execute_report_sql(sql):
-    """Execute SQL and return results."""
+    """Runs a SQL query and gives back the results."""
     return execute_query(sql)
 
 
 def get_average_occupancy():
-    """Get flight occupancy report with chart."""
+    """Generates the occupancy report showing how full our flights are."""
     # Get per-flight occupancy data for the table
     detail_sql = """
         SELECT 
@@ -78,7 +78,7 @@ def get_average_occupancy():
 
 
 def get_revenue_by_aircraft():
-    """Get revenue by aircraft report with chart."""
+    """Breaks down revenue by aircraft type and cabin class."""
     sql = _load_sql_file('revenue_by_aircraft.sql')
     results = _execute_report_sql(sql) or []
     
@@ -132,7 +132,7 @@ def get_revenue_by_aircraft():
 
 
 def get_flight_hours_per_employee():
-    """Get flight hours per employee report with chart."""
+    """Shows how many hours each crew member has flown (short vs long flights)."""
     sql = _load_sql_file('flight_hours_per_employee.sql')
     results = _execute_report_sql(sql) or []
     
@@ -175,7 +175,7 @@ def get_flight_hours_per_employee():
 
 
 def get_monthly_cancellation_rate():
-    """Get monthly cancellation rate report with chart."""
+    """Tracks our cancellation rate month over month."""
     sql = _load_sql_file('monthly_cancellation_rate.sql')
     results = _execute_report_sql(sql) or []
     
@@ -220,7 +220,7 @@ def get_monthly_cancellation_rate():
 
 
 def get_monthly_aircraft_activity():
-    """Get monthly aircraft activity report with chart."""
+    """Shows how much each aircraft is being used (flights performed vs cancelled)."""
     sql = _load_sql_file('monthly_aircraft_activity.sql')
     results = _execute_report_sql(sql) or []
     

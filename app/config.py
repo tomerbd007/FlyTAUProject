@@ -1,4 +1,4 @@
-"""App configuration from environment variables."""
+"""Configuration settings - pulls from env vars with sensible defaults."""
 import os
 from dotenv import load_dotenv
 
@@ -8,14 +8,13 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
-    # Database configuration - supports both local and AWS RDS environment variables
-    # AWS EB with RDS sets: RDS_HOSTNAME, RDS_PORT, RDS_USERNAME, RDS_PASSWORD, RDS_DB_NAME
-    # For manual config, use: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+    # DB config works with both local dev and AWS RDS
+    # AWS EB sets RDS_* vars automatically, or you can use DB_* for manual setup
     DB_HOST = os.environ.get('RDS_HOSTNAME') or os.environ.get('DB_HOST', 'localhost')
     DB_PORT = int(os.environ.get('RDS_PORT') or os.environ.get('DB_PORT', 3306))
     DB_USER = os.environ.get('RDS_USERNAME') or os.environ.get('DB_USER', 'root')
     DB_PASSWORD = os.environ.get('RDS_PASSWORD') or os.environ.get('DB_PASSWORD', '')
-    # Always use 'flytau' database - our schema creates this, not the default 'ebdb'
+    # We always use 'flytau' since that's what our schema creates (not AWS's default 'ebdb')
     DB_NAME = os.environ.get('DB_NAME', 'flytau')
     DB_POOL_SIZE = int(os.environ.get('DB_POOL_SIZE', 5))
     DB_POOL_NAME = 'flytau_pool'
@@ -41,7 +40,7 @@ class ProductionConfig(Config):
 
 
 class TestingConfig(Config):
-    """Testing configuration."""
+    """For running tests - uses a separate database."""
     TESTING = True
     DB_NAME = os.environ.get('TEST_DB_NAME', 'flytau_test')
 

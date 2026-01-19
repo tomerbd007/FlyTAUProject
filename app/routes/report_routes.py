@@ -1,4 +1,4 @@
-"""Admin report routes."""
+"""Routes for the analytics reports (manager-only section)."""
 from datetime import datetime
 from flask import render_template, request
 from app.services import report_service
@@ -6,7 +6,7 @@ from app.utils.decorators import manager_required
 
 
 def register_report_routes(app):
-    """Register report routes with the Flask app."""
+    """Hooks up the report URLs for managers."""
     
     @app.route('/admin/reports')
     @manager_required

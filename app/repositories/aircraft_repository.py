@@ -1,9 +1,9 @@
-"""Database access for airplanes and seat configurations."""
+"""All the SQL queries for airplanes and their seat configurations."""
 from app.db import execute_query
 
 
 def get_airplane_by_id(airplane_id):
-    """Get airplane with computed seat configuration."""
+    """Gets an airplane with all its seat configuration calculated."""
     sql = """
         SELECT AirplaneId, PurchaseDate, Manufacturer, 
                CouchRows, CouchCols, BusinessRows, BusinessCols
@@ -33,7 +33,7 @@ def get_airplane_by_id(airplane_id):
 
 
 def get_all_airplanes():
-    """Get all airplanes with seat configurations."""
+    """Gets all airplanes with their seat configurations."""
     sql = """
         SELECT AirplaneId, PurchaseDate, Manufacturer, 
                CouchRows, CouchCols, BusinessRows, BusinessCols
@@ -71,7 +71,7 @@ HOME_BASE_AIRPORT = 'TLV'
 
 
 def get_aircraft_location_at_time(airplane_id, at_datetime):
-    """Find where an aircraft will be at a given time based on flight history."""
+    """Figures out where a plane will be at a given time based on its flight history."""
     sql = """
         SELECT f.DestPort
         FROM Flights f
@@ -89,7 +89,7 @@ def get_aircraft_location_at_time(airplane_id, at_datetime):
 
 
 def get_available_airplanes(departure_datetime, arrival_datetime, origin_airport=None):
-    """Get airplanes not assigned to flights during the time range and at the origin airport."""
+    """Finds planes that aren't flying during the time slot and are at the origin airport."""
     # Get all airplanes
     sql_all = """
         SELECT a.AirplaneId, a.PurchaseDate, a.Manufacturer, 

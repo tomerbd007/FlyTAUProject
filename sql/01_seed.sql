@@ -1,14 +1,12 @@
 -- =============================================================================
--- FLYTAU Fixed Seed Data (idempotent)
--- Use: mysql -u root -p flytau < sql/01_seed_fixed.sql
--- This seed is safe to re-run: main tables use INSERT ... AS alias ... ON DUPLICATE KEY UPDATE
--- Association tables use INSERT IGNORE to skip duplicate link rows.
+-- FlyTAU Sample Data
+-- Safe to re-run - uses INSERT ON DUPLICATE KEY UPDATE and INSERT IGNORE
 -- =============================================================================
 
 USE flytau;
 
 -- =============================================================================
--- AIRPORTS (Global) - with coordinates for distance calculations
+-- AIRPORTS - coordinates are for calculating flight distances
 -- =============================================================================
 INSERT INTO Airports (Code, Name, City, Country, Latitude, Longitude) VALUES
 -- Middle East
@@ -69,8 +67,7 @@ INSERT INTO Airports (Code, Name, City, Country, Latitude, Longitude) VALUES
 ('NBO', 'Jomo Kenyatta International Airport', 'Nairobi', 'Kenya', -1.3192, 36.9278);
 
 -- =============================================================================
--- MANAGERS (2)
--- Password: password123
+-- MANAGERS - password is 'password123' for testing
 -- =============================================================================
 INSERT INTO Managers (ManagerId, Password, FirstName, SecondName, PhoneNum) VALUES
 ('M001', '$2b$12$iprkA2Ulb3EIipYD.lErfOrsM4L4rR.tME9Uqiy6zTpVszd3dOTN6', 'David', 'Cohen', '["972-54-1234567"]'),
@@ -196,7 +193,8 @@ ON DUPLICATE KEY UPDATE
   SecondName = new_guest.SecondName;
 
 -- -----------------------------------------------------------------------------
--- AIRPLANES (separate columns for rows and cols)
+-- AIRPLANES - CouchRows/Cols = economy, BusinessRows/Cols = business class
+-- Small planes (Dassault) don't have business class
 -- -----------------------------------------------------------------------------
 INSERT INTO Airplanes (AirplaneId, Manufacturer, CouchRows, CouchCols, BusinessRows, BusinessCols) VALUES
 ('PLANE-001', 'Boeing', 20, 6, 5, 4),
@@ -214,7 +212,7 @@ ON DUPLICATE KEY UPDATE
   BusinessCols = new_airplanes.BusinessCols;
 
 -- -----------------------------------------------------------------------------
--- FLIGHTS
+-- FLIGHTS - some active, some for testing different statuses
 -- -----------------------------------------------------------------------------
 INSERT INTO Flights (FlightId, Airplanes_AirplaneId, OriginPort, DestPort, DepartureDate, DepartureHour, Duration, Status, EconomyPrice, BusinessPrice) VALUES
 ('FT101', 'A001', 'TLV', 'JFK', '2026-02-15', '08:00:00', 660, 'active', 500.00, 1500.00),
@@ -298,13 +296,9 @@ INSERT INTO Managers_edits_Flights (Managers_ManagerId, Flights_FlightId) VALUES
 ('M002', 'FT104');
 
 -- =============================================================================
--- ROUTES - All airport combinations with calculated durations
--- Generated automatically using Haversine formula
--- Duration = (distance_km / 850 km/h) * 60 + 45 min overhead
--- Total: 2450 routes (50 airports × 49 destinations)
+-- ROUTES - Auto-generated using distance and avg 850km/h + 45min overhead
+-- See generate_routes.py for the math. Load from routes_seed.sql
 -- =============================================================================
--- Routes are loaded from routes_seed.sql via SOURCE command or can be
--- concatenated during database initialization
 
 -- -----------------------------------------------------------------------------
 -- TICKETS (skip duplicates)

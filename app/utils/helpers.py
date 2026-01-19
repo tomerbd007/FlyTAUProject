@@ -1,18 +1,18 @@
-"""Password hashing, formatting, and utility functions."""
+"""Handy utility functions - password hashing, formatting, random codes."""
 import bcrypt
 import random
 import string
 
 
 def hash_password(password):
-    """Hash password with bcrypt."""
+    """Securely hashes a password using bcrypt."""
     salt = bcrypt.gensalt(rounds=12)
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed.decode('utf-8')
 
 
 def check_password(password, password_hash):
-    """Verify password against hash."""
+    """Checks if a password matches its hash."""
     try:
         return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
     except Exception:
@@ -20,7 +20,7 @@ def check_password(password, password_hash):
 
 
 def generate_booking_code(length=8):
-    """Generate random alphanumeric booking code."""
+    """Generates a random booking code (avoids confusing characters like 0/O, 1/I)."""
     chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  # no confusing chars (0,O,I,1)
     return ''.join(random.choices(chars, k=length))
 
@@ -42,7 +42,7 @@ def format_time(dt, format_str="%H:%M"):
 
 
 def format_duration(minutes):
-    """Format minutes as '5h 30m'."""
+    """Turns minutes into a nice readable format like '5h 30m'."""
     if minutes is None:
         return ""
     hours = minutes // 60

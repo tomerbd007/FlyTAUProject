@@ -1,4 +1,4 @@
-"""Order creation, cancellation, and refund calculations."""
+"""Handles booking orders - creating them, canceling them, figuring out refunds."""
 from datetime import datetime, timedelta
 from decimal import Decimal
 from app.repositories import order_repository, flight_repository
@@ -12,7 +12,11 @@ CANCELLATION_CUTOFF_HOURS = 36
 def create_order(flight_id, airplane_id, selected_seats, economy_price, business_price,
                  registered_email=None, guest_email=None, guest_first_name=None, guest_last_name=None,
                  guest_phone=None):
-    """Create order with selected seats. Returns booking code."""
+    """Books the seats and creates an order. Returns the booking code."""
+    # Ensure prices are valid numbers (handle NULL from database)
+    economy_price = economy_price or 0
+    business_price = business_price or 0
+    
     # Verify all seats are still available
     taken_seats = flight_repository.get_taken_seats(flight_id, airplane_id)
     taken_set = {(t['RowNum'], t['Seat']) for t in taken_seats}
@@ -83,17 +87,17 @@ def create_order(flight_id, airplane_id, selected_seats, economy_price, business
 
 
 def get_order_by_booking_code(booking_code):
-    """Get order by its booking code."""
+    """Looks up an order using the booking code (like FLY-ABC123)."""
     return order_repository.get_order_by_booking_code(booking_code.upper())
 
 
 def get_order_with_tickets(booking_code):
-    """Get order with all tickets and flight details."""
+    """Gets the order along with all its tickets and flight info."""
     return order_repository.get_order_with_tickets(booking_code.upper())
 
 
 def get_customer_orders(email, is_registered=True, status_filter=None):
-    """Get all orders for a customer."""
+    """Fetches all orders for a customer (registered or guest)."""
     if is_registered:
         return order_repository.get_orders_by_registered_customer(email.lower(), status_filter)
     else:
@@ -101,7 +105,7 @@ def get_customer_orders(email, is_registered=True, status_filter=None):
 
 
 def get_order_for_guest(booking_code, email):
-    """Get order for guest (requires matching code and email)."""
+    """Retrieves a guest order - needs both the code and email to verify ownership."""
     order = order_repository.get_order_by_code_and_email(booking_code.upper(), email.lower())
     
     if not order:
@@ -111,7 +115,7 @@ def get_order_for_guest(booking_code, email):
 
 
 def can_cancel_order(order):
-    """Check if order can be canceled (must be 36h+ before departure)."""
+    """Checks if it's not too late to cancel (must be 36+ hours before departure)."""
     if order.get('Status') not in ('confirmed', 'active'):
         return False
     
@@ -153,7 +157,7 @@ def can_cancel_order(order):
 
 
 def calculate_cancellation_fee(paid_total):
-    """Calculate 5% cancellation fee and refund amount."""
+    """Figures out the 5% fee and how much the customer gets back."""
     total = Decimal(str(paid_total))
     fee = total * CANCELLATION_FEE_PERCENT
     refund = total - fee
@@ -161,7 +165,7 @@ def calculate_cancellation_fee(paid_total):
 
 
 def cancel_order(booking_code, email):
-    """Cancel order. Returns (original_cost, fee, refund)."""
+    """Cancels an order and returns the original cost, fee, and refund amount."""
     order = get_order_with_tickets(booking_code)
     
     if not order:
@@ -194,7 +198,7 @@ def cancel_order(booking_code, email):
 
 
 def update_order_seats(booking_code, new_seats, flight):
-    """Update seats for an existing order."""
+    """Lets a customer change which seats they have on an existing booking."""
     from decimal import Decimal
     
     order = get_order_with_tickets(booking_code)
