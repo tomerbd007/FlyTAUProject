@@ -52,7 +52,6 @@ ON DUPLICATE KEY UPDATE
 -- P011-P016 are sitting at TLV ready to be assigned
 -- -----------------------------------------------------------------------------
 INSERT INTO Pilot (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining, JoinDate, Street, City, HouseNum) VALUES
--- Assigned pilots (will fly scheduled flights)
 ('P001', 'Yossi', 'Mizrahi', '["972-52-1111111"]', TRUE, '2016-02-01', 'Pilot Ave', 'Tel Aviv', '12'),
 ('P002', 'Avi', 'Goldberg', '["972-54-2222222"]', TRUE, '2016-03-10', 'Pilot Ave', 'Tel Aviv', '14'),
 ('P003', 'Moshe', 'Peretz', '["972-50-3333333"]', TRUE, '2017-05-20', 'Aviation Rd', 'Tel Aviv', '16'),
@@ -63,7 +62,6 @@ INSERT INTO Pilot (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining, Joi
 ('P008', 'Gal', 'Friedman', '["972-54-8888888"]', FALSE, '2021-04-12', 'Crew Ln', 'Netanya', '5'),
 ('P009', 'Oren', 'Levy', '["972-50-9999999"]', FALSE, '2019-09-09', 'Air St', 'Ramat Gan', '8'),
 ('P010', 'Tal', 'Avraham', '["972-52-1010101"]', FALSE, '2020-11-11', 'Air St', 'Ramat Gan', '10'),
--- Unassigned pilots at TLV base (6 new - 4 with long flight training = 2/3)
 ('P011', 'Alon', 'Baruch', '["972-52-1111101"]', TRUE, '2020-03-15', 'Ben Gurion St', 'Tel Aviv', '22'),
 ('P012', 'Benny', 'Carmel', '["972-54-1212101"]', TRUE, '2019-07-20', 'Ben Gurion St', 'Tel Aviv', '24'),
 ('P013', 'Chaim', 'Dayan', '["972-50-1313101"]', TRUE, '2021-01-10', 'Airport Rd', 'Tel Aviv', '26'),
@@ -87,7 +85,6 @@ ON DUPLICATE KEY UPDATE
 -- A021-A032 are at TLV ready to be assigned
 -- -----------------------------------------------------------------------------
 INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTraining, JoinDate, Street, City, HouseNum) VALUES
--- Assigned flight attendants (will fly scheduled flights)
 ('A001', 'Maya', 'Stern', '["972-50-1111111"]', TRUE, '2017-03-01', 'Cabin Rd', 'Tel Aviv', '2'),
 ('A002', 'Noa', 'Klein', '["972-52-1212121"]', TRUE, '2018-04-10', 'Cabin Rd', 'Tel Aviv', '4'),
 ('A003', 'Shira', 'Wolf', '["972-54-1313131"]', TRUE, '2017-05-12', 'Service St', 'Haifa', '6'),
@@ -108,7 +105,6 @@ INSERT INTO FlightAttendant (Id, FirstName, SecondName, PhoneNum, LongFlightsTra
 ('A018', 'Lior', 'Stone', '["972-54-2828282"]', FALSE, '2018-06-06', 'Cabin Way', 'Kfar Saba', '14'),
 ('A019', 'Adi', 'Glass', '["972-50-2929292"]', FALSE, '2020-10-10', 'Flight Ave', 'Eilat', '9'),
 ('A020', 'Chen', 'Gold', '["972-52-3030303"]', FALSE, '2019-09-09', 'Flight Ave', 'Eilat', '11'),
--- Unassigned flight attendants at TLV base (12 new - 8 with long flight training = 2/3)
 ('A021', 'Orly', 'Haim', '["972-50-3131313"]', TRUE, '2020-04-15', 'Ben Gurion St', 'Tel Aviv', '40'),
 ('A022', 'Pnina', 'Ilan', '["972-52-3232323"]', TRUE, '2019-08-20', 'Ben Gurion St', 'Tel Aviv', '42'),
 ('A023', 'Rachel', 'Jacob', '["972-54-3333313"]', TRUE, '2021-02-10', 'Airport Rd', 'Tel Aviv', '44'),

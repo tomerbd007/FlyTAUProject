@@ -79,7 +79,6 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```env
-SECRET_KEY=your-secret-key-here
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
