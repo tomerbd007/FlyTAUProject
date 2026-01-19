@@ -1,6 +1,10 @@
 # ✈️ FlyTAU - Flight Management System
 
 <p align="center">
+  <img src="app/static/img/logo.png" alt="FLYTAU Logo" width="300">
+</p>
+
+<p align="center">
   <strong>Database Systems Design & Information Systems Engineering</strong><br>
   Tel Aviv University
 </p>
@@ -42,13 +46,13 @@ Use these credentials to explore the application:
 ### 🛠️ Manager Login (`/admin/login`)
 | Field | Value |
 |-------|-------|
-| Employee Code | `M001` |
+| Employee Id | `M001` |
 | Password | `password123` |
 
 ### 🛠️ Manager Login (Alternative)
 | Field | Value |
 |-------|-------|
-| Employee Code | `M002` |
+| Employee Id | `M002` |
 | Password | `password123` |
 
 ---

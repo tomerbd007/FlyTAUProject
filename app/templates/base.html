@@ -27,7 +27,8 @@
             top: 0;
             z-index: 50;
         }
-        .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; }
+        .top-nav .brand { font-weight: 700; color: #004b71; font-size: 1.05rem; text-decoration: none; display: flex; align-items: center; }
+        .top-nav .brand img { height: 36px; width: auto; }
         .top-nav .links { display:flex; gap:16px; align-items:center; flex-wrap: wrap; }
         .top-nav a { color: #004b71; text-decoration: none; font-weight: 600; }
 
@@ -65,7 +66,7 @@
 </head>
 <body>
     <nav class="top-nav" aria-label="Main navigation">
-        <a class="brand" href="{{ url_for('index') }}">FLYTAU</a>
+        <a class="brand" href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="FLYTAU"></a>
         <div class="links" role="navigation">
             {% if session.get('role') == 'customer' %}
                 {# Logged in as customer #}

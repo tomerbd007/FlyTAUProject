@@ -320,11 +320,9 @@
                            id="booking_code" 
                            name="booking_code" 
                            required
-                           placeholder="e.g., FLY-ABC123"
-                           pattern="FLY-[A-Z0-9]{6}"
-                           title="Booking code format: FLY- followed by 6 characters"
+                           placeholder="Enter your booking code"
                            value="{{ request.form.get('booking_code', '') }}">
-                    <small class="form-hint">Format: FLY-XXXXXX (found in your confirmation email)</small>
+                    <small class="form-hint">Found in your confirmation email</small>
                 </div>
                 
                 <div class="form-group">
