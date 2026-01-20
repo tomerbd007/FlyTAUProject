@@ -3,7 +3,7 @@ from app.repositories import user_repository
 from app.utils.helpers import hash_password, check_password
 
 
-def register_customer(email, password, first_name, last_name, passport=None, date_of_birth=None):
+def register_customer(email, password, first_name, last_name, phone=None, passport=None, date_of_birth=None):
     """Signs up a new customer. Throws an error if the email's already taken."""
     existing = user_repository.find_registered_customer_by_email(email.lower())
     if existing:
@@ -16,8 +16,9 @@ def register_customer(email, password, first_name, last_name, passport=None, dat
         password_hash=password_hash,
         first_name=first_name,
         last_name=last_name,
-        passport=passport,
-        date_of_birth=date_of_birth
+        phone=phone,
+        passport_num=passport,
+        birth_date=date_of_birth
     )
     
     return email.lower()

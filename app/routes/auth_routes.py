@@ -17,6 +17,9 @@ def register_auth_routes(app):
             confirm_password = request.form.get('confirm_password', '')
             first_name = request.form.get('first_name', '').strip()
             last_name = request.form.get('last_name', '').strip()
+            phone = request.form.get('phone', '').strip() or None
+            passport = request.form.get('passport', '').strip() or None
+            birthdate = request.form.get('birthdate', '').strip() or None
             
             # Validation
             errors = []
@@ -38,7 +41,7 @@ def register_auth_routes(app):
             
             # Attempt registration
             try:
-                auth_service.register_customer(email, password, first_name, last_name)
+                auth_service.register_customer(email, password, first_name, last_name, phone, passport, birthdate)
                 flash('Registration successful! Please log in.', 'success')
                 return redirect(url_for('login'))
             except ValueError as e:

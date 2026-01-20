@@ -3,7 +3,7 @@
         <div class="flash-messages">
             {% for category, message in messages %}
                 <div class="alert alert-{{ category }}">
-                    {{ message }}
+                    <span class="alert-text">{{ message }}</span>
                     <button type="button" class="alert-close" onclick="this.parentElement.remove();">&times;</button>
                 </div>
             {% endfor %}
